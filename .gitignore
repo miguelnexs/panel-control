@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dist-electron/
+out/
+build/
+*.log
+.DS_Store
+.env
+.env.*
+coverage/
+.vscode/
+.idea/
+Thumbs.db
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

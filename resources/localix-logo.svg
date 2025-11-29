@@ -1,0 +1,32 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo circular con gradiente -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f8fafc;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Círculo de fondo -->
+  <circle cx="256" cy="256" r="240" fill="url(#bgGradient)" stroke="#ffffff" stroke-width="8"/>
+  
+  <!-- Texto "LOCALIX" -->
+  <text x="256" y="280" font-family="Arial, sans-serif" font-size="72" font-weight="bold" text-anchor="middle" fill="url(#textGradient)">
+    LOCALIX
+  </text>
+  
+  <!-- Subtítulo "DASHBOARD" -->
+  <text x="256" y="320" font-family="Arial, sans-serif" font-size="24" font-weight="300" text-anchor="middle" fill="#ffffff" opacity="0.8">
+    DASHBOARD
+  </text>
+  
+  <!-- Elemento decorativo - puntos -->
+  <circle cx="120" cy="120" r="8" fill="#ffffff" opacity="0.6"/>
+  <circle cx="392" cy="120" r="8" fill="#ffffff" opacity="0.6"/>
+  <circle cx="120" cy="392" r="8" fill="#ffffff" opacity="0.6"/>
+  <circle cx="392" cy="392" r="8" fill="#ffffff" opacity="0.6"/>
+</svg>
