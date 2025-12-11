@@ -576,6 +576,11 @@ const UsersManager = ({ token, apiBase, role, createSignal }) => {
     return null;
   }
 
+  const empCount = employees.length;
+  const withEmail = employees.filter((e) => !!e.email).length;
+  const withDept = employees.filter((e) => !!e.department).length;
+  const uniqueDept = new Set(employees.map((e) => e.department).filter(Boolean)).size;
+
   return (
     <div className="space-y-4">
       {msg && (
@@ -942,7 +947,3 @@ const Dashboard = ({ token, role, userId, onSignOut }) => {
 };
 
 export default Dashboard;
-  const empCount = employees.length;
-  const withEmail = employees.filter((e) => !!e.email).length;
-  const withDept = employees.filter((e) => !!e.department).length;
-  const uniqueDept = new Set(employees.map((e) => e.department).filter(Boolean)).size;
