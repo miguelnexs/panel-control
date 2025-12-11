@@ -108,6 +108,14 @@ const Sidebar = ({ view, setView, onSignOut, role, orderNotif }) => {
       if (s === '1' || s === '0') setCollapsed(s === '1');
     } catch {}
   }, []);
+
+  useEffect(() => {
+    const handler = () => {
+      setUpdateMsg((m) => (m && m.type === 'info' && m.text.includes('Buscando') ? { type: 'info', text: 'No hay actualizaciones disponibles.' } : m));
+    };
+    window.addEventListener('upd-fallback', handler);
+    return () => window.removeEventListener('upd-fallback', handler);
+  }, []);
   useEffect(() => {
     try {
       localStorage.setItem('sidebar_collapsed', collapsed ? '1' : '0');
@@ -154,8 +162,19 @@ const Sidebar = ({ view, setView, onSignOut, role, orderNotif }) => {
   const asideClass = collapsed ? 'w-16' : 'w-64';
   const textClass = collapsed ? 'hidden' : 'inline';
   const tooltipClass = collapsed ? 'absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap px-2 py-1 rounded bg-gray-800 text-white text-xs shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none' : 'hidden';
-  const itemBase = `group relative w-full flex items-center ${collapsed ? 'justify-center' : ''} gap-2 px-3 py-2 rounded hover:bg-gray-800 transition`;
-  const activeClass = 'bg-gray-800 text-white';
+  const itemBase = `group relative w-full flex items-center ${collapsed ? 'justify-center' : ''} gap-2 px-3 py-2 rounded hover:bg-white/5 transition text-gray-300 hover:text-white`;
+  const activeClass = 'bg-gradient-to-r from-blue-600/20 to-white/5 text-white ring-1 ring-white/10';
+  const toneClasses = (key) => {
+    if (key === 'dashboard') return 'bg-blue-600/20 text-blue-300';
+    if (key === 'users') return 'bg-cyan-600/20 text-cyan-300';
+    if (key === 'productos') return 'bg-indigo-600/20 text-indigo-300';
+    if (key === 'categorias') return 'bg-violet-600/20 text-violet-300';
+    if (key === 'clientes') return 'bg-blue-600/20 text-blue-300';
+    if (key === 'ventas') return 'bg-emerald-600/20 text-emerald-300';
+    if (key === 'pedidos') return 'bg-rose-600/20 text-rose-300';
+    if (key === 'web') return 'bg-cyan-600/20 text-cyan-300';
+    return 'bg-blue-600/20 text-blue-300';
+  };
 
   const ToggleIcon = () => (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -164,13 +183,13 @@ const Sidebar = ({ view, setView, onSignOut, role, orderNotif }) => {
   );
 
   return (
-    <aside className={`${asideClass} shrink-0 bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 border-r border-white/10 text-gray-200 transition-all duration-200 flex flex-col`}>
+    <aside className={`${asideClass} shrink-0 bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950 border-r border-white/10 text-gray-200 transition-all duration-200 flex flex-col relative z-50`}>
       <div className="px-4 py-4 border-b border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {companyLogo ? (
-            <img src={companyLogo} alt="Logo" className="w-8 h-8 rounded object-cover border border-white/20" />
+            <img src={companyLogo} alt="Logo" className="w-8 h-8 rounded object-cover border border-white/20 ring-2 ring-white/10" />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold ring-2 ring-white/10">
               {(companyName || 'P').charAt(0).toUpperCase()}
             </div>
           )}
@@ -185,7 +204,12 @@ const Sidebar = ({ view, setView, onSignOut, role, orderNotif }) => {
         </button>
       </div>
       <div className="px-4 py-2 border-b border-white/10">
-        <div className={`${textClass} text-xs text-gray-400`}>Panel {role === 'super_admin' ? 'Super Administrador' : role === 'admin' ? 'Administrador' : 'Empleado'}</div>
+        <div className={`${textClass} text-xs text-gray-300 flex items-center gap-2`}>
+          <span>Panel {role === 'super_admin' ? 'Super Administrador' : role === 'admin' ? 'Administrador' : 'Empleado'}</span>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full border border-white/10 bg-blue-600/15 text-blue-300 text-[11px]`}>
+            {role}
+          </span>
+        </div>
       </div>
       <nav className="p-2 space-y-1">
         <button
@@ -194,7 +218,9 @@ const Sidebar = ({ view, setView, onSignOut, role, orderNotif }) => {
           title="Dashboard"
         >
           {view === 'dashboard' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-          <Icon name="dashboard" />
+          <span className={`w-10 h-9 rounded-md flex items-center justify-center ${toneClasses('dashboard')} ${view === 'dashboard' ? 'ring-1 ring-white/20' : ''}`}>
+            <Icon name="dashboard" className="w-5 h-5" />
+          </span>
           <span className={textClass}>Dashboard</span>
           <span className={tooltipClass}>Dashboard</span>
         </button>
@@ -205,7 +231,9 @@ const Sidebar = ({ view, setView, onSignOut, role, orderNotif }) => {
           title="Usuarios"
         >
           {view === 'users' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-          <Icon name="users" />
+          <span className={`w-10 h-9 rounded-md flex items-center justify-center ${toneClasses('users')} ${view === 'users' ? 'ring-1 ring-white/20' : ''}`}>
+            <Icon name="users" className="w-5 h-5" />
+          </span>
           <span className={`${textClass} ${role !== 'admin' && role !== 'super_admin' ? 'opacity-50' : ''}`}>Usuarios</span>
           <span className={tooltipClass}>Usuarios</span>
         </button>
@@ -215,7 +243,9 @@ const Sidebar = ({ view, setView, onSignOut, role, orderNotif }) => {
           title="Productos"
         >
           {view === 'productos' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-          <Icon name="products" />
+          <span className={`w-10 h-9 rounded-md flex items-center justify-center ${toneClasses('productos')} ${view === 'productos' ? 'ring-1 ring-white/20' : ''}`}>
+            <Icon name="products" className="w-5 h-5" />
+          </span>
           <span className={textClass}>Productos</span>
           <span className={tooltipClass}>Productos</span>
         </button>
@@ -225,7 +255,9 @@ const Sidebar = ({ view, setView, onSignOut, role, orderNotif }) => {
           title="Categorías"
         >
           {view === 'categorias' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-          <Icon name="categories" />
+          <span className={`w-10 h-9 rounded-md flex items-center justify-center ${toneClasses('categorias')} ${view === 'categorias' ? 'ring-1 ring-white/20' : ''}`}>
+            <Icon name="categories" className="w-5 h-5" />
+          </span>
           <span className={textClass}>Categorías</span>
           <span className={tooltipClass}>Categorías</span>
         </button>
@@ -235,7 +267,9 @@ const Sidebar = ({ view, setView, onSignOut, role, orderNotif }) => {
           title="Clientes"
         >
           {view === 'clientes' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-          <Icon name="clients" />
+          <span className={`w-10 h-9 rounded-md flex items-center justify-center ${toneClasses('clientes')} ${view === 'clientes' ? 'ring-1 ring-white/20' : ''}`}>
+            <Icon name="clients" className="w-5 h-5" />
+          </span>
           <span className={textClass}>Clientes</span>
           {clientsStats?.total > 0 && (
             <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full bg-blue-600 text-white text-xs">
@@ -250,7 +284,9 @@ const Sidebar = ({ view, setView, onSignOut, role, orderNotif }) => {
           title="Ventas"
         >
           {view === 'ventas' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-          <Icon name="sales" />
+          <span className={`w-10 h-9 rounded-md flex items-center justify-center ${toneClasses('ventas')} ${view === 'ventas' ? 'ring-1 ring-white/20' : ''}`}>
+            <Icon name="sales" className="w-5 h-5" />
+          </span>
           <span className={textClass}>Ventas</span>
           {(salesStats?.today_sales || salesStats?.total_sales) ? (
             <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full bg-emerald-600 text-white text-xs">
@@ -265,7 +301,9 @@ const Sidebar = ({ view, setView, onSignOut, role, orderNotif }) => {
           title="Pedidos"
         >
           {view === 'pedidos' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-          <Icon name="orders" />
+          <span className={`w-10 h-9 rounded-md flex items-center justify-center ${toneClasses('pedidos')} ${view === 'pedidos' ? 'ring-1 ring-white/20' : ''}`}>
+            <Icon name="orders" className="w-5 h-5" />
+          </span>
           <span className={textClass}>Pedidos</span>
           {orderNotif > 0 && (
             <span className="absolute right-2 top-2 inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full bg-blue-600 text-white text-xs">{orderNotif}</span>
@@ -278,7 +316,9 @@ const Sidebar = ({ view, setView, onSignOut, role, orderNotif }) => {
           title="Página web"
         >
           {view === 'web' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-          <Icon name="web" />
+          <span className={`w-10 h-9 rounded-md flex items-center justify-center ${toneClasses('web')} ${view === 'web' ? 'ring-1 ring-white/20' : ''}`}>
+            <Icon name="web" className="w-5 h-5" />
+          </span>
           <span className={textClass}>Página web</span>
           <span className={tooltipClass}>Página web</span>
         </button>
@@ -307,6 +347,37 @@ const KPI = ({ label, value, delta, positive }) => (
     )}
   </div>
 );
+
+const StatCard = ({ label, value, delta, positive, icon, tone = 'blue' }) => {
+  const toneBg = tone === 'emerald'
+    ? 'bg-emerald-600/20 text-emerald-300'
+    : tone === 'indigo'
+    ? 'bg-indigo-600/20 text-indigo-300'
+    : tone === 'violet'
+    ? 'bg-violet-600/20 text-violet-300'
+    : tone === 'rose'
+    ? 'bg-rose-600/20 text-rose-300'
+    : tone === 'cyan'
+    ? 'bg-cyan-600/20 text-cyan-300'
+    : 'bg-blue-600/20 text-blue-300';
+  return (
+    <div className="group relative rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden transition shadow-sm hover:shadow-md">
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-br from-white/10 to-transparent transition" />
+      <div className="p-4 flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${toneBg}`}>
+          <Icon name={icon} className="w-5 h-5" />
+        </div>
+        <div className="flex-1">
+          <div className="text-xs text-gray-400">{label}</div>
+          <div className="text-2xl font-semibold text-white">{value}</div>
+          {typeof delta !== 'undefined' && (
+            <div className={`text-xs mt-1 ${positive ? 'text-emerald-300' : 'text-rose-300'}`}>{positive ? '▲' : '▼'} {delta}%</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const SimpleLineChart = ({ data }) => {
   const points = useMemo(() => {
@@ -340,12 +411,12 @@ const SimpleBarChart = ({ data }) => {
 
 const ChartsPanel = ({ seriesA, seriesB }) => (
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-      <div className="text-sm text-gray-300 mb-2">Tendencia de actividad</div>
+    <div className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-4">
+      <div className="text-sm text-gray-200 font-medium mb-2">Tendencia de actividad</div>
       <SimpleLineChart data={seriesA} />
     </div>
-    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-      <div className="text-sm text-gray-300 mb-2">Distribución por departamentos</div>
+    <div className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-4">
+      <div className="text-sm text-gray-200 font-medium mb-2">Distribución por departamentos</div>
       <SimpleBarChart data={seriesB} />
     </div>
   </div>
@@ -560,33 +631,57 @@ const UsersManager = ({ token, apiBase, role, createSignal }) => {
         </div>
       )}
       
-      {role === 'admin' && (
-        <div className="bg-gradient-to-br from-gray-900 via-gray-850 to-gray-900 border border-white/10 rounded-lg p-4">
+      {role === 'super_admin' && tenants.length > 0 && (
+        <div className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-4">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-white font-medium">Empleados</div>
-            <div className="flex items-center gap-2">
-              <button onClick={loadEmployees} className="px-2 py-1 text-xs rounded bg-gray-600 hover:bg-gray-700 text-white">Recargar</button>
+            <div className="text-white font-medium">Administradores</div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {tenants.map((t) => (
+              <StatCard key={t.id} label={t.admin_username} value={typeof t.users_count === 'number' ? t.users_count : '—'} icon="users" tone="indigo" />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {role === 'admin' && (
+        <>
+          <div className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-4">
+            <div className="text-white font-medium mb-3">Estadísticas</div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              <StatCard label="Empleados" value={empCount} icon="users" tone="cyan" />
+              <StatCard label="Con correo" value={withEmail} icon="users" tone="blue" />
+              <StatCard label="Con departamento" value={withDept} icon="categories" tone="violet" />
+              <StatCard label="Departamentos" value={uniqueDept} icon="categories" tone="indigo" />
             </div>
           </div>
-          <ul className="space-y-2">
-            {employees.map((emp) => (
-              <li key={emp.id} className="flex items-center justify-between bg-gray-700/40 border border-white/10 rounded-lg p-3 text-sm text-white hover:bg-gray-700/60 hover:border-white/20 transition">
-                <span className="flex-1 min-w-0">
-                  <span className="font-medium">{emp.username}</span>
-                  <span className="text-gray-300 ml-2 truncate">{emp.first_name} {emp.last_name}</span>
-                  <span className="text-gray-400 ml-2 text-xs truncate">{emp.email}</span>
-                </span>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button onClick={() => startEdit(emp)} className="px-2 py-1 text-xs rounded bg-indigo-600 hover:bg-indigo-700 text-white">Editar</button>
-                  <button onClick={() => removeEmployee(emp.id)} className="px-2 py-1 text-xs rounded bg-red-600 hover:bg-red-700 text-white">Eliminar</button>
-                </div>
-              </li>
-            ))}
-            {employees.length === 0 && (
-              <li className="text-gray-300 text-sm">No hay empleados registrados.</li>
-            )}
-          </ul>
-        </div>
+          <div className="bg-gradient-to-br from-gray-900 via-gray-850 to-gray-900 border border-white/10 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-white font-medium">Empleados</div>
+              <div className="flex items-center gap-2">
+                <button onClick={loadEmployees} className="px-2 py-1 text-xs rounded bg-gray-600 hover:bg-gray-700 text-white">Recargar</button>
+              </div>
+            </div>
+            <ul className="space-y-2">
+              {employees.map((emp) => (
+                <li key={emp.id} className="flex items-center justify-between bg-gray-700/40 border border-white/10 rounded-lg p-3 text-sm text-white hover:bg-gray-700/60 hover:border-white/20 transition">
+                  <span className="flex-1 min-w-0">
+                    <span className="font-medium">{emp.username}</span>
+                    <span className="text-gray-300 ml-2 truncate">{emp.first_name} {emp.last_name}</span>
+                    <span className="text-gray-400 ml-2 text-xs truncate">{emp.email}</span>
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button onClick={() => startEdit(emp)} className="px-2 py-1 text-xs rounded bg-indigo-600 hover:bg-indigo-700 text-white">Editar</button>
+                    <button onClick={() => removeEmployee(emp.id)} className="px-2 py-1 text-xs rounded bg-red-600 hover:bg-red-700 text-white">Eliminar</button>
+                  </div>
+                </li>
+              ))}
+              {employees.length === 0 && (
+                <li className="text-gray-300 text-sm">No hay empleados registrados.</li>
+              )}
+            </ul>
+          </div>
+        </>
       )}
       {editing && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
@@ -648,33 +743,21 @@ const UsersManager = ({ token, apiBase, role, createSignal }) => {
 const DashboardView = ({ stats, seriesA, seriesB }) => (
   <div className="space-y-4">
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-      <KPI label="Usuarios" value={stats.usersCount} />
-      <KPI label="Productos" value={stats.productsCount} />
-      <KPI label="Activos" value={stats.productsActive} />
-      <KPI label="Categorías" value={stats.categoriesCount} />
-      <KPI label="Clientes" value={stats.clientsTotal} />
-      <KPI label="Pedidos" value={stats.ordersTotal} />
+      <StatCard label="Usuarios" value={stats.usersCount} icon="users" tone="cyan" />
+      <StatCard label="Productos" value={stats.productsCount} icon="products" tone="indigo" />
+      <StatCard label="Activos" value={stats.productsActive} icon="products" tone="emerald" />
+      <StatCard label="Categorías" value={stats.categoriesCount} icon="categories" tone="violet" />
+      <StatCard label="Clientes" value={stats.clientsTotal} icon="clients" tone="blue" />
+      <StatCard label="Pedidos" value={stats.ordersTotal} icon="orders" tone="rose" />
     </div>
     <ChartsPanel seriesA={seriesA} seriesB={seriesB} />
-    <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-      <div className="text-sm text-gray-300">Resumen</div>
+    <div className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-4">
+      <div className="text-sm text-gray-200 font-medium">Resumen</div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
-        <div className="bg-white/5 border border-white/10 rounded p-3">
-          <div className="text-xs text-gray-400">Nuevos clientes (mes)</div>
-          <div className="text-lg text-white font-semibold">{stats.clientsNewMonth}</div>
-        </div>
-        <div className="bg-white/5 border border-white/10 rounded p-3">
-          <div className="text-xs text-gray-400">Ventas hoy</div>
-          <div className="text-lg text-white font-semibold">{stats.salesToday}</div>
-        </div>
-        <div className="bg-white/5 border border-white/10 rounded p-3">
-          <div className="text-xs text-gray-400">Ventas totales</div>
-          <div className="text-lg text-white font-semibold">{stats.salesTotal}</div>
-        </div>
-        <div className="bg-white/5 border border-white/10 rounded p-3">
-          <div className="text-xs text-gray-400">Monto ventas</div>
-          <div className="text-lg text-white font-semibold">{Number(stats.salesAmount || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</div>
-        </div>
+        <StatCard label="Nuevos clientes (mes)" value={stats.clientsNewMonth} icon="clients" tone="blue" />
+        <StatCard label="Ventas hoy" value={stats.salesToday} icon="sales" tone="emerald" />
+        <StatCard label="Ventas totales" value={stats.salesTotal} icon="sales" tone="indigo" />
+        <StatCard label="Monto ventas" value={Number(stats.salesAmount || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })} icon="sales" tone="violet" />
       </div>
     </div>
   </div>
@@ -690,6 +773,8 @@ const Dashboard = ({ token, role, userId, onSignOut }) => {
   const [stats, setStats] = useState({ usersCount: 0, productsCount: 0, productsActive: 0, categoriesCount: 0, clientsTotal: 0, ordersTotal: 0, clientsNewMonth: 0, salesToday: 0, salesTotal: 0, salesAmount: 0 });
   const [seriesA, setSeriesA] = useState([3, 5, 4, 6, 8, 7, 9]);
   const [seriesB, setSeriesB] = useState([5, 3, 6, 2, 4, 7]);
+  const [updateMsg, setUpdateMsg] = useState(null);
+  const [appVersion, setAppVersion] = useState('');
 
   useEffect(() => {
     const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
@@ -730,6 +815,31 @@ const Dashboard = ({ token, role, userId, onSignOut }) => {
     return () => { active = false; clearInterval(id); };
   }, [token]);
 
+  useEffect(() => {
+    const onChecking = () => setUpdateMsg({ type: 'info', text: 'Buscando actualizaciones...' });
+    const onAvail = () => setUpdateMsg({ type: 'success', text: 'Actualización disponible. Descargando...' });
+    const onDown = () => setUpdateMsg({ type: 'success', text: 'Actualización descargada. Se instalará al cerrar.' });
+    const onNone = () => setUpdateMsg({ type: 'info', text: 'No hay actualizaciones disponibles.' });
+    const onErr = () => setUpdateMsg({ type: 'error', text: 'Error al buscar actualizaciones.' });
+    try {
+      if (window.electronAPI) {
+        window.electronAPI.onUpdateChecking(onChecking);
+        window.electronAPI.onUpdateAvailable(onAvail);
+        window.electronAPI.onUpdateDownloaded(onDown);
+        window.electronAPI.onUpdateNone(onNone);
+        window.electronAPI.onUpdateError(onErr);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (window.electronAPI && typeof window.electronAPI.getVersion === 'function') {
+        window.electronAPI.getVersion().then((v) => setAppVersion(v || ''));
+      }
+    } catch {}
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex">
         <Sidebar view={view} setView={(v) => { setNavLoading(true); setView(v); setTimeout(() => setNavLoading(false), 800); if (v === 'pedidos') { const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }; fetch(`${apiBase}/sales/notifications/read/`, { method: 'POST', headers }).then(() => setOrderNotif(0)).catch(() => setOrderNotif(0)); } }} onSignOut={onSignOut} role={role} orderNotif={orderNotif} />
@@ -745,6 +855,14 @@ const Dashboard = ({ token, role, userId, onSignOut }) => {
         <div className={`${navLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold text-white">{view === 'dashboard' ? 'Dashboard' : view === 'users' ? 'Gestión de usuarios' : view === 'productos' ? 'Productos' : view === 'categorias' ? 'Categorías' : view === 'clientes' ? 'Clientes' : view === 'ventas' ? 'Ventas' : view === 'web' ? 'Página web' : 'Pedidos'}</h1>
+            {view === 'dashboard' && (
+              <span className="ml-3 inline-flex items-center px-2 py-1 rounded-full bg-amber-600 text-white text-xs">
+                Panel actualizado
+              </span>
+            )}
+            {appVersion && (
+              <span className="ml-3 inline-flex items-center px-2 py-1 rounded-full bg-blue-600 text-white text-xs">v{appVersion}</span>
+            )}
           </div>
           <div className="flex items-center gap-5">
               {view === 'users' && role === 'admin' && (
@@ -754,7 +872,19 @@ const Dashboard = ({ token, role, userId, onSignOut }) => {
                 </button>
               )}
               <div className="text-sm text-gray-300">Rol: <span className="font-medium">{role}</span></div>
+              <button onClick={() => { try { if (window.electronAPI) { setUpdateMsg({ type: 'info', text: 'Buscando actualizaciones...' }); window.electronAPI.checkForUpdates(); } } catch {} }} className="px-2 py-1 text-xs rounded bg-gray-600 hover:bg-gray-700 text-white">
+                Buscar actualizaciones
+              </button>
+              {/* Fallback si no hay eventos en 15s */}
+              {updateMsg?.type === 'info' && updateMsg?.text?.includes('Buscando') && (
+                <script dangerouslySetInnerHTML={{ __html: `setTimeout(function(){window.dispatchEvent(new CustomEvent('upd-fallback'))},15000);` }} />
+              )}
           </div>
+          {view === 'dashboard' && updateMsg && (
+            <div className={`mt-3 p-3 rounded text-sm ${updateMsg.type === 'success' ? 'bg-green-600/20 text-green-200 border border-green-500/40' : updateMsg.type === 'error' ? 'bg-red-600/20 text-red-200 border border-red-500/40' : 'bg-blue-600/20 text-blue-200 border border-blue-500/40'}`}>
+              {updateMsg.text}
+            </div>
+          )}
         </div>
         {view === 'dashboard' && (
           <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
@@ -812,3 +942,7 @@ const Dashboard = ({ token, role, userId, onSignOut }) => {
 };
 
 export default Dashboard;
+  const empCount = employees.length;
+  const withEmail = employees.filter((e) => !!e.email).length;
+  const withDept = employees.filter((e) => !!e.department).length;
+  const uniqueDept = new Set(employees.map((e) => e.department).filter(Boolean)).size;

@@ -7,6 +7,8 @@ const App = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [updateProgress, setUpdateProgress] = useState(null);
+  const [updating, setUpdating] = useState(false);
   const [token, setToken] = useState(null);
   const [role, setRole] = useState(null);
   const [refresh, setRefresh] = useState(null);
@@ -29,6 +31,24 @@ const App = () => {
       const r = sessionStorage.getItem('globetrek_refresh_token');
       if (a) setToken(a);
       if (r) setRefresh(r);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    const onAvail = () => { setUpdating(true); setMessage({ type: 'success', text: 'Actualización disponible. Descargando...' }); };
+    const onDown = () => { setUpdating(false); setMessage({ type: 'success', text: 'Actualización descargada. Se instalará al cerrar.' }); };
+    const onErr = () => { setUpdating(false); setMessage({ type: 'error', text: 'Error al buscar actualizaciones.' }); };
+    try {
+      if (window.electronAPI) {
+        window.electronAPI.onUpdateAvailable(onAvail);
+        window.electronAPI.onUpdateDownloaded(onDown);
+        window.electronAPI.onUpdateError(onErr);
+        window.electronAPI.onUpdateProgress((_, p) => {
+          const perc = p && typeof p.percent === 'number' ? Math.floor(p.percent) : null;
+          setUpdateProgress(perc);
+        });
+        window.electronAPI.checkForUpdates();
+      }
     } catch {}
   }, []);
 
@@ -487,6 +507,14 @@ const App = () => {
         {message && (
           <div className={`mb-4 p-3 rounded text-sm ${message.type === 'success' ? 'bg-green-600/20 text-green-200 border border-green-500/40' : 'bg-red-600/20 text-red-200 border border-red-500/40'}`}>
             {message.text}
+          </div>
+        )}
+        {updating && typeof updateProgress === 'number' && (
+          <div className="mb-4">
+            <div className="h-3 bg-gray-700 rounded overflow-hidden">
+              <div className="h-3 bg-blue-600" style={{ width: `${updateProgress}%` }} />
+            </div>
+            <div className="mt-1 text-xs text-gray-300">Descargando actualización: {updateProgress}%</div>
           </div>
         )}
 

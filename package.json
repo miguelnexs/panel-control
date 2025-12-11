@@ -1,6 +1,6 @@
 {
   "name": "localix-dashboard",
-  "version": "1.0.0",
+  "version": "0.8.1",
   "description": "Localix Dashboard - Sistema de gestión empresarial",
   "main": "./out/main/index.js",
   "author": "example.com",
@@ -94,7 +94,7 @@
     "appId": "com.localix.dashboard",
     "productName": "Localix Dashboard",
     "directories": {
-      "output": "dist-electron"
+      "output": "dist-electron5"
     },
     "files": [
       "out/**/*",
@@ -103,6 +103,14 @@
     ],
     "win": {
       "target": "nsis"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "miguelnexs",
+        "repo": "panel-control",
+        "releaseType": "release"
+      }
+    ]
   }
 }

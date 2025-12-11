@@ -1,4 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import * as XLSX from 'xlsx';
+import { FileDown, FileSpreadsheet, Eye, ShoppingCart, DollarSign, CalendarDays } from 'lucide-react';
 
 const OrdersPage = ({ token, apiBase }) => {
   const [products, setProducts] = useState([]);
@@ -81,63 +85,179 @@ const OrdersPage = ({ token, apiBase }) => {
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
 
+  const tableRef = useRef(null);
+
+  const statusLabels = { pending: 'Pendiente', shipped: 'Enviado', delivered: 'Entregado', canceled: 'Cancelado' };
+  const statusStyles = {
+    pending: 'bg-yellow-500/20 text-yellow-200 border border-yellow-500/40',
+    shipped: 'bg-blue-500/20 text-blue-200 border border-blue-500/40',
+    delivered: 'bg-green-500/20 text-green-200 border border-green-500/40',
+    canceled: 'bg-red-500/20 text-red-200 border border-red-500/40',
+  };
+  const statusBadge = (st) => {
+    const label = statusLabels[st] || st;
+    const cls = statusStyles[st] || 'bg-gray-500/20 text-gray-200 border border-gray-500/40';
+    return <span className={`px-2 py-0.5 rounded text-xs ${cls}`}>{label}</span>;
+  };
+
+  const StatCard = ({ label, value, tone = 'blue', IconCmp }) => {
+    const toneBg = tone === 'emerald'
+      ? 'bg-emerald-600/20 text-emerald-300'
+      : tone === 'indigo'
+      ? 'bg-indigo-600/20 text-indigo-300'
+      : tone === 'violet'
+      ? 'bg-violet-600/20 text-violet-300'
+      : tone === 'rose'
+      ? 'bg-rose-600/20 text-rose-300'
+      : tone === 'cyan'
+      ? 'bg-cyan-600/20 text-cyan-300'
+      : 'bg-blue-600/20 text-blue-300';
+    return (
+      <div className="group relative rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden transition shadow-sm hover:shadow-md">
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-br from-white/10 to-transparent transition" />
+        <div className="p-4 flex items-center gap-3">
+          <div className={`w-10 h-9 rounded-lg flex items-center justify-center ${toneBg}`}>
+            {IconCmp ? <IconCmp className="w-5 h-5" /> : null}
+          </div>
+          <div className="flex-1">
+            <div className="text-xs text-gray-400">{label}</div>
+            <div className="text-2xl font-semibold text-white">{value}</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const statuses = ['pending', 'shipped', 'delivered', 'canceled'];
+  const [statusUpdating, setStatusUpdating] = useState(null);
+
+  const changeOrderStatus = async (id, newStatus) => {
+    setStatusUpdating(id);
+    try {
+      const res = await fetch(`${apiBase}/sales/status/${id}/`, {
+        method: 'PATCH',
+        headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || 'Error');
+      setOrders((os) => os.map((o) => (o.id === id ? { ...o, status: data.status } : o)));
+      setMsg({ type: 'success', text: 'Estado actualizado.' });
+    } catch (_) {
+      setMsg({ type: 'error', text: 'No se pudo actualizar el estado.' });
+    } finally {
+      setStatusUpdating(null);
+    }
+  };
+
+  const exportPDF = async () => {
+    try {
+      const el = tableRef.current;
+      if (!el) return;
+      const canvas = await html2canvas(el, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('landscape', 'pt', 'a4');
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW - 40;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      let y = 20;
+      pdf.setFontSize(12);
+      pdf.text(`Pedidos - ${new Date().toLocaleString()}`, 20, y);
+      y += 10;
+      pdf.addImage(imgData, 'PNG', 20, y, imgW, Math.min(imgH, pageH - y - 20));
+      pdf.save('pedidos.pdf');
+      setMsg({ type: 'success', text: 'PDF generado correctamente.' });
+    } catch (e) {
+      setMsg({ type: 'error', text: 'No se pudo generar el PDF.' });
+    }
+  };
+
+  const exportExcel = () => {
+    try {
+      const rows = orders.map((o) => ({
+        Pedido: o.order_number,
+        Cliente: o.client?.full_name,
+        Estado: o.status,
+        Total: Number(o.total_amount || 0),
+        Fecha: new Date(o.created_at).toLocaleString(),
+        Items: o.items_count,
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Pedidos');
+      XLSX.writeFile(wb, 'pedidos.xlsx');
+      setMsg({ type: 'success', text: 'Excel generado correctamente.' });
+    } catch (e) {
+      setMsg({ type: 'error', text: 'No se pudo generar el Excel.' });
+    }
+  };
+
   return (
     <div className="space-y-4 relative">
       {/* loading overlay removido */}
       {msg && (<div className={`p-3 rounded text-sm ${msg.type === 'success' ? 'bg-green-600/20 text-green-200 border border-green-500/40' : 'bg-red-600/20 text-red-200 border border-red-500/40'}`}>{msg.text}</div>)}
       <div className={`opacity-100`}>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <div className="bg-gray-800/60 border border-white/10 rounded p-2">
-          <div className="text-xs text-gray-400">Total pedidos</div>
-          <div className="text-base text-white font-semibold">{stats.totalOrders}</div>
-        </div>
-        <div className="bg-gray-800/60 border border-white/10 rounded p-2">
-          <div className="text-xs text-gray-400">Monto (página)</div>
-          <div className="text-base text-white font-semibold">{stats.amountSum.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</div>
-        </div>
-        <div className="bg-gray-800/60 border border-white/10 rounded p-2">
-          <div className="text-xs text-gray-400">Pedidos hoy</div>
-          <div className="text-base text-white font-semibold">{stats.todayCount}</div>
-        </div>
-        <div className="bg-gray-800/60 border border-white/10 rounded p-2">
-          <div className="text-xs text-gray-400">Este mes (página)</div>
-          <div className="text-base text-white font-semibold">{stats.monthCount}</div>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        <StatCard label="Total pedidos" value={stats.totalOrders} IconCmp={ShoppingCart} tone="cyan" />
+        <StatCard label="Monto (página)" value={stats.amountSum.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })} IconCmp={DollarSign} tone="violet" />
+        <StatCard label="Pedidos hoy" value={stats.todayCount} IconCmp={CalendarDays} tone="emerald" />
+        <StatCard label="Este mes (página)" value={stats.monthCount} IconCmp={CalendarDays} tone="indigo" />
       </div>
 
-      <div className="bg-white/5 border border-white/10 rounded p-4">
+      <div className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="text-white font-medium">Pedidos</div>
-          <div className="text-gray-300 text-sm">Fecha y hora: {new Date().toLocaleString()}</div>
+          <div className="flex items-center gap-2">
+            <button onClick={exportPDF} className="px-3 py-2 rounded bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white text-xs flex items-center gap-1"><FileDown size={16}/> PDF</button>
+            <button onClick={exportExcel} className="px-3 py-2 rounded bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-700 hover:to-emerald-600 text-white text-xs flex items-center gap-1"><FileSpreadsheet size={16}/> Excel</button>
+            <div className="text-gray-300 text-sm">{new Date().toLocaleString()}</div>
+          </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" ref={tableRef}>
           <table className="min-w-full text-sm text-left text-gray-300">
-            <thead className="bg-gray-800 text-gray-200">
+            <thead className="bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 text-gray-200">
               <tr>
                 <th className="px-3 py-2">N° Pedido</th>
                 <th className="px-3 py-2">Cliente</th>
                 <th className="px-3 py-2">Total</th>
                 <th className="px-3 py-2">Fecha</th>
+                <th className="px-3 py-2">Estado</th>
                 <th className="px-3 py-2">Items</th>
                 <th className="px-3 py-2">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {orders.map((o) => (
-                <tr key={o.id} className="border-t border-gray-700">
+                <tr key={o.id} className="border-t border-gray-700 odd:bg-gray-800/40 even:bg-gray-700/40 hover:bg-gray-700/60">
                   <td className="px-3 py-2">{o.order_number}</td>
                   <td className="px-3 py-2">{o.client?.full_name}</td>
                   <td className="px-3 py-2">{Number(o.total_amount).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</td>
                   <td className="px-3 py-2">{new Date(o.created_at).toLocaleString()}</td>
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      {statusBadge(o.status)}
+                      <select
+                        value={o.status}
+                        onChange={(e) => changeOrderStatus(o.id, e.target.value)}
+                        disabled={statusUpdating === o.id}
+                        className="px-2 py-1 text-xs rounded bg-gray-700 text-white border border-gray-600"
+                      >
+                        {statuses.map((s) => (
+                          <option key={s} value={s}>{statusLabels[s]}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </td>
                   <td className="px-3 py-2">{o.items_count}</td>
                   <td className="px-3 py-2">
-                    <button onClick={() => setViewOrder(o)} className="px-2 py-1 text-xs rounded bg-gray-600 hover:bg-gray-700 text-white">Ver</button>
+                    <button onClick={() => setViewOrder(o)} className="px-2 py-1 text-xs rounded bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1"><Eye size={14}/> Ver</button>
                   </td>
                 </tr>
               ))}
               {orders.length === 0 && (
                 <tr>
-                  <td className="px-3 py-4 text-center text-gray-400" colSpan={5}>Sin pedidos registrados.</td>
+                  <td className="px-3 py-4 text-center text-gray-400" colSpan={7}>Sin pedidos registrados.</td>
                 </tr>
               )}
             </tbody>

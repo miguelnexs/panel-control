@@ -1,8 +1,7 @@
 // Utilidad para centralizar la configuración de API
 // Este archivo permite cambiar fácilmente entre desarrollo y producción
 
-// Para desarrollo local
-export const API_BASE_URL = 'http://127.0.0.1:8000';
+export const API_BASE_URL = 'https://softwarebycg.shop';
 
 // Para producción (descomentar y comentar la de arriba)
 // export const API_BASE_URL = 'https://softwarebycg.shop';

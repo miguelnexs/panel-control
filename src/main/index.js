@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const isDev = process.env.NODE_ENV === 'development';
@@ -58,6 +58,18 @@ app.whenReady().then(() => {
         win.webContents.send('update-available');
       }
     });
+    autoUpdater.on('checking-for-update', () => {
+      const win = BrowserWindow.getAllWindows()[0];
+      if (win) {
+        win.webContents.send('update-checking');
+      }
+    });
+    autoUpdater.on('update-not-available', () => {
+      const win = BrowserWindow.getAllWindows()[0];
+      if (win) {
+        win.webContents.send('update-none');
+      }
+    });
     autoUpdater.on('update-downloaded', () => {
       const win = BrowserWindow.getAllWindows()[0];
       if (win) {
@@ -71,8 +83,22 @@ app.whenReady().then(() => {
         win.webContents.send('update-error');
       }
     });
+    autoUpdater.on('download-progress', (progress) => {
+      const win = BrowserWindow.getAllWindows()[0];
+      if (win) {
+        win.webContents.send('update-progress', { percent: progress.percent, bytesPerSecond: progress.bytesPerSecond, transferred: progress.transferred, total: progress.total });
+      }
+    });
     autoUpdater.checkForUpdatesAndNotify();
   }
+
+  ipcMain.on('check-for-updates', () => {
+    if (!isDev) {
+      autoUpdater.checkForUpdatesAndNotify();
+    }
+  });
+
+  ipcMain.handle('get-version', () => app.getVersion());
 });
 
 app.on('window-all-closed', () => {

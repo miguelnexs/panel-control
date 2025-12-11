@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Shapes, CheckCircle, Image as ImageIcon, ImageOff, Plus } from 'lucide-react';
 
 const CategoriesManager = ({ token, apiBase, role }) => {
   const [items, setItems] = useState([]);
@@ -37,6 +38,34 @@ const CategoriesManager = ({ token, apiBase, role }) => {
   };
 
   useEffect(() => { if (token) loadCategories(); }, [token, page, pageSize, search, ordering]);
+
+  const StatCard = ({ label, value, tone = 'blue', IconCmp }) => {
+    const toneBg = tone === 'emerald'
+      ? 'bg-emerald-600/20 text-emerald-300'
+      : tone === 'indigo'
+      ? 'bg-indigo-600/20 text-indigo-300'
+      : tone === 'violet'
+      ? 'bg-violet-600/20 text-violet-300'
+      : tone === 'rose'
+      ? 'bg-rose-600/20 text-rose-300'
+      : tone === 'cyan'
+      ? 'bg-cyan-600/20 text-cyan-300'
+      : 'bg-blue-600/20 text-blue-300';
+    return (
+      <div className="group relative rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden transition shadow-sm hover:shadow-md">
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-br from-white/10 to-transparent transition" />
+        <div className="p-4 flex items-center gap-3">
+          <div className={`w-10 h-9 rounded-lg flex items-center justify-center ${toneBg}`}>
+            {IconCmp ? <IconCmp className="w-5 h-5" /> : null}
+          </div>
+          <div className="flex-1">
+            <div className="text-xs text-gray-400">{label}</div>
+            <div className="text-2xl font-semibold text-white">{value}</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const validateClient = () => {
     const errs = {};
@@ -137,6 +166,10 @@ const CategoriesManager = ({ token, apiBase, role }) => {
   };
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
+  const statsTotal = items.length;
+  const statsActive = items.filter((c) => !!c.active).length;
+  const statsWithImage = items.filter((c) => !!c.image).length;
+  const statsWithoutImage = items.filter((c) => !c.image).length;
 
   return (
     <div className="space-y-6 relative">
@@ -145,25 +178,13 @@ const CategoriesManager = ({ token, apiBase, role }) => {
         <div className={`p-3 rounded text-sm ${msg.type === 'success' ? 'bg-green-600/20 text-green-200 border border-green-500/40' : 'bg-red-600/20 text-red-200 border border-red-500/40'}`}>{msg.text}</div>
       )}
       <div className={`opacity-100`}>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white/5 border border-white/10 rounded p-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            <div className="bg-gray-800/60 border border-white/10 rounded p-3">
-              <div className="text-xs text-gray-400">Total categorías</div>
-              <div className="text-lg text-white font-semibold">{items.length}</div>
-            </div>
-            <div className="bg-gray-800/60 border border-white/10 rounded p-3">
-              <div className="text-xs text-gray-400">Activas</div>
-              <div className="text-lg text-white font-semibold">{items.filter((c) => !!c.active).length}</div>
-            </div>
-            <div className="bg-gray-800/60 border border-white/10 rounded p-3">
-              <div className="text-xs text-gray-400">Con imagen</div>
-              <div className="text-lg text-white font-semibold">{items.filter((c) => !!c.image).length}</div>
-            </div>
-            <div className="bg-gray-800/60 border border-white/10 rounded p-3">
-              <div className="text-xs text-gray-400">Sin imagen</div>
-              <div className="text-lg text-white font-semibold">{items.filter((c) => !c.image).length}</div>
-            </div>
+      <div className="grid grid-cols-1 gap-6">
+        <div className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+            <StatCard label="Total categorías" value={statsTotal} IconCmp={Shapes} tone="cyan" />
+            <StatCard label="Activas" value={statsActive} IconCmp={CheckCircle} tone="emerald" />
+            <StatCard label="Con imagen" value={statsWithImage} IconCmp={ImageIcon} tone="indigo" />
+            <StatCard label="Sin imagen" value={statsWithoutImage} IconCmp={ImageOff} tone="violet" />
           </div>
           <div className="flex items-center justify-between mb-3">
             <div className="text-white font-medium">Categorías</div>
@@ -173,19 +194,19 @@ const CategoriesManager = ({ token, apiBase, role }) => {
                 value={search}
                 onChange={(e) => { setPage(1); setSearch(e.target.value); }}
                 placeholder="Buscar..."
-                className="px-2 py-1 text-xs rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-2 py-2 text-xs rounded bg-gray-700 text-white border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <select
                 value={ordering}
                 onChange={(e) => setOrdering(e.target.value)}
-                className="px-2 py-1 text-xs rounded bg-gray-700 text-white border border-gray-600"
+                className="px-2 py-2 text-xs rounded bg-gray-700 text-white border border-gray-600"
               >
                 <option value="-created_at">Más recientes</option>
                 <option value="name">Nombre A-Z</option>
                 <option value="-name">Nombre Z-A</option>
                 <option value="active">Estado</option>
               </select>
-              <button onClick={() => setOpen(true)} disabled={role !== 'admin' && role !== 'super_admin'} className="px-2 py-1 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50">Nueva</button>
+              <button onClick={() => setOpen(true)} disabled={role !== 'admin' && role !== 'super_admin'} className="px-3 py-2 text-xs rounded bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white disabled:opacity-50 flex items-center gap-1"><Plus size={14}/> Nueva</button>
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -193,6 +214,7 @@ const CategoriesManager = ({ token, apiBase, role }) => {
               <thead className="bg-gray-800 text-gray-200">
                 <tr>
                   <th className="px-3 py-2">Nombre</th>
+                  <th className="px-3 py-2">Imagen</th>
                   <th className="px-3 py-2">Descripción</th>
                   <th className="px-3 py-2">Estado</th>
                   <th className="px-3 py-2">Fecha</th>
@@ -201,10 +223,23 @@ const CategoriesManager = ({ token, apiBase, role }) => {
               </thead>
               <tbody>
                 {items.map((c) => (
-                  <tr key={c.id} className="border-t border-gray-700">
+                  <tr key={c.id} className="border-t border-gray-700 hover:bg-gray-800/30">
                     <td className="px-3 py-2">{c.name}</td>
+                    <td className="px-3 py-2">
+                      {c.image ? (
+                        <img src={mediaUrl(c.image)} alt={c.name} className="w-12 h-12 object-cover rounded border border-gray-600" />
+                      ) : (
+                        <div className="w-12 h-12 flex items-center justify-center text-gray-500 border border-dashed border-gray-600 rounded text-[10px]">Sin</div>
+                      )}
+                    </td>
                     <td className="px-3 py-2 whitespace-pre-wrap">{c.description || ''}</td>
-                    <td className="px-3 py-2">{c.active ? 'Activo' : 'Inactivo'}</td>
+                    <td className="px-3 py-2">
+                      {c.active ? (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full border border-white/10 bg-emerald-600/15 text-emerald-300 text-xs">Activo</span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-1 rounded-full border border-white/10 bg-rose-600/15 text-rose-300 text-xs">Inactivo</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2">{new Date(c.created_at).toLocaleString()}</td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-2">
@@ -236,28 +271,7 @@ const CategoriesManager = ({ token, apiBase, role }) => {
           </div>
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded p-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-white font-medium">Imágenes</div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {items.map((c) => (
-              <div key={c.id} className="bg-gray-800 border border-gray-700 rounded p-2">
-                <div className="text-gray-200 text-sm truncate">{c.name}</div>
-                <div className="mt-2">
-                  {c.image ? (
-                    <img src={mediaUrl(c.image)} alt={c.name} className="w-full h-24 object-cover rounded border border-gray-600" loading="lazy" />
-                  ) : (
-                    <div className="w-full h-24 flex items-center justify-center text-gray-500 border border-dashed border-gray-600 rounded">Sin imagen</div>
-                  )}
-                </div>
-                <div className="mt-2 flex items-center gap-2">
-                  <button onClick={() => startEdit(c)} disabled={role !== 'admin' && role !== 'super_admin'} className="px-2 py-1 text-xs rounded bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50">Editar</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        
       </div>
       </div>
 

@@ -1,4 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import * as XLSX from 'xlsx';
+import { FileDown, FileSpreadsheet, Eye, RefreshCcw, Plus, Package, AlertTriangle, CheckCircle, Ban } from 'lucide-react';
 
 const ProductosManager = ({ token, apiBase, onCreate, onEdit }) => {
   const [items, setItems] = useState([]);
@@ -237,6 +241,52 @@ const ProductosManager = ({ token, apiBase, onCreate, onEdit }) => {
     return `${apiBase}/media/${path}`;
   };
 
+  const tableRef = useRef(null);
+
+  const exportPDF = async () => {
+    try {
+      const el = tableRef.current;
+      if (!el) return;
+      const canvas = await html2canvas(el, { scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('landscape', 'pt', 'a4');
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      const imgW = pageW - 40;
+      const imgH = (canvas.height * imgW) / canvas.width;
+      let y = 20;
+      pdf.setFontSize(12);
+      pdf.text(`Productos - ${new Date().toLocaleString()}`, 20, y);
+      y += 10;
+      pdf.addImage(imgData, 'PNG', 20, y, imgW, Math.min(imgH, pageH - y - 20));
+      pdf.save('productos.pdf');
+      setMsg({ type: 'success', text: 'PDF generado correctamente.' });
+    } catch (e) {
+      setMsg({ type: 'error', text: 'No se pudo generar el PDF.' });
+    }
+  };
+
+  const exportExcel = () => {
+    try {
+      const rows = filtered.map((p) => ({
+        Nombre: p.name,
+        Precio: Number(p.price || 0),
+        Categoria: p.category_name || '',
+        Estado: p.active ? 'Activo' : 'Inactivo',
+        StockTotal: totalStockOf(p),
+        Fecha: new Date(p.created_at).toLocaleString(),
+        SKU: p.sku || '',
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Productos');
+      XLSX.writeFile(wb, 'productos.xlsx');
+      setMsg({ type: 'success', text: 'Excel generado correctamente.' });
+    } catch (e) {
+      setMsg({ type: 'error', text: 'No se pudo generar el Excel.' });
+    }
+  };
+
   return (
     <div className="space-y-4 relative">
       {/* loading overlay removido */}
@@ -246,31 +296,21 @@ const ProductosManager = ({ token, apiBase, onCreate, onEdit }) => {
         </div>
       )}
       <div className={`opacity-100`}>
-      <div className="bg-white/5 border border-white/10 rounded p-4">
+      <div className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="text-white font-medium">Productos</div>
           <div className="flex items-center gap-2">
-            <button onClick={() => { if (onCreate) onCreate(); }} className="px-2 py-1 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white">Nuevo producto</button>
-            <button onClick={loadProducts} className="px-2 py-1 text-xs rounded bg-gray-600 hover:bg-gray-700 text-white">Recargar</button>
+            <button onClick={() => { if (onCreate) onCreate(); }} className="px-3 py-2 text-xs rounded bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white flex items-center gap-1"><Plus size={14}/> Nuevo</button>
+            <button onClick={loadProducts} className="px-3 py-2 text-xs rounded bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-700 hover:to-gray-600 text-white flex items-center gap-1"><RefreshCcw size={14}/> Recargar</button>
+            <button onClick={exportPDF} className="px-3 py-2 text-xs rounded bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white flex items-center gap-1"><FileDown size={16}/> PDF</button>
+            <button onClick={exportExcel} className="px-3 py-2 text-xs rounded bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-700 hover:to-green-600 text-white flex items-center gap-1"><FileSpreadsheet size={16}/> Excel</button>
           </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-          <div className="bg-gray-800/60 border border-white/10 rounded p-3">
-            <div className="text-xs text-gray-400">Total productos</div>
-            <div className="text-lg text-white font-semibold">{statsTotal}</div>
-          </div>
-          <div className="bg-gray-800/60 border border-white/10 rounded p-3">
-            <div className="text-xs text-gray-400">Bajo stock (&lt;{lowStockThreshold})</div>
-            <div className="text-lg text-white font-semibold">{statsLow}</div>
-          </div>
-          <div className="bg-gray-800/60 border border-white/10 rounded p-3">
-            <div className="text-xs text-gray-400">Activos</div>
-            <div className="text-lg text-white font-semibold">{statsActive}</div>
-          </div>
-          <div className="bg-gray-800/60 border border-white/10 rounded p-3">
-            <div className="text-xs text-gray-400">Inactivos</div>
-            <div className="text-lg text-white font-semibold">{statsInactive}</div>
-          </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+          <StatCard label="Total productos" value={statsTotal} IconCmp={Package} tone="cyan" />
+          <StatCard label={`Bajo stock (<${lowStockThreshold})`} value={statsLow} IconCmp={AlertTriangle} tone="rose" />
+          <StatCard label="Activos" value={statsActive} IconCmp={CheckCircle} tone="emerald" />
+          <StatCard label="Inactivos" value={statsInactive} IconCmp={Ban} tone="violet" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-3">
           <input
@@ -278,12 +318,12 @@ const ProductosManager = ({ token, apiBase, onCreate, onEdit }) => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por nombre"
-            className="px-2 py-1 rounded bg-gray-700 text-white border border-gray-600 text-xs md:col-span-2"
+            className="px-2 py-2 rounded bg-gray-700 text-white border border-gray-600 text-xs md:col-span-2"
           />
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-2 py-1 rounded bg-gray-700 text-white border border-gray-600 text-xs"
+            className="px-2 py-2 rounded bg-gray-700 text-white border border-gray-600 text-xs"
           >
             <option value="">Todas las categorías</option>
             {categories.map((c) => (
@@ -293,7 +333,7 @@ const ProductosManager = ({ token, apiBase, onCreate, onEdit }) => {
           <select
             value={activeFilter}
             onChange={(e) => setActiveFilter(e.target.value)}
-            className="px-2 py-1 rounded bg-gray-700 text-white border border-gray-600 text-xs"
+            className="px-2 py-2 rounded bg-gray-700 text-white border border-gray-600 text-xs"
           >
             <option value="all">Todos</option>
             <option value="active">Activos</option>
@@ -303,10 +343,10 @@ const ProductosManager = ({ token, apiBase, onCreate, onEdit }) => {
             <label className="flex items-center gap-1 text-gray-300 text-xs">
               <input type="checkbox" checked={lowStockOnly} onChange={(e) => setLowStockOnly(e.target.checked)} /> Bajo stock
             </label>
-            <input type="number" min={0} value={lowStockThreshold} onChange={(e) => setLowStockThreshold(Number(e.target.value) || 0)} className="w-16 px-2 py-1 rounded bg-gray-700 text-white border border-gray-600 text-xs" />
+            <input type="number" min={0} value={lowStockThreshold} onChange={(e) => setLowStockThreshold(Number(e.target.value) || 0)} className="w-20 px-2 py-2 rounded bg-gray-700 text-white border border-gray-600 text-xs" />
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" ref={tableRef}>
           <table className="min-w-full text-sm text-left text-gray-300">
             <thead className="bg-gray-800 text-gray-200">
               <tr>
@@ -322,7 +362,7 @@ const ProductosManager = ({ token, apiBase, onCreate, onEdit }) => {
             </thead>
             <tbody>
               {filtered.map((p) => (
-                <tr key={p.id} className="border-t border-gray-700">
+                <tr key={p.id} className="border-t border-gray-700 hover:bg-gray-800/30">
                   <td className="px-3 py-2">
                     {p.image ? (
                       <img src={mediaUrl(p.image)} alt="Producto" className="w-16 h-16 object-cover rounded border border-gray-600" loading="lazy" />
@@ -347,7 +387,7 @@ const ProductosManager = ({ token, apiBase, onCreate, onEdit }) => {
               ))}
               {items.length === 0 && (
                 <tr>
-                  <td className="px-3 py-4 text-center text-gray-400" colSpan={4}>No hay productos registrados.</td>
+                  <td className="px-3 py-4 text-center text-gray-400" colSpan={8}>No hay productos registrados.</td>
                 </tr>
               )}
             </tbody>
@@ -407,3 +447,30 @@ const ProductosManager = ({ token, apiBase, onCreate, onEdit }) => {
 };
 
 export default ProductosManager;
+  const StatCard = ({ label, value, tone = 'blue', IconCmp }) => {
+    const toneBg = tone === 'emerald'
+      ? 'bg-emerald-600/20 text-emerald-300'
+      : tone === 'indigo'
+      ? 'bg-indigo-600/20 text-indigo-300'
+      : tone === 'violet'
+      ? 'bg-violet-600/20 text-violet-300'
+      : tone === 'rose'
+      ? 'bg-rose-600/20 text-rose-300'
+      : tone === 'cyan'
+      ? 'bg-cyan-600/20 text-cyan-300'
+      : 'bg-blue-600/20 text-blue-300';
+    return (
+      <div className="group relative rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden transition shadow-sm hover:shadow-md">
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-br from-white/10 to-transparent transition" />
+        <div className="p-4 flex items-center gap-3">
+          <div className={`w-10 h-9 rounded-lg flex items-center justify-center ${toneBg}`}>
+            {IconCmp ? <IconCmp className="w-5 h-5" /> : null}
+          </div>
+          <div className="flex-1">
+            <div className="text-xs text-gray-400">{label}</div>
+            <div className="text-2xl font-semibold text-white">{value}</div>
+          </div>
+        </div>
+      </div>
+    );
+  };

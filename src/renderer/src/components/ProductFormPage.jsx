@@ -20,6 +20,9 @@ const ProductFormPage = ({ token, apiBase, product, onCancel, onSaved }) => {
   const [initialVariants, setInitialVariants] = useState([]);
   const [variantName, setVariantName] = useState('');
   const [variantExtra, setVariantExtra] = useState('');
+  const [features, setFeatures] = useState([]);
+  const [initialFeatures, setInitialFeatures] = useState([]);
+  const [featureText, setFeatureText] = useState('');
   const [activeTab, setActiveTab] = useState('detalles');
   const [loading, setLoading] = useState(false);
 
@@ -150,6 +153,24 @@ const ProductFormPage = ({ token, apiBase, product, onCancel, onSaved }) => {
     loadVariants();
   }, [product]);
 
+  useEffect(() => {
+    const loadFeatures = async () => {
+      if (!product) return;
+      try {
+        const res = await fetch(`${apiBase}/products/${product.id}/features/`, { headers: authHeaders(token) });
+        const data = await res.json();
+        const list = Array.isArray(data.results) ? data.results : data;
+        const loaded = (Array.isArray(list) ? list : []).map((f, idx) => ({ id: f.id, name: f.name, position: idx }));
+        setFeatures(loaded);
+        setInitialFeatures(loaded);
+      } catch (_) {
+        setFeatures([]);
+        setInitialFeatures([]);
+      }
+    };
+    loadFeatures();
+  }, [product]);
+
   const validateClient = () => {
     const errs = {};
     const nameOk = /^[A-Za-z0-9ÁÉÍÓÚáéíóúÑñ\-\s]{1,100}$/.test(name);
@@ -171,6 +192,9 @@ const ProductFormPage = ({ token, apiBase, product, onCancel, onSaved }) => {
     }
     if (variants.some((v) => !v.name || Number(normalizePrice(v.extra_price || '0')) < 0)) {
       errs.variants = 'Verifique nombre y sobrecosto (0 o positivo, 2 decimales).';
+    }
+    if (features.some((f) => !f.name || f.name.length > 100)) {
+      errs.features = 'Cada característica requiere nombre (máx 100).';
     }
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -292,6 +316,39 @@ const ProductFormPage = ({ token, apiBase, product, onCancel, onSaved }) => {
           }
         }
       }
+      // Características
+      const existingF = initialFeatures;
+      const currentFObjs = features.map((f, idx) => ({ ...f, position: idx }));
+      const existingFIds = new Set(existingF.filter((e) => e.id).map((e) => String(e.id)));
+      const currentFIds = new Set(currentFObjs.filter((e) => e.id).map((e) => String(e.id)));
+      for (const eFeat of existingF) {
+        if (eFeat.id && !currentFIds.has(String(eFeat.id))) {
+          await fetch(`${apiBase}/products/features/${eFeat.id}/`, { method: 'DELETE', headers: authHeaders(token) });
+        }
+      }
+      for (let fIndex = 0; fIndex < currentFObjs.length; fIndex++) {
+        let f = currentFObjs[fIndex];
+        if (!f.id) {
+          const fdFeat = new FormData();
+          fdFeat.append('name', f.name);
+          fdFeat.append('position', String(f.position));
+          const createRes = await fetch(`${apiBase}/products/${productId}/features/`, { method: 'POST', headers: authHeaders(token), body: fdFeat });
+          const created = await createRes.json();
+          if (createRes.ok && created && created.id) {
+            f = { ...f, id: created.id };
+            setFeatures((fs) => fs.map((x, i) => i === fIndex ? f : x));
+          }
+        } else {
+          const prev = existingF.find((e) => String(e.id) === String(f.id)) || {};
+          const changed = prev.name !== f.name || Number(prev.position) !== Number(f.position);
+          if (changed) {
+            const fdFeat = new FormData();
+            fdFeat.append('name', f.name);
+            fdFeat.append('position', String(f.position));
+            await fetch(`${apiBase}/products/features/${f.id}/`, { method: 'PATCH', headers: authHeaders(token), body: fdFeat });
+          }
+        }
+      }
     } catch (_) {}
     if (onSaved) onSaved();
   };
@@ -328,6 +385,10 @@ const ProductFormPage = ({ token, apiBase, product, onCancel, onSaved }) => {
             onClick={() => setActiveTab('variantes')}
             className={`px-4 py-2 text-sm rounded-t ${activeTab==='variantes' ? 'bg-white/10 text-white border-b-2 border-blue-500' : 'text-gray-300 hover:text-white'}`}
           >Variantes</button>
+          <button
+            onClick={() => setActiveTab('caracteristicas')}
+            className={`px-4 py-2 text-sm rounded-t ${activeTab==='caracteristicas' ? 'bg-white/10 text-white border-b-2 border-blue-500' : 'text-gray-300 hover:text-white'}`}
+          >Características</button>
         </div>
         {errors.form && (
           <div className="mb-4 p-3 rounded text-sm bg-red-600/20 text-red-200 border border-red-500/40">{errors.form}</div>
@@ -474,6 +535,32 @@ const ProductFormPage = ({ token, apiBase, product, onCancel, onSaved }) => {
                 {variants.length === 0 && (<div className="text-xs text-gray-400">Sin variantes agregadas.</div>)}
               </div>
               {errors.variants && <div className="mt-2 text-xs text-red-300">{errors.variants}</div>}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'caracteristicas' && (
+          <div className="space-y-6">
+            <div className="bg-white/5 border border-white/10 rounded p-4 shadow">
+              <div className="text-gray-300 text-sm mb-3">Características del producto</div>
+              <div className="flex items-center gap-3 mb-4">
+                <input type="text" value={featureText} onChange={(e) => setFeatureText(e.target.value)} placeholder="Característica" className="px-3 py-2 rounded bg-gray-700 text-white border border-gray-600 text-sm" />
+                <button type="button" onClick={() => { const t = featureText.trim(); if (!t) return; setFeatures((fs) => [...fs, { name: t }]); setFeatureText(''); }} className="px-3 py-2 rounded bg-green-600 hover:bg-green-700 text-white text-sm">Agregar</button>
+              </div>
+              <div className="space-y-4">
+                {features.map((f, idx) => (
+                  <div key={`feature-${idx}`} className="space-y-3 bg-gray-800/60 border border-white/10 rounded-lg p-4">
+                    <div className="grid grid-cols-6 gap-4 items-center">
+                      <input type="text" value={f.name} onChange={(e) => setFeatures((fs) => fs.map((x, i) => i === idx ? { ...x, name: e.target.value } : x))} placeholder="Característica" className="col-span-5 px-3 py-2 rounded bg-gray-700 text-white border border-gray-600 text-sm" />
+                      <div className="flex items-center justify-end">
+                        <button type="button" onClick={() => setFeatures((fs) => fs.filter((_, i) => i !== idx))} className="px-2.5 py-1.5 text-xs rounded bg-red-600 hover:bg-red-700 text-white">Quitar</button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {features.length === 0 && (<div className="text-xs text-gray-400">Sin características agregadas.</div>)}
+              </div>
+              {errors.features && <div className="mt-2 text-xs text-red-300">{errors.features}</div>}
             </div>
           </div>
         )}

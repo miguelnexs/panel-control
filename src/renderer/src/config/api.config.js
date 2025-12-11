@@ -1,13 +1,7 @@
 // Configuración global de API para el dashboard de Electron
 // Este archivo centraliza la configuración de la API
 
-// ===== CONFIGURACIÓN DE API =====
-// Para desarrollo local (backend Django en localhost:8000)
-export const API_BASE_URL = 'http://127.0.0.1:8000';
-
-// Para producción (descomentar la siguiente línea y comentar la de arriba)
-// export const API_BASE_URL = 'https://softwarebycg.shop';
-// ===== FIN CONFIGURACIÓN =====
+export const API_BASE_URL = 'https://softwarebycg.shop';
 
 // Helper para construir URLs completas
 export const buildApiUrl = (endpoint) => {

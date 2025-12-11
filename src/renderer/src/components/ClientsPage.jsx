@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Users, UserPlus, Mail, RefreshCcw } from 'lucide-react';
 
 const ClientsPage = ({ token, apiBase }) => {
   const [items, setItems] = useState([]);
@@ -120,6 +121,34 @@ const ClientsPage = ({ token, apiBase }) => {
     );
   };
 
+  const StatCard = ({ label, value, tone = 'blue', IconCmp }) => {
+    const toneBg = tone === 'emerald'
+      ? 'bg-emerald-600/20 text-emerald-300'
+      : tone === 'indigo'
+      ? 'bg-indigo-600/20 text-indigo-300'
+      : tone === 'violet'
+      ? 'bg-violet-600/20 text-violet-300'
+      : tone === 'rose'
+      ? 'bg-rose-600/20 text-rose-300'
+      : tone === 'cyan'
+      ? 'bg-cyan-600/20 text-cyan-300'
+      : 'bg-blue-600/20 text-blue-300';
+    return (
+      <div className="group relative rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden transition shadow-sm hover:shadow-md">
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-br from-white/10 to-transparent transition" />
+        <div className="p-4 flex items-center gap-3">
+          <div className={`w-10 h-9 rounded-lg flex items-center justify-center ${toneBg}`}>
+            {IconCmp ? <IconCmp className="w-5 h-5" /> : null}
+          </div>
+          <div className="flex-1">
+            <div className="text-xs text-gray-400">{label}</div>
+            <div className="text-2xl font-semibold text-white">{value}</div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4 relative">
       {msg && (
@@ -129,31 +158,23 @@ const ClientsPage = ({ token, apiBase }) => {
 
       <div className={`space-y-4 opacity-100`}>
         <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <div className="bg-gray-800/60 border border-white/10 rounded p-2">
-              <div className="text-xs text-gray-400">Total clientes</div>
-              <div className="text-base text-white font-semibold">{stats.total}</div>
-            </div>
-            <div className="bg-gray-800/60 border border-white/10 rounded p-2">
-              <div className="text-xs text-gray-400">Nuevos este mes</div>
-              <div className="text-base text-white font-semibold">{stats.new_this_month}</div>
-            </div>
-            <div className="bg-gray-800/60 border border-white/10 rounded p-2">
-              <div className="text-xs text-gray-400">Top ciudades</div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <StatCard label="Total clientes" value={stats.total} IconCmp={Users} tone="cyan" />
+            <StatCard label="Nuevos este mes" value={stats.new_this_month} IconCmp={UserPlus} tone="emerald" />
+            <StatCard label="Con correo (página)" value={items.filter((c)=>!!c.email).length} IconCmp={Mail} tone="indigo" />
+            <div className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-4">
+              <div className="text-xs text-gray-400 mb-1">Top ciudades</div>
               <SimpleBar data={stats.top_cities} />
             </div>
-            <div className="bg-gray-800/60 border border-white/10 rounded p-2">
-              <div className="text-xs text-gray-400">Nuevos hoy</div>
-              <div className="text-base text-white font-semibold">{stats.new_today || 0}</div>
-            </div>
           </div>
-          <div className="bg-white/5 border border-white/10 rounded p-4">
+          <div className="rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="text-white font-medium">Clientes</div>
               <div className="flex items-center gap-2">
-                <button onClick={() => { setForm({ full_name: '', cedula: '', email: '', address: '' }); setErrors({}); setOpen(true); }} className="px-2 py-1 text-xs rounded bg-blue-600 hover:bg-blue-700 text-white">Nuevo cliente</button>
-                <input type="text" value={search} onChange={(e) => { setPage(1); setSearch(e.target.value); }} placeholder="Buscar..." className="px-2 py-1 text-xs rounded bg-gray-700 text-white border border-gray-600" />
-                <select value={ordering} onChange={(e) => setOrdering(e.target.value)} className="px-2 py-1 text-xs rounded bg-gray-700 text-white border border-gray-600">
+                <button onClick={() => { setForm({ full_name: '', cedula: '', email: '', address: '' }); setErrors({}); setOpen(true); }} className="px-3 py-2 text-xs rounded bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white">Nuevo cliente</button>
+                <button onClick={loadClients} className="px-3 py-2 text-xs rounded bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-700 hover:to-gray-600 text-white inline-flex items-center gap-1"><RefreshCcw size={14}/> Recargar</button>
+                <input type="text" value={search} onChange={(e) => { setPage(1); setSearch(e.target.value); }} placeholder="Buscar..." className="px-2 py-2 text-xs rounded bg-gray-700 text-white border border-gray-600" />
+                <select value={ordering} onChange={(e) => setOrdering(e.target.value)} className="px-2 py-2 text-xs rounded bg-gray-700 text-white border border-gray-600">
                   <option value="full_name">Nombre A-Z</option>
                   <option value="-full_name">Nombre Z-A</option>
                   <option value="cedula">Cédula</option>
@@ -175,7 +196,7 @@ const ClientsPage = ({ token, apiBase }) => {
                 </thead>
                 <tbody>
                   {items.map((c) => (
-                    <tr key={c.id} className="border-t border-gray-700">
+                    <tr key={c.id} className="border-t border-gray-700 hover:bg-gray-800/30">
                       <td className="px-3 py-2">{c.full_name}</td>
                       <td className="px-3 py-2">{c.cedula}</td>
                       <td className="px-3 py-2">{c.email}</td>

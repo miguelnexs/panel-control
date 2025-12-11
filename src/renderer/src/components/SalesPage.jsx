@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { DollarSign, ShoppingCart, BarChart3 } from 'lucide-react';
 
 const SalesPage = ({ token, apiBase, onSaleCreated }) => {
   const [products, setProducts] = useState([]);
@@ -16,6 +17,7 @@ const SalesPage = ({ token, apiBase, onSaleCreated }) => {
   const authHeaders = (tkn) => ({ ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) });
   const [openCart, setOpenCart] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [salesStats, setSalesStats] = useState({ today_sales: 0, total_sales: 0, total_amount: 0 });
 
   const CartIcon = ({ className = 'w-4 h-4' }) => (
     <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -31,6 +33,34 @@ const SalesPage = ({ token, apiBase, onSaleCreated }) => {
     if (path.startsWith('/')) return `${apiBase}${path}`;
     if (path.startsWith('media/')) return `${apiBase}/${path}`;
     return `${apiBase}/media/${path}`;
+  };
+
+  const StatCard = ({ label, value, tone = 'blue', IconCmp }) => {
+    const toneBg = tone === 'emerald'
+      ? 'bg-emerald-600/20 text-emerald-300'
+      : tone === 'indigo'
+      ? 'bg-indigo-600/20 text-indigo-300'
+      : tone === 'violet'
+      ? 'bg-violet-600/20 text-violet-300'
+      : tone === 'rose'
+      ? 'bg-rose-600/20 text-rose-300'
+      : tone === 'cyan'
+      ? 'bg-cyan-600/20 text-cyan-300'
+      : 'bg-blue-600/20 text-blue-300';
+    return (
+      <div className="group relative rounded-xl bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden transition shadow-sm hover:shadow-md">
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-br from-white/10 to-transparent transition" />
+        <div className="p-4 flex items-center gap-3">
+          <div className={`w-10 h-9 rounded-lg flex items-center justify-center ${toneBg}`}>
+            {IconCmp ? <IconCmp className="w-5 h-5" /> : null}
+          </div>
+          <div className="flex-1">
+            <div className="text-xs text-gray-400">{label}</div>
+            <div className="text-2xl font-semibold text-white">{value}</div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const firstColorImage = (product, colorId) => {
@@ -117,6 +147,21 @@ const SalesPage = ({ token, apiBase, onSaleCreated }) => {
       }
     };
     if (token) loadAll();
+  }, [token]);
+
+  useEffect(() => {
+    const loadSalesStats = async () => {
+      try {
+        const res = await fetch(`${apiBase}/sales/stats/`, { headers: authHeaders(token) });
+        const data = await res.json();
+        if (res.ok) setSalesStats({
+          today_sales: Number(data.today_sales || 0),
+          total_sales: Number(data.total_sales || 0),
+          total_amount: Number(data.total_amount || 0),
+        });
+      } catch (_) {}
+    };
+    if (token) loadSalesStats();
   }, [token]);
 
   const filtered = products.filter((p) => {
@@ -230,12 +275,18 @@ const SalesPage = ({ token, apiBase, onSaleCreated }) => {
         <div className={`p-3 rounded text-sm ${msg.type === 'success' ? 'bg-green-600/20 text-green-200 border border-green-500/40' : 'bg-red-600/20 text-red-200 border border-red-500/40'}`}>{msg.text}</div>
       )}
       <div className={`opacity-100`}>
-        <div className="bg-white/5 border border-white/10 rounded p-4">
+        <div className="rounded-xl bg:white/5 backdrop-blur-sm border border-white/10 p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+            <StatCard label="Ventas hoy" value={salesStats.today_sales} IconCmp={BarChart3} tone="emerald" />
+            <StatCard label="Ventas totales" value={salesStats.total_sales} IconCmp={ShoppingCart} tone="indigo" />
+            <StatCard label="Monto total" value={salesStats.total_amount.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })} IconCmp={DollarSign} tone="violet" />
+            <StatCard label="Productos activos" value={products.length} IconCmp={BarChart3} tone="cyan" />
+          </div>
           <div className="flex items-center justify-between mb-3">
             <div className="text-white font-semibold">Ventas</div>
             <div className="flex items-center gap-2">
               <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar producto..." className="px-3 py-2 text-xs rounded bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <button onClick={() => setOpenCart(true)} className="relative px-3 py-2 text-xs rounded bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2">
+              <button onClick={() => setOpenCart(true)} className="relative px-3 py-2 text-xs rounded bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white flex items-center gap-2">
                 <CartIcon className="w-4 h-4" />
                 <span>Carrito · {totalAmount.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
                 {cart.length > 0 && (
