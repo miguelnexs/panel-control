@@ -1,6 +1,6 @@
 {
   "name": "localix-dashboard",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "Localix Dashboard - Sistema de gestión empresarial",
   "main": "./out/main/index.js",
   "author": "example.com",

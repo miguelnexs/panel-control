@@ -88,7 +88,7 @@ const Icon = ({ name, className = 'w-5 h-5' }) => {
   return null;
 };
 
-const Sidebar = ({ view, setView, onSignOut, role, orderNotif }) => {
+const Sidebar = ({ view, setView, onSignOut, role, orderNotif, token, apiBase }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [companyName, setCompanyName] = useState('');
   const [companyLogo, setCompanyLogo] = useState('');
@@ -122,13 +122,6 @@ const Sidebar = ({ view, setView, onSignOut, role, orderNotif }) => {
     } catch {}
   }, [collapsed]);
   useEffect(() => {
-    const handleKey = (e) => {
-      if (e.key.toLowerCase() === 'b') {
-        setCollapsed((c) => !c);
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
   }, []);
   useEffect(() => {
     const loadSettings = async () => {
@@ -146,9 +139,10 @@ const Sidebar = ({ view, setView, onSignOut, role, orderNotif }) => {
   useEffect(() => {
     const loadStats = async () => {
       try {
+        const headers = token ? { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } : { 'Content-Type': 'application/json' };
         const [cRes, sRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/clients/stats/`, { headers: { 'Content-Type': 'application/json' } }),
-          fetch(`${API_BASE_URL}/sales/stats/`, { headers: { 'Content-Type': 'application/json' } }),
+          fetch(`${apiBase}/clients/stats/`, { headers }),
+          fetch(`${apiBase}/sales/stats/`, { headers }),
         ]);
         const cData = await cRes.json();
         const sData = await sRes.json();
@@ -157,7 +151,7 @@ const Sidebar = ({ view, setView, onSignOut, role, orderNotif }) => {
       } catch {}
     };
     loadStats();
-  }, []);
+  }, [token, apiBase]);
 
   const asideClass = collapsed ? 'w-16' : 'w-64';
   const textClass = collapsed ? 'hidden' : 'inline';
@@ -454,10 +448,11 @@ const UsersManager = ({ token, apiBase, role, createSignal }) => {
     setMsg(null);
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/users/api/users/`, { headers: authHeaders(token) });
+      const res = await fetch(`${apiBase}/users/api/users/?page_size=1000`, { headers: authHeaders(token) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'No se pudieron cargar usuarios');
-      setEmployees(data);
+      const list = Array.isArray(data) ? data : Array.isArray(data.results) ? data.results : (Array.isArray(data.items) ? data.items : []);
+      setEmployees(list);
     } catch (e) {
       setMsg({ type: 'error', text: e.message });
     } finally {
@@ -477,16 +472,21 @@ const UsersManager = ({ token, apiBase, role, createSignal }) => {
     setMsg(null);
     setLoading(true);
     try {
+      const payload = {
+        ...form,
+        role: 'employee',
+      };
       const res = await fetch(`${apiBase}/users/api/users/`, {
         method: 'POST',
         headers: authHeaders(token),
-        body: JSON.stringify({ ...form }),
+        body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'No se pudo crear el usuario');
-      setMsg({ type: 'success', text: `Empleado ${data.username} creado` });
+      let data = null;
+      try { data = await res.json(); } catch {}
+      if (!res.ok) throw new Error((data && (data.detail || data.message)) || `Error ${res.status}`);
+      setMsg({ type: 'success', text: `Empleado ${data.username || form.username} creado` });
       setForm({ username: '', password: '', first_name: '', last_name: '', email: '', department: '', position: '' });
-      loadEmployees();
+      setTimeout(() => { loadEmployees(); }, 400);
     } catch (e) {
       setMsg({ type: 'error', text: e.message });
     } finally {
@@ -847,7 +847,7 @@ const Dashboard = ({ token, role, userId, onSignOut }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex">
-        <Sidebar view={view} setView={(v) => { setNavLoading(true); setView(v); setTimeout(() => setNavLoading(false), 800); if (v === 'pedidos') { const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }; fetch(`${apiBase}/sales/notifications/read/`, { method: 'POST', headers }).then(() => setOrderNotif(0)).catch(() => setOrderNotif(0)); } }} onSignOut={onSignOut} role={role} orderNotif={orderNotif} />
+        <Sidebar view={view} setView={(v) => { setNavLoading(true); setView(v); setTimeout(() => setNavLoading(false), 800); if (v === 'pedidos') { const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }; fetch(`${apiBase}/sales/notifications/read/`, { method: 'POST', headers }).then(() => setOrderNotif(0)).catch(() => setOrderNotif(0)); } }} onSignOut={onSignOut} role={role} orderNotif={orderNotif} token={token} apiBase={apiBase} />
       <main className="flex-1 p-6 space-y-6 relative">
         {navLoading && (
           <div className="absolute inset-0 z-40 bg-gray-900 flex items-center justify-center">
