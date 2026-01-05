@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Tenant Dashboard{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .sidebar {
+            height: 100vh;
+            background-color: #343a40;
+            color: white;
+            padding-top: 20px;
+        }
+        .sidebar a {
+            color: rgba(255,255,255,.8);
+            text-decoration: none;
+            padding: 10px 20px;
+            display: block;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            background-color: #495057;
+            color: white;
+        }
+        .main-content {
+            padding: 20px;
+        }
+        .card {
+            margin-bottom: 20px;
+            border: none;
+            box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-2 sidebar">
+                <h4 class="text-center mb-4">Panel de Control</h4>
+                <a href="{% url 'tenant_dashboard' %}" class="{% if request.resolver_match.url_name == 'tenant_dashboard' %}active{% endif %}">Dashboard</a>
+                <a href="{% url 'tenant_settings' %}" class="{% if request.resolver_match.url_name == 'tenant_settings' %}active{% endif %}">Configuración</a>
+                <a href="{% url 'tenant_payment_settings' %}" class="{% if request.resolver_match.url_name == 'tenant_payment_settings' %}active{% endif %}">Métodos de Pago</a>
+                <a href="{% url 'tenant_whatsapp_settings' %}" class="{% if request.resolver_match.url_name == 'tenant_whatsapp_settings' %}active{% endif %}">WhatsApp</a>
+                <a href="{% url 'logout' %}">Cerrar Sesión</a>
+            </div>
+            <div class="col-md-10 main-content">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                {% block content %}
+                {% endblock %}
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
