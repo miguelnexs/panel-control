@@ -1,0 +1,134 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Pink feminine design system based on cgbycarogonzalez logo */
+
+@layer base {
+  :root {
+    --background: 340 15% 96%;
+    --foreground: 345 83% 12%;
+
+    --card: 340 25% 98%;
+    --card-foreground: 345 83% 12%;
+
+    --popover: 340 25% 98%;
+    --popover-foreground: 345 83% 12%;
+
+    --primary: 350 45% 68%;
+    --primary-foreground: 340 25% 98%;
+
+    --secondary: 340 35% 92%;
+    --secondary-foreground: 345 83% 12%;
+
+    --muted: 340 35% 92%;
+    --muted-foreground: 345 25% 55%;
+
+    --accent: 345 55% 85%;
+    --accent-foreground: 345 83% 12%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 340 30% 88%;
+    --input: 340 30% 88%;
+    --ring: 350 45% 68%;
+
+    --radius: 0.75rem;
+
+    /* Custom pink colors matching the logo */
+    --pink-light: 340 15% 96%;
+    --pink-pastel: 345 55% 85%;
+    --pink-medium: 350 45% 68%;
+    --pink-dark: 355 55% 45%;
+    --pink-hover: 352 50% 62%;
+  }
+
+  .dark {
+    --background: 345 83% 12%;
+    --foreground: 340 15% 96%;
+    --card: 345 83% 12%;
+    --card-foreground: 340 15% 96%;
+    --popover: 345 83% 12%;
+    --popover-foreground: 340 15% 96%;
+    --primary: 350 45% 68%;
+    --primary-foreground: 345 83% 12%;
+    --secondary: 345 60% 20%;
+    --secondary-foreground: 340 15% 96%;
+    --muted: 345 60% 20%;
+    --muted-foreground: 340 75% 75%;
+    --accent: 345 60% 20%;
+    --accent-foreground: 340 15% 96%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 345 60% 20%;
+    --input: 345 60% 20%;
+    --ring: 350 45% 68%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+}
+
+@layer utilities {
+  .font-heading {
+    font-family: 'Playfair Display', serif;
+  }
+  
+  .font-body {
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-pink-medium to-pink-dark bg-clip-text text-transparent;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-primary-foreground hover:bg-pink-hover transition-all duration-300 rounded-lg px-6 py-3 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1;
+  }
+
+  .card-elegant {
+    @apply bg-card border border-border rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden;
+  }
+
+  .pink-gradient {
+    background: linear-gradient(135deg, hsl(var(--pink-light)) 0%, hsl(var(--pink-pastel)) 100%);
+  }
+
+  .hero-gradient {
+    background: linear-gradient(135deg, hsl(var(--pink-light)) 0%, hsl(var(--pink-pastel)) 50%, hsl(var(--pink-medium)) 100%);
+  }
+}
+
+/* Custom animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: calc(200px + 100%) 0; }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  background-size: 200px 100%;
+  animation: shimmer 2s infinite;
+}

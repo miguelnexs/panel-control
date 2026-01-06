@@ -1,0 +1,20 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Media and uploads
+media/
+staticfiles/
+tenants/
+
+# Logs
+logs/
+*.log
+
+# Local DB files
+*.sqlite3
+
+# IDE/project files
+.vscode/
+.idea/
