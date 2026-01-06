@@ -310,9 +310,9 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
           <span className={tooltipClass}>Clientes</span>
         </button>
         <div className="relative">
-          <button className={`${itemBase} ${['productos', 'categorias'].includes(view) ? activeClass : ''}`} onClick={toggleInventoryMenu} title="Inventario">
-            {['productos', 'categorias'].includes(view) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-            <span className={`w-12 h-11 rounded-md flex items-center justify-center ${toneClasses('inventory')} ${['productos', 'categorias'].includes(view) ? 'ring-1 ring-white/20' : ''}`}>
+          <button className={`${itemBase} ${['productos', 'categorias', 'servicios'].includes(view) ? activeClass : ''}`} onClick={toggleInventoryMenu} title="Inventario">
+            {['productos', 'categorias', 'servicios'].includes(view) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
+            <span className={`w-12 h-11 rounded-md flex items-center justify-center ${toneClasses('inventory')} ${['productos', 'categorias', 'servicios'].includes(view) ? 'ring-1 ring-white/20' : ''}`}>
               <Icon name="inventory" className="w-5 h-5" />
             </span>
             <span className={textClass}>Inventario</span>
@@ -348,6 +348,13 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <Icon name="categories" className="w-4 h-4" />
                 <span>Categorías</span>
               </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setView('servicios'); setInventoryMenuPos(null); }} 
+                className={`w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'servicios' ? 'text-pink-400 bg-pink-600/10' : 'text-gray-300 hover:text-white'}`}
+              >
+                <Icon name="categories" className="w-4 h-4" />
+                <span>Servicios</span>
+              </button>
             </div>
           )}
 
@@ -366,6 +373,13 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
               >
                 <Icon name="categories" className="w-4 h-4" />
                 <span>Categorías</span>
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setView('servicios'); }} 
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'servicios' ? 'text-pink-400 bg-pink-600/10' : 'text-gray-400 hover:text-white'}`}
+              >
+                <Icon name="categories" className="w-4 h-4" />
+                <span>Servicios</span>
               </button>
             </div>
           )}
