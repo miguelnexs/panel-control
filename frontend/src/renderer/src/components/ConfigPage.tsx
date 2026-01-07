@@ -336,6 +336,64 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase }) => {
     } catch {}
   };
 
+  const previewServiceSample = () => {
+    try {
+      const paperW = Number(settings.paper_width_mm || 58);
+      const primary = settings.primary_color || '#000';
+      const brand = (settings.company_name || 'Mi Empresa de Servicios');
+      const nit = (settings.company_nit || '900.000.000');
+      const addr = (settings.company_address || 'Dirección Principal');
+      const phone = (settings.company_phone || '300 000 0000');
+      const logo = settings.logo || '';
+      
+      const absUrlFn = (path: string | null) => { try { if (!path) return ''; if (String(path).startsWith('http://') || String(path).startsWith('https://')) return path; if (String(path).startsWith('/')) return `${apiBase}${path}`; return `${apiBase}/${path}`; } catch { return path; } };
+      const logoSrc = printerOpts.logo_mode === 'custom' && printerOpts.logo_url ? printerOpts.logo_url : logo;
+      const logoTag = printerOpts.show_logo && logoSrc ? `<div class="c"><img src="${logoSrc.startsWith('http') ? logoSrc : absUrlFn(logoSrc)}" style="width:${Number(printerOpts.logo_width_mm || 45)}mm;height:auto;object-fit:contain"/></div>` : '';
+      
+      const alignCls = printerOpts.align === 'left' ? 'l' : printerOpts.align === 'right' ? 'r' : 'c';
+      
+      const css = `*{box-sizing:border-box} body{font-family:Arial, sans-serif;margin:0;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px;width:${paperW}mm} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px} .tab{width:100%;border-collapse:collapse} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
+      
+      const header = `
+        ${logoTag}
+        <div class="${alignCls}">
+          <div class="t">${brand}</div>
+          <div class="small">${nit}</div>
+          <div class="small">${addr}</div>
+          <div class="small">${phone}</div>
+          ${printerOpts.header1 ? `<div class="small">${printerOpts.header1}</div>` : ''}
+          ${printerOpts.header2 ? `<div class="small">${printerOpts.header2}</div>` : ''}
+        </div>
+        <div class="hr"></div>
+        <div class="row small"><div>Servicio: #12345</div><div>${new Date().toLocaleString()}</div></div>
+        <div class="row small"><div>Cliente: María González</div><div></div></div>
+      `;
+      
+      const table = `
+        <table class="tab">
+          <thead><tr><th>Descripción</th><th class="r">Valor</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>
+                <div class="t">Mantenimiento General</div>
+                <div class="small">Limpieza, ajuste y lubricación de componentes.</div>
+              </td>
+              <td class="r">${(85000).toLocaleString('es-CO',{style:'currency',currency:'COP'})}</td>
+            </tr>
+          </tbody>
+          <tfoot><tr><td class="t">Total</td><td class="r t">${(85000).toLocaleString('es-CO',{style:'currency',currency:'COP'})}</td></tr></tfoot>
+        </table>
+      `;
+      
+      const qr = printerOpts.show_qr ? `<div class="c"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('SVC-12345')}" style="width:35mm;height:35mm;object-fit:contain"/></div>` : '';
+      const footer = `<div class="hr"></div><div class="${alignCls} small">${settings.receipt_footer || ''}</div>${qr}`;
+      
+      const html = `<!doctype html><html><head><meta charset="utf-8"><title>Recibo Servicio</title><style>${css}</style></head><body>${header}${table}${footer}</body></html>`;
+      
+      setPreviewHtml(html);
+    } catch {}
+  };
+
   return (
     <div className="space-y-6 animate-fade-in max-w-7xl mx-auto">
       {/* Page Header */}
@@ -808,6 +866,26 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase }) => {
                           />
                         </div>
                       )}
+
+                      {/* Logo Preview */}
+                      <div className="md:col-span-2 mt-4">
+                        <label className="text-sm font-medium text-gray-400 mb-2 block">Vista Previa del Logo</label>
+                        <div className="flex justify-center p-4 bg-white/5 rounded-xl border border-dashed border-gray-700">
+                          {printerOpts.logo_mode === 'company' ? (
+                            settings.logo ? (
+                               <img src={absUrl(settings.logo)} alt="Logo Preview" className="h-24 object-contain" />
+                            ) : (
+                               <div className="text-gray-500 text-sm italic">Sin logo de empresa configurado (ve a la pestaña Empresa)</div>
+                            )
+                          ) : (
+                            printerOpts.logo_url ? (
+                               <img src={printerOpts.logo_url} alt="Logo Preview" className="h-24 object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                            ) : (
+                               <div className="text-gray-500 text-sm italic">Ingrese una URL válida</div>
+                            )
+                          )}
+                        </div>
+                      </div>
                     </>
                   )}
 
@@ -888,13 +966,22 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase }) => {
               </div>
 
               <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-800">
-                <button 
-                  type="button" 
-                  onClick={previewPosSample} 
-                  className="px-6 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-medium border border-gray-700 transition-colors w-full md:w-auto"
-                >
-                  Vista Previa (Ticket)
-                </button>
+                <div className="flex gap-2 w-full md:w-auto">
+                  <button 
+                    type="button" 
+                    onClick={previewPosSample} 
+                    className="flex-1 md:flex-none px-4 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-medium border border-gray-700 transition-colors text-sm"
+                  >
+                    Vista Previa (Venta)
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={previewServiceSample} 
+                    className="flex-1 md:flex-none px-4 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-medium border border-gray-700 transition-colors text-sm"
+                  >
+                    Vista Previa (Servicio)
+                  </button>
+                </div>
                 <button 
                   type="submit" 
                   disabled={saving} 

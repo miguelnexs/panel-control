@@ -256,9 +256,6 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase, setView
           <TabButton id="productos" label="Productos" icon={ShoppingBag} />
           <TabButton id="categorias" label="Categorías" icon={Layers} />
           <TabButton id="urls" label="URLs de Usuario" icon={Globe} />
-          <TabButton id="plantillas" label="Plantillas" icon={Layout} />
-          <TabButton id="mis_plantillas" label="Mis Plantillas" icon={Layout} />
-          <TabButton id="lovable" label="Lovable AI" icon={Sparkles} />
         </div>
         
         <div className="flex items-center gap-2">
@@ -516,24 +513,6 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase, setView
                 </div>
               )}
             </div>
-          </div>
-        )}
-
-        {/* Plantillas Tab */}
-        {tab === 'plantillas' && (
-          <div className="p-6">
-            <TemplatesManager token={token} onOpenEditor={handleOpenEditor} />
-          </div>
-        )}
-        {tab === 'mis_plantillas' && (
-          <div className="p-6">
-            <TemplatesManager personal token={token} onOpenEditor={handleOpenEditor} />
-          </div>
-        )}
-
-        {tab === 'lovable' && (
-          <div className="p-6">
-            <LovableManager products={products} apiBase={apiBase} />
           </div>
         )}
 

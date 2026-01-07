@@ -429,15 +429,6 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                     <span>Página web</span>
                   </button>
                 )}
-                {(role === 'super_admin' || (role === 'admin' && (subscription?.features?.web_store || subscription?.code === 'advanced'))) && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setView('plantillas'); setConfigMenuPos(null); }} 
-                    className={`w-full text-left px-4 py-3 hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'plantillas' ? 'text-cyan-400 bg-cyan-600/10' : 'text-gray-300 hover:text-white'}`}
-                  >
-                    <Icon name="templates" className="w-4 h-4" />
-                    <span>Plantillas</span>
-                  </button>
-                )}
                 {role === 'super_admin' && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); setView('planes'); setConfigMenuPos(null); }} 

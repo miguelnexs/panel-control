@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Toast, ToastType } from './Toast';
 import { 
   ShoppingBag, 
   Search, 
@@ -82,6 +83,7 @@ interface CompanySettings {
   company_address: string;
   logo: string | null;
   printer_type?: string;
+  printer_name?: string;
   paper_width_mm?: number;
   receipt_footer?: string;
   primary_color?: string;
@@ -105,7 +107,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [settings, setSettings] = useState<CompanySettings>({
     company_name: '', company_nit: '', company_phone: '', company_address: '', logo: null,
-    printer_type: 'system', paper_width_mm: 58, receipt_footer: '', primary_color: '#0ea5e9'
+    printer_type: 'system', printer_name: '', paper_width_mm: 58, receipt_footer: '', primary_color: '#0ea5e9'
   });
   const [printerOpts, setPrinterOpts] = useState<PrinterOptions>({
     show_logo: true, header1: '', header2: '', align: 'center', font_size: 11,
@@ -114,7 +116,21 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
-  const [msg, setMsg] = useState<Msg | null>(null);
+  
+  const [toast, setToast] = useState<{message: string, type: ToastType, isVisible: boolean}>({
+    message: '',
+    type: 'info',
+    isVisible: false
+  });
+
+  const showToast = (message: string, type: ToastType = 'info') => {
+    setToast({ message, type, isVisible: true });
+  };
+
+  const hideToast = () => {
+    setToast(prev => ({ ...prev, isVisible: false }));
+  };
+
   const [viewOrder, setViewOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -136,6 +152,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
         company_address: data.company_address || '',
         logo: data.logo || null,
         printer_type: data.printer_type || 'system',
+        printer_name: data.printer_name || '',
         paper_width_mm: data.paper_width_mm || 58,
         receipt_footer: data.receipt_footer || '',
         primary_color: data.primary_color || '#0ea5e9'
@@ -220,6 +237,37 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
     return `<!doctype html><html><head><meta charset="utf-8"><title>Recibo ${order.order_number}</title><style>${css}</style></head><body>${header}${table}${footer}</body></html>`;
   };
 
+  const handleSilentPrint = async (order: Order) => {
+    showToast('Iniciando servicio de impresión...', 'loading');
+    
+    try {
+      const html = generateReceiptHtml(order);
+      const printerName = settings.printer_name || '';
+      
+      // @ts-ignore
+      if (window.electron && window.electron.ipcRenderer) {
+         console.log('Enviando a imprimir...', printerName);
+         // @ts-ignore
+         const result = await window.electron.ipcRenderer.invoke('print-silent', { 
+           content: html,
+           printerName: printerName
+         });
+         
+         if (!result.success) {
+           throw new Error(result.error);
+         }
+         showToast('Impresión enviada correctamente', 'success');
+      } else {
+        console.warn('Electron no detectado');
+        showToast('Abriendo diálogo de impresión...', 'info');
+        setPrintingOrder(order);
+      }
+    } catch (error: any) {
+      console.error('Error printing:', error);
+      showToast('Error al imprimir: ' + (error.message || 'Error desconocido'), 'error');
+    }
+  };
+
   const handlePrint = () => {
     if (!printingOrder) return;
     const html = generateReceiptHtml(printingOrder);
@@ -228,12 +276,12 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
       win.document.write(html);
       win.document.close();
       win.focus();
+      win.print();
     }
   };
 
   const loadOrders = async () => {
     setLoading(true);
-    setMsg(null);
     try {
       const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
       if (search) params.set('search', search);
@@ -247,7 +295,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
       setOrders(Array.isArray(data.results) ? data.results : []);
       setTotal(Number(data.count || 0));
     } catch(e: any) {
-      setMsg({ type: 'error', text: e.message });
+      showToast(e.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -351,12 +399,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
         />
       </div>
 
-      {msg && (
-        <div className={`p-4 rounded-xl text-sm flex items-center gap-3 border ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
-          {msg.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
-          {msg.text}
-        </div>
-      )}
+
 
       {/* Main Content */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-sm">
@@ -457,7 +500,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
-                        onClick={() => setPrintingOrder(o)}
+                        onClick={() => handleSilentPrint(o)}
                         className="p-2 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
                         title="Imprimir Recibo"
                       >
@@ -721,6 +764,12 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
           </div>
         </div>
       )}
+      <Toast 
+        message={toast.message} 
+        type={toast.type} 
+        isVisible={toast.isVisible} 
+        onClose={hideToast} 
+      />
     </div>
   );
 };

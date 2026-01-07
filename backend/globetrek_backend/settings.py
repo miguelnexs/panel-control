@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'config.apps.ConfigConfig',
     'users',
     'products',
+    'services.apps.ServicesConfig',
     'clients',
     'sales',
     'webconfig.apps.WebconfigConfig',

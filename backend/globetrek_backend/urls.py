@@ -25,6 +25,7 @@ urlpatterns = [
     path('admin/', role_admin_site.urls),
     path('users/', include('users.urls')),
     path('products/', include('products.urls')),
+    path('services/', include('services.urls')),
     path('clients/', include('clients.urls')),
     path('sales/', include('sales.urls')),
     path('webconfig/', include('webconfig.urls')),
