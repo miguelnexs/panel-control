@@ -3,68 +3,6 @@ import path from 'path';
 import http from 'http';
 import fs from 'fs';
 import { URL } from 'url';
-import { autoUpdater } from 'electron-updater';
-
-// Configurar autoUpdater
-autoUpdater.autoDownload = false;
-autoUpdater.autoInstallOnAppQuit = true;
-
-// Eventos de actualización
-autoUpdater.on('checking-for-update', () => {
-  BrowserWindow.getAllWindows().forEach((win) => {
-    win.webContents.send('update-status', { status: 'checking' });
-  });
-});
-
-autoUpdater.on('update-available', (info) => {
-  BrowserWindow.getAllWindows().forEach((win) => {
-    win.webContents.send('update-status', { status: 'available', info });
-  });
-});
-
-autoUpdater.on('update-not-available', () => {
-  BrowserWindow.getAllWindows().forEach((win) => {
-    win.webContents.send('update-status', { status: 'not-available' });
-  });
-});
-
-autoUpdater.on('error', (err) => {
-  BrowserWindow.getAllWindows().forEach((win) => {
-    win.webContents.send('update-status', { status: 'error', error: err.message });
-  });
-});
-
-autoUpdater.on('download-progress', (progressObj) => {
-  BrowserWindow.getAllWindows().forEach((win) => {
-    win.webContents.send('update-status', { status: 'downloading', progress: progressObj });
-  });
-});
-
-autoUpdater.on('update-downloaded', (info) => {
-  BrowserWindow.getAllWindows().forEach((win) => {
-    win.webContents.send('update-status', { status: 'downloaded', info });
-  });
-});
-
-// IPC handlers para actualización
-ipcMain.handle('check-update', async () => {
-  try {
-    const result = await autoUpdater.checkForUpdates();
-    return result;
-  } catch (error) {
-    console.error('Error checking for updates:', error);
-    throw error;
-  }
-});
-
-ipcMain.handle('start-download', () => {
-  autoUpdater.downloadUpdate();
-});
-
-ipcMain.handle('install-update', () => {
-  autoUpdater.quitAndInstall();
-});
-
 
 // Templates Server Configuration
 const TEMPLATES_ROOT = 'd:\\Desktop\\miguel\\cgbycaro\\Plantillas';
@@ -202,7 +140,7 @@ function createWindow(): BrowserWindow {
       webSecurity: false,
       allowRunningInsecureContent: true,
     },
-    icon: path.join(__dirname, '..', 'resources', 'logo.png'),
+    icon: path.join(__dirname, '..', 'resources', 'localix-logo.png'),
     show: false,
     titleBarStyle: 'hidden',
     titleBarOverlay: {

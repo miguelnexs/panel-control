@@ -135,58 +135,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut })
                view === 'servicios' ? 'Servicios' :
                'Pedidos'}
             </h1>
-            
-            <div className="flex items-center gap-4">
-               {/* Update Button Logic */}
-               <div className="flex items-center gap-2">
-                 {updateStatus === 'idle' && (
-                   <button onClick={checkForUpdates} className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg text-sm transition-colors border border-gray-700">
-                     <RefreshCw size={14} />
-                     Buscar actualizaciones
-                   </button>
-                 )}
-                 {updateStatus === 'checking' && (
-                   <span className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 text-gray-400 rounded-lg text-sm border border-gray-700">
-                     <RefreshCw size={14} className="animate-spin" />
-                     Buscando...
-                   </span>
-                 )}
-                 {updateStatus === 'available' && (
-                   <button onClick={startDownload} className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm transition-colors shadow-lg shadow-blue-900/20">
-                     <Download size={14} />
-                     Actualización disponible (Descargar)
-                   </button>
-                 )}
-                 {updateStatus === 'downloading' && (
-                   <div className="flex items-center gap-3 px-3 py-1.5 bg-gray-800 text-gray-300 rounded-lg text-sm border border-gray-700">
-                     <div className="w-24 h-2 bg-gray-700 rounded-full overflow-hidden">
-                       <div className="h-full bg-blue-500 transition-all duration-300" style={{ width: `${downloadProgress}%` }} />
-                     </div>
-                     <span className="text-xs">{Math.round(downloadProgress)}%</span>
-                   </div>
-                 )}
-                 {updateStatus === 'downloaded' && (
-                   <button onClick={installUpdate} className="flex items-center gap-2 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm transition-colors shadow-lg shadow-emerald-900/20 animate-pulse">
-                     <CheckCircle size={14} />
-                     Reiniciar y Actualizar
-                   </button>
-                 )}
-                 {updateStatus === 'not-available' && (
-                   <span className="flex items-center gap-2 px-3 py-1.5 bg-gray-800/50 text-gray-500 rounded-lg text-sm border border-gray-800">
-                     <CheckCircle size={14} />
-                     Sistema actualizado
-                   </span>
-                 )}
-                 {updateStatus === 'error' && (
-                   <span className="flex items-center gap-2 px-3 py-1.5 bg-rose-900/20 text-rose-400 rounded-lg text-sm border border-rose-900/30">
-                     <AlertCircle size={14} />
-                     Error al buscar
-                   </span>
-                 )}
-               </div>
-
-               <div className="text-sm text-gray-300">Rol: <span className="font-medium">{role}</span></div>
-            </div>
+            <div className="text-sm text-gray-300">Rol: <span className="font-medium">{role}</span></div>
           </div>
           {view === 'dashboard' && (
             <DashboardView stats={stats} seriesA={seriesA} seriesB={seriesB} recentOrders={recentOrders} topProducts={topProducts} />
