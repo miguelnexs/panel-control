@@ -488,7 +488,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase }) => {
 
   const filteredServices = services.filter(s => 
     s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (s.client_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+    s.clientName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (

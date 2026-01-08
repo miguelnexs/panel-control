@@ -3,7 +3,7 @@ export const API_CONFIG = {
   // Para desarrollo local
   
   // Para producción (descomentar y comentar la de arriba)
-  baseURL: 'http://127.0.0.1:8000',
+  baseURL: 'https://softwarebycg.shop/',
   
   // Timeout para peticiones (en milisegundos)
   timeout: 30000,

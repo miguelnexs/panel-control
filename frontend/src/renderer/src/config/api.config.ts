@@ -5,7 +5,7 @@
 // Para desarrollo local (backend Django en localhost:8085)
 
 // Para producción (descomentar la siguiente línea y comentar la de arriba)
-export const API_BASE_URL: string = 'http://127.0.0.1:8000';
+export const API_BASE_URL: string = 'https://softwarebycg.shop/';
 // ===== FIN CONFIGURACIÓN =====
 
 // Helper para construir URLs completas
