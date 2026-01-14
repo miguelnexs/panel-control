@@ -1,0 +1,68 @@
+{% extends 'users/base_tenant.html' %}
+
+{% block title %}Configuración WhatsApp - Tenant{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Configuración de WhatsApp Business API</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="alert alert-info">
+                        Esta configuración se utiliza para enviar notificaciones automáticas de pedidos y actualizaciones.
+                        Requiere una cuenta de Meta for Developers y WhatsApp Cloud API.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Phone Number ID</label>
+                        <input type="text" class="form-control" name="phone_number_id" value="{{ config.phone_number_id|default:'' }}">
+                        <div class="form-text">El ID del número de teléfono desde el cual se enviarán los mensajes.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Business Account ID</label>
+                        <input type="text" class="form-control" name="business_account_id" value="{{ config.business_account_id|default:'' }}">
+                        <div class="form-text">El ID de la cuenta de WhatsApp Business.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Access Token (Permanente o Temporal)</label>
+                        <input type="password" class="form-control" name="access_token" placeholder="{% if config.access_token %}Token guardado (dejar en blanco para mantener){% else %}Ingrese el token de acceso{% endif %}">
+                        <div class="form-text">Token de acceso de la API de Graph. Se guardará de forma encriptada.</div>
+                    </div>
+
+                    <hr>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" name="enable_notifications" id="enable_notifications" {% if config.enable_notifications %}checked{% endif %}>
+                        <label class="form-check-label" for="enable_notifications">Habilitar notificaciones automáticas</label>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Guardar Configuración</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">Prueba de Conexión</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'tenant_whatsapp_test' %}">
+                    {% csrf_token %}
+                    <div class="input-group">
+                        <input type="text" class="form-control" name="test_phone" placeholder="Número de teléfono (ej. 573001234567)" required>
+                        <button class="btn btn-outline-success" type="submit">Enviar Mensaje de Prueba</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
