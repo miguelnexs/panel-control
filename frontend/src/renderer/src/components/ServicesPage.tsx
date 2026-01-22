@@ -83,9 +83,10 @@ interface ServicesPageProps {
   apiBase: string;
   initialOpen?: boolean;
   onClose?: () => void;
+  onCreate?: () => void;
 }
 
-const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen = false, onClose }) => {
+const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen = false, onClose, onCreate }) => {
   const [services, setServices] = useState<Service[]>([]);
   const [catalog, setCatalog] = useState<ServiceDefinition[]>([]);
   const [viewMode, setViewMode] = useState<'tickets' | 'catalog'>('tickets');
@@ -833,10 +834,14 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
             <button 
               onClick={() => {
                 if (viewMode === 'tickets') {
-                  setFormData({ name: '', description: '', third_party_provider: '', third_party_cost: '', value: '', clientId: '', status: 'recibido' });
-                  setEditingId(null);
-                  setServiceItems([{ id: String(Date.now()), name: '', description: '', value: '', third_party_provider: '', third_party_cost: '' }]);
-                  setIsModalOpen(true);
+                  if (onCreate) {
+                    onCreate();
+                  } else {
+                    setFormData({ name: '', description: '', third_party_provider: '', third_party_cost: '', value: '', clientId: '', status: 'recibido' });
+                    setEditingId(null);
+                    setServiceItems([{ id: String(Date.now()), name: '', description: '', value: '', third_party_provider: '', third_party_cost: '' }]);
+                    setIsModalOpen(true);
+                  }
                 } else {
                   setCatalogFormData({ name: '', description: '', price: '', estimated_duration: '', image: null });
                   setCatalogEditingId(null);

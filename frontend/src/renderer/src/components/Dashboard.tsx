@@ -16,6 +16,7 @@ const PlansManager = React.lazy(() => import('./dashboard/PlansManager'));
 const ConfigPage = React.lazy(() => import('./ConfigPage'));
 const CashboxPage = React.lazy(() => import('./CashboxPage'));
 const ServicesPage = React.lazy(() => import('./ServicesPage'));
+const FullServiceFormPage = React.lazy(() => import('./FullServiceFormPage'));
 const ClientDetailsPage = React.lazy(() => import('./ClientDetailsPage'));
 
 interface DashboardProps {
@@ -134,7 +135,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut })
                view === 'planes' ? 'Planes de Suscripción' :
                view === 'configuracion' ? 'Configuración' :
                view === 'caja' ? 'Caja' :
-               view === 'servicios' || view === 'nuevo_servicio' ? 'Servicios' :
+               view === 'servicios' ? 'Servicios' :
+               view === 'service_form' ? 'Nuevo Servicio' :
                view === 'client_details' ? 'Detalle del Cliente' :
                'Pedidos'}
             </h1>
@@ -209,13 +211,19 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut })
           {view === 'caja' && (
             <CashboxPage token={token} apiBase={apiBase} />
           )}
-          {(view === 'servicios' || view === 'nuevo_servicio') && (
+          {view === 'servicios' && (
             <ServicesPage 
-              key={view}
               token={token} 
               apiBase={apiBase} 
-              initialOpen={view === 'nuevo_servicio'}
-              onClose={() => setView('servicios')}
+              onCreate={() => setView('service_form')}
+            />
+          )}
+          {view === 'service_form' && (
+            <FullServiceFormPage
+              token={token}
+              apiBase={apiBase}
+              onCancel={() => setView('servicios')}
+              onSaved={() => setView('servicios')}
             />
           )}
         </React.Suspense>
