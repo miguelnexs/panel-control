@@ -119,16 +119,50 @@ const templatesServer = http.createServer((req, res) => {
   }
 });
 
+templatesServer.on('error', (err: any) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${TEMPLATES_PORT} is already in use. Templates server skipped.`);
+  } else {
+    console.error('Templates server error:', err);
+  }
+});
+
 templatesServer.listen(TEMPLATES_PORT, () => {
   console.log(`Templates server running at http://localhost:${TEMPLATES_PORT}/`);
 });
 
 const isDev = process.env.NODE_ENV === 'development';
 
+let mainWindow: BrowserWindow | null = null;
+
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    // Someone tried to run a second instance, we should focus our window.
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+
+  app.whenReady().then(() => {
+    createWindow();
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
+  });
+}
+
 function createWindow(): BrowserWindow {
   const preloadPath = path.join(__dirname, '..', 'preload', 'index.js');
 
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 1200,
@@ -455,18 +489,14 @@ ipcMain.handle('print-silent', async (_, { content, printerName }) => {
     }
   });
 
-app.whenReady().then(() => {
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
-});
-
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+app.on('before-quit', () => {
+  if (templatesServer) {
+    templatesServer.close();
   }
 });

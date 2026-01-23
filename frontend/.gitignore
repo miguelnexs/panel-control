@@ -1,5 +1,9 @@
 node_modules
 dist
+dist-electron
+dist-electron-v2
+dist-electron-v3
+dist-web
 out
 .DS_Store
 .eslintcache

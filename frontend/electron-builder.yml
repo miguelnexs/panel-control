@@ -2,7 +2,7 @@ appId: com.assent.dashboard
 productName: Assent Dashboard
 copyright: Copyright © 2024 Assent Dashboard
 directories:
-  output: dist-electron
+  output: dist-electron-v3
   buildResources: build
 files:
   - "out/**/*"
@@ -30,12 +30,12 @@ removePackageKeywords: true
 
 win:
   target:
-    - target: dir
+    - target: nsis
       arch:
         - x64
   icon: resources/logo.png
   requestedExecutionLevel: asInvoker
-  artifactName: "${productName} ${version} Portable"
+  artifactName: "${productName} Setup ${version}.${ext}"
   publisherName: Assent Dashboard
   verifyUpdateCodeSignature: false
   sign: false
@@ -53,7 +53,7 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: Assent Dashboard
   deleteAppDataOnUninstall: false
-  include: build/installer.nsh
+  # include: build/installer.nsh
   installerLanguages:
     - es-ES
     - en-US
@@ -86,12 +86,3 @@ linux:
     Terminal: false
     Type: Application
 
-publish:
-  provider: github
-  owner: tu-usuario
-  repo: tienda-app
-  private: false
-  releaseType: release
-  draft: false
-  prerelease: false
-  generateReleaseNotes: true

@@ -4,6 +4,10 @@
   "description": "Assent Dashboard - Sistema de gestión empresarial",
   "main": "./out/main/index.js",
   "author": "example.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/example/assent-dashboard.git"
+  },
   "homepage": "https://electron-vite.org",
   "scripts": {
     "format": "prettier --write .",
@@ -105,7 +109,7 @@
     "appId": "com.assent.dashboard",
     "productName": "Assent Dashboard",
     "directories": {
-      "output": "dist-electron"
+      "output": "dist-electron-v3"
     },
     "files": [
       "out/**/*",
@@ -113,10 +117,14 @@
       "package.json"
     ],
     "win": {
-      "target": "portable"
+      "target": "nsis"
     },
-    "portable": {
-      "artifactName": "Assent-Dashboard.exe"
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Assent Dashboard"
     }
   }
 }
