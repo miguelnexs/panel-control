@@ -16,8 +16,26 @@ import {
   DollarSign,
   Layers,
   Palette,
-  X
+  X,
+  GripVertical
 } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface ProductosManagerProps {
   token: string | null;
@@ -25,6 +43,34 @@ interface ProductosManagerProps {
   onCreate?: () => void;
   onEdit?: (product: any) => void;
 }
+
+const SortableRow = ({ product, children }: { product: any, children: React.ReactNode }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: product.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : 'auto',
+    position: 'relative' as const,
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} className="hover:bg-gray-800/30 transition-colors group">
+      <td className="px-2 py-4 w-10 text-gray-500 cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
+        <GripVertical className="w-5 h-5 hover:text-gray-300" />
+      </td>
+      {children}
+    </tr>
+  );
+};
 
 const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onCreate, onEdit }) => {
   const [items, setItems] = useState<any[]>([]);
@@ -38,6 +84,30 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
   const [activeFilter, setActiveFilter] = useState('all');
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [lowStockThreshold, setLowStockThreshold] = useState(5);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setItems((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+      // Here you would typically save the new order to the backend
+    }
+  };
 
   const authHeaders = (tkn: string | null): Record<string, string> => ({ ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) });
 
@@ -257,96 +327,108 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-gray-800 bg-gray-800/30">
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Producto</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Precio</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Categoría</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Stock</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-800">
-              {filtered.map((p) => (
-                <tr key={p.id} className="hover:bg-gray-800/30 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-gray-800 border border-gray-700 overflow-hidden flex-shrink-0">
-                        {p.image ? (
-                          <img src={mediaUrl(p.image)} alt={p.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-600">
-                            <Package className="w-5 h-5" />
+        <DndContext 
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-gray-800 bg-gray-800/30">
+                  <th className="w-10 px-2"></th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Producto</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Precio</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Categoría</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Stock</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Estado</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-800">
+                <SortableContext 
+                  items={filtered.map((p) => p.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {filtered.map((p) => (
+                    <SortableRow key={p.id} product={p}>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-gray-800 border border-gray-700 overflow-hidden flex-shrink-0">
+                            {p.image ? (
+                              <img src={mediaUrl(p.image)} alt={p.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-gray-600">
+                                <Package className="w-5 h-5" />
+                              </div>
+                            )}
                           </div>
-                        )}
+                          <div>
+                            <div className="font-medium text-white group-hover:text-blue-400 transition-colors">{p.name}</div>
+                            {p.sku && <div className="text-xs text-gray-500">SKU: {p.sku}</div>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="font-medium text-gray-200">{formatCurrency(p.price)}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-800 text-xs text-gray-400 border border-gray-700">
+                          {p.category_name || 'Sin categoría'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className={`font-medium ${totalStockOf(p) < lowStockThreshold ? 'text-amber-500' : 'text-emerald-500'}`}>
+                          {totalStockOf(p)} u.
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${p.active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-gray-700 text-gray-400 border-gray-600'}`}>
+                          {p.active ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button 
+                            onClick={async () => { setViewing(p); try { const res = await fetch(`${apiBase}/products/${p.id}/colors/`, { headers: authHeaders(token) }); const data = await res.json(); const list = Array.isArray(data.results) ? data.results : data; setViewColors(Array.isArray(list) ? list : []); } catch (_) { setViewColors([]); } }}
+                            className="p-2 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                            title="Ver detalles"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => { if (onEdit) onEdit(p); }} 
+                            className="p-2 rounded-lg hover:bg-blue-500/10 text-gray-400 hover:text-blue-400 transition-colors"
+                            title="Editar"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => removeProduct(p.id)} 
+                            className="p-2 rounded-lg hover:bg-rose-500/10 text-gray-400 hover:text-rose-400 transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </SortableRow>
+                  ))}
+                </SortableContext>
+                {items.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                      <div className="flex flex-col items-center justify-center">
+                        <Package className="w-12 h-12 mb-3 opacity-20" />
+                        <p>No se encontraron productos</p>
                       </div>
-                      <div>
-                        <div className="font-medium text-white group-hover:text-blue-400 transition-colors">{p.name}</div>
-                        {p.sku && <div className="text-xs text-gray-500">SKU: {p.sku}</div>}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="font-medium text-gray-200">{formatCurrency(p.price)}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-800 text-xs text-gray-400 border border-gray-700">
-                      {p.category_name || 'Sin categoría'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className={`font-medium ${totalStockOf(p) < lowStockThreshold ? 'text-amber-500' : 'text-emerald-500'}`}>
-                      {totalStockOf(p)} u.
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${p.active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-gray-700 text-gray-400 border-gray-600'}`}>
-                      {p.active ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={async () => { setViewing(p); try { const res = await fetch(`${apiBase}/products/${p.id}/colors/`, { headers: authHeaders(token) }); const data = await res.json(); const list = Array.isArray(data.results) ? data.results : data; setViewColors(Array.isArray(list) ? list : []); } catch (_) { setViewColors([]); } }}
-                        className="p-2 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
-                        title="Ver detalles"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => { if (onEdit) onEdit(p); }} 
-                        className="p-2 rounded-lg hover:bg-blue-500/10 text-gray-400 hover:text-blue-400 transition-colors"
-                        title="Editar"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => removeProduct(p.id)} 
-                        className="p-2 rounded-lg hover:bg-rose-500/10 text-gray-400 hover:text-rose-400 transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {items.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                    <div className="flex flex-col items-center justify-center">
-                      <Package className="w-12 h-12 mb-3 opacity-20" />
-                      <p>No se encontraron productos</p>
-                    </div>
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </DndContext>
       </div>
 
       {/* Product Details Modal */}
