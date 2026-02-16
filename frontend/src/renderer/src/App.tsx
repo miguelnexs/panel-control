@@ -102,7 +102,7 @@ const App = () => {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <TitleBar />
-      <div className="flex-1 overflow-hidden bg-gray-900">
+      <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
         {token ? (
           <Dashboard token={token} role={role!} userId={Number(userId)} onSignOut={handleSignOut} />
         ) : (

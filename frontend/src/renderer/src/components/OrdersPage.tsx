@@ -363,11 +363,11 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
   }, [orders, total]);
 
   const StatCard = ({ label, value, icon: Icon, color, subValue }: any) => (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-gray-700 transition-all group">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-gray-300 dark:hover:border-gray-700 transition-all group">
       <div>
-        <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">{label}</p>
+        <p className="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">{label}</p>
         <div className="flex items-baseline gap-2">
-          <p className="text-2xl font-bold text-white group-hover:scale-105 transition-transform origin-left">{value}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white group-hover:scale-105 transition-transform origin-left">{value}</p>
           {subValue && <span className="text-xs text-gray-500">{subValue}</span>}
         </div>
       </div>
@@ -380,11 +380,11 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
   const getStatusColor = (status: string = 'pending') => {
     switch(status.toLowerCase()) {
       case 'completed':
-      case 'delivered': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-      case 'pending': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-      case 'cancelled': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-      case 'processing': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
-      default: return 'bg-gray-700 text-gray-300 border-gray-600';
+      case 'delivered': return 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20';
+      case 'pending': return 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20';
+      case 'cancelled': return 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20';
+      case 'processing': return 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20';
+      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600';
     }
   };
 
@@ -447,26 +447,26 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
 
 
       {/* Main Content */}
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
         {/* Toolbar */}
-        <div className="p-5 border-b border-gray-800 flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-gray-900/50">
+        <div className="p-5 border-b border-gray-200 dark:border-gray-800 flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-gray-50 dark:bg-gray-900/50">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-500/10 rounded-lg">
-              <Package className="w-5 h-5 text-indigo-500" />
+            <div className="p-2 bg-indigo-100 dark:bg-indigo-500/10 rounded-lg">
+              <Package className="w-5 h-5 text-indigo-600 dark:text-indigo-500" />
             </div>
-            <h2 className="text-lg font-semibold text-white">Historial de Pedidos</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Historial de Pedidos</h2>
           </div>
 
           <div className="flex flex-col md:flex-row gap-3">
             {/* Search */}
             <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 group-focus-within:text-blue-500 transition-colors" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => { setPage(1); setSearch(e.target.value); }}
                 placeholder="Buscar pedido o cliente..."
-                className="pl-9 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all w-full md:w-64"
+                className="pl-9 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all w-full md:w-64"
               />
             </div>
 
@@ -475,7 +475,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
               <select
                 value={statusFilter}
                 onChange={(e) => { setPage(1); setStatusFilter(e.target.value); }}
-                className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
+                className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
               >
                 <option value="all">Todos los estados</option>
                 <option value="pending">Pendiente</option>
@@ -486,8 +486,8 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-2 border-l border-gray-800 pl-2 ml-2">
-              <button onClick={loadOrders} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" title="Recargar">
+            <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-800 pl-2 ml-2">
+              <button onClick={loadOrders} className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title="Recargar">
                 <RefreshCw className="w-4 h-4" />
               </button>
             </div>
@@ -498,34 +498,34 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-gray-800 bg-gray-800/30">
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Pedido</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Cliente</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Total</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Fecha</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Acciones</th>
+              <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
+                <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pedido</th>
+                <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
+                <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
+                <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
+                <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
+                <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
               {orders.map((o) => (
-                <tr key={o.id} className="hover:bg-gray-800/30 transition-colors group">
+                <tr key={o.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-gray-800 border border-gray-700">
-                        <ShoppingBag className="w-4 h-4 text-indigo-400" />
+                      <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                        <ShoppingBag className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                       </div>
                       <div>
-                        <div className="font-mono text-sm font-medium text-white group-hover:text-indigo-400 transition-colors">#{o.order_number}</div>
+                        <div className="font-mono text-sm font-medium text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">#{o.order_number}</div>
                         <div className="text-xs text-gray-500">{o.items_count} items</div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm text-gray-300 font-medium">{o.client?.full_name || 'Cliente Ocasional'}</div>
+                    <div className="text-sm text-gray-700 dark:text-gray-300 font-medium">{o.client?.full_name || 'Cliente Ocasional'}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm font-bold text-white">
+                    <div className="text-sm font-bold text-gray-900 dark:text-white">
                       {Number(o.total_amount).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
                     </div>
                   </td>
@@ -535,10 +535,10 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
                       {new Date(o.created_at).toLocaleDateString()}
                     </div>
-                    <div className="text-xs text-gray-600">
+                    <div className="text-xs text-gray-400 dark:text-gray-600">
                       {new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </td>
@@ -546,14 +546,14 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
                         onClick={() => handleSilentPrint(o)}
-                        className="p-2 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                         title="Imprimir Recibo"
                       >
                         <Printer className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => setViewOrder(o)}
-                        className="p-2 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                         title="Ver detalles"
                       >
                         <Eye className="w-4 h-4" />
@@ -577,32 +577,32 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
         </div>
         
         {/* Pagination */}
-        <div className="p-4 border-t border-gray-800 flex items-center justify-between bg-gray-900/50">
-          <div className="text-sm text-gray-400">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
             Mostrando {orders.length} de {total} pedidos
           </div>
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setPage((p) => Math.max(1, p - 1))} 
               disabled={page === 1}
-              className="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-gray-300 text-sm hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Anterior
             </button>
-            <span className="text-sm text-gray-300 px-2">
+            <span className="text-sm text-gray-700 dark:text-gray-300 px-2">
               Página {page} de {Math.max(1, Math.ceil(total / pageSize))}
             </span>
             <button 
               onClick={() => setPage((p) => Math.min(Math.max(1, Math.ceil(total / pageSize)), p + 1))} 
               disabled={page === Math.max(1, Math.ceil(total / pageSize))}
-              className="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-gray-300 text-sm hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Siguiente
             </button>
             <select 
               value={pageSize} 
               onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }} 
-              className="px-2 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="px-2 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             >
               {[10,20,50].map((n) => (<option key={n} value={n}>{n}/página</option>))}
             </select>
@@ -613,23 +613,23 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
       {/* View Order Modal */}
       {viewOrder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-4xl shadow-2xl scale-100 animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-4xl shadow-2xl scale-100 animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
             {/* Header */}
-            <div className="p-6 border-b border-gray-800 flex items-center justify-between shrink-0">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-500/10 rounded-lg">
-                  <ShoppingBag className="w-5 h-5 text-indigo-500" />
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-500/10 rounded-lg">
+                  <ShoppingBag className="w-5 h-5 text-indigo-600 dark:text-indigo-500" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-semibold text-white">Pedido #{viewOrder.order_number}</h3>
-                  <div className="text-xs text-gray-400">{new Date(viewOrder.created_at).toLocaleString()}</div>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Pedido #{viewOrder.order_number}</h3>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{new Date(viewOrder.created_at).toLocaleString()}</div>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                  <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(viewOrder.status)}`}>
                     {getStatusLabel(viewOrder.status)}
                  </span>
-                <button onClick={() => setViewOrder(null)} className="text-gray-500 hover:text-white transition-colors">
+                <button onClick={() => setViewOrder(null)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -640,52 +640,52 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {/* Client Info */}
                 <div className="col-span-1 space-y-4">
-                  <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
-                    <h4 className="text-sm font-medium text-gray-300 mb-4 flex items-center gap-2">
-                      <User className="w-4 h-4 text-indigo-400" /> Datos del Cliente
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                      <User className="w-4 h-4 text-indigo-500 dark:text-indigo-400" /> Datos del Cliente
                     </h4>
                     <div className="space-y-3">
                       <div>
                         <div className="text-xs text-gray-500 uppercase tracking-wider">Nombre</div>
-                        <div className="text-white font-medium">{viewOrder.client?.full_name || 'Cliente Ocasional'}</div>
+                        <div className="text-gray-900 dark:text-white font-medium">{viewOrder.client?.full_name || 'Cliente Ocasional'}</div>
                       </div>
                       {viewOrder.client?.email && (
                         <div>
                            <div className="text-xs text-gray-500 uppercase tracking-wider">Email</div>
-                           <div className="text-gray-300 text-sm truncate">{viewOrder.client.email}</div>
+                           <div className="text-gray-700 dark:text-gray-300 text-sm truncate">{viewOrder.client.email}</div>
                         </div>
                       )}
                       {viewOrder.client?.cedula && (
                         <div>
                            <div className="text-xs text-gray-500 uppercase tracking-wider">Documento</div>
-                           <div className="text-gray-300 text-sm">{viewOrder.client.cedula}</div>
+                           <div className="text-gray-700 dark:text-gray-300 text-sm">{viewOrder.client.cedula}</div>
                         </div>
                       )}
                       {viewOrder.client?.address && (
                         <div>
                            <div className="text-xs text-gray-500 uppercase tracking-wider">Dirección</div>
-                           <div className="text-gray-300 text-sm">{viewOrder.client.address}</div>
+                           <div className="text-gray-700 dark:text-gray-300 text-sm">{viewOrder.client.address}</div>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <div className="bg-gray-800/50 rounded-xl p-5 border border-gray-700">
-                    <h4 className="text-sm font-medium text-gray-300 mb-4 flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-emerald-400" /> Resumen Financiero
+                  <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-emerald-500 dark:text-emerald-400" /> Resumen Financiero
                     </h4>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-400">Subtotal</span>
-                        <span className="text-white">{Number(viewOrder.total_amount).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
+                        <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                        <span className="text-gray-900 dark:text-white">{Number(viewOrder.total_amount).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-400">Envío</span>
-                        <span className="text-white">$0</span>
+                        <span className="text-gray-600 dark:text-gray-400">Envío</span>
+                        <span className="text-gray-900 dark:text-white">$0</span>
                       </div>
-                      <div className="pt-2 mt-2 border-t border-gray-700 flex items-center justify-between">
-                        <span className="font-bold text-white">Total</span>
-                        <span className="font-bold text-emerald-400 text-lg">
+                      <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                        <span className="font-bold text-gray-900 dark:text-white">Total</span>
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400 text-lg">
                           {Number(viewOrder.total_amount).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
                         </span>
                       </div>
@@ -695,18 +695,18 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
 
                 {/* Items List */}
                 <div className="col-span-1 md:col-span-2">
-                  <h4 className="text-sm font-medium text-gray-300 mb-4 flex items-center gap-2">
-                    <Package className="w-4 h-4 text-indigo-400" /> Items del Pedido ({viewOrder.items_count})
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                    <Package className="w-4 h-4 text-indigo-500 dark:text-indigo-400" /> Items del Pedido ({viewOrder.items_count})
                   </h4>
                   
                   <div className="space-y-3">
                     {(viewOrder.items || []).map((it, idx) => (
-                      <div key={idx} className="bg-gray-800/30 border border-gray-700 rounded-xl p-3 flex gap-4 hover:border-gray-600 transition-colors">
-                        <div className="w-20 h-20 rounded-lg bg-gray-800 border border-gray-700 overflow-hidden shrink-0">
+                      <div key={idx} className="bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 rounded-xl p-3 flex gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+                        <div className="w-20 h-20 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
                           {it.product?.image ? (
                             <img src={mediaUrl(it.product.image)} alt={it.product?.name} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-600">
+                            <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600">
                               <Package className="w-8 h-8 opacity-50" />
                             </div>
                           )}
@@ -714,11 +714,11 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-start">
                             <div>
-                              <h5 className="text-white font-medium truncate pr-2">{it.product?.name || 'Producto eliminado'}</h5>
+                              <h5 className="text-gray-900 dark:text-white font-medium truncate pr-2">{it.product?.name || 'Producto eliminado'}</h5>
                               <p className="text-xs text-gray-500">SKU: {it.product?.sku || 'N/A'}</p>
                             </div>
                             <div className="text-right">
-                              <div className="text-white font-bold text-sm">
+                              <div className="text-gray-900 dark:text-white font-bold text-sm">
                                 {Number(it.line_total).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
                               </div>
                               <div className="text-xs text-gray-500">
@@ -729,13 +729,13 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                           
                           <div className="mt-2 flex flex-wrap gap-2">
                             {it.color && (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-gray-800 text-xs text-gray-300 border border-gray-700">
-                                <span className="w-3 h-3 rounded-full border border-gray-600" style={{ backgroundColor: it.color.hex }}></span>
+                              <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-white dark:bg-gray-800 text-xs text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
+                                <span className="w-3 h-3 rounded-full border border-gray-200 dark:border-gray-600" style={{ backgroundColor: it.color.hex }}></span>
                                 {it.color.name}
                               </span>
                             )}
                             {it.product?.category_name && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-800 text-xs text-gray-300 border border-gray-700">
+                              <span className="inline-flex items-center px-2 py-1 rounded-md bg-white dark:bg-gray-800 text-xs text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
                                 {it.product.category_name}
                               </span>
                             )}
@@ -744,7 +744,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                       </div>
                     ))}
                     {(viewOrder.items || []).length === 0 && (
-                      <div className="text-center py-8 text-gray-500 bg-gray-800/30 rounded-xl border border-dashed border-gray-700">
+                      <div className="text-center py-8 text-gray-500 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-dashed border-gray-200 dark:border-gray-700">
                         No hay items en este pedido
                       </div>
                     )}
@@ -754,14 +754,14 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
             </div>
             
             {/* Footer */}
-            <div className="p-4 border-t border-gray-800 bg-gray-900/50 rounded-b-2xl flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 rounded-b-2xl flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-3 w-full md:w-auto">
                  {viewOrder.dian ? (
                     <div className="flex items-center gap-3 flex-wrap">
                         <div className={`px-3 py-1.5 rounded-lg border text-xs font-bold uppercase tracking-wider ${
-                            viewOrder.dian.status === 'accepted' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                            viewOrder.dian.status === 'error' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
-                            'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                            viewOrder.dian.status === 'accepted' ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' :
+                            viewOrder.dian.status === 'error' ? 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20' :
+                            'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20'
                         }`}>
                             {viewOrder.dian.status === 'accepted' ? 'Factura Aceptada' : 
                              viewOrder.dian.status === 'error' ? 'Error Emisión' : 
@@ -772,7 +772,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                                 href={viewOrder.dian.pdf_url} 
                                 target="_blank" 
                                 rel="noreferrer"
-                                className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-lg transition-colors text-xs font-medium border border-gray-700"
+                                className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-xs font-medium border border-gray-200 dark:border-gray-700"
                                 title="Ver PDF"
                             >
                                 <FileText className="w-3.5 h-3.5" /> PDF
@@ -801,7 +801,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
               <div className="flex gap-2 w-full md:w-auto justify-end">
                 <button 
                     onClick={() => setViewOrder(null)} 
-                    className="px-6 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-medium transition-colors"
+                    className="px-6 py-2.5 rounded-xl bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-medium transition-colors"
                 >
                     Cerrar
                 </button>

@@ -90,7 +90,7 @@ interface WebPageManagerProps {
 }
 
 const DragHandle = () => (
-  <button className="p-2 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors cursor-grab active:cursor-grabbing">
+  <button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-grab active:cursor-grabbing">
     <MoveVertical size={16} />
   </button>
 );
@@ -119,26 +119,26 @@ const SortableCategoryCard = ({
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 flex items-center gap-4 hover:border-gray-600 transition-colors"
+      className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
     >
       <div {...attributes} {...listeners} className="touch-none">
           <DragHandle />
       </div>
 
-      <div className="w-16 h-16 rounded-lg bg-gray-800 border border-gray-700 overflow-hidden shrink-0">
+      <div className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
         {imageUrl ? (
           <img src={imageUrl} alt={category.name || category.nombre} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-600 text-xs">Sin img</div>
+          <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600 text-xs">Sin img</div>
         )}
       </div>
       
       <div className="flex-1 min-w-0">
-        <h3 className="font-medium text-white truncate">{category.name || category.nombre}</h3>
+        <h3 className="font-medium text-gray-900 dark:text-white truncate">{category.name || category.nombre}</h3>
         <p className="text-xs text-gray-500 mb-2">ID: {category.id}</p>
         
         <label className="inline-flex items-center gap-2 cursor-pointer group">
-          <div className={`w-9 h-5 rounded-full p-0.5 transition-colors ${visible ? 'bg-blue-600' : 'bg-gray-700'}`}>
+          <div className={`w-9 h-5 rounded-full p-0.5 transition-colors ${visible ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
             <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${visible ? 'translate-x-4' : 'translate-x-0'}`} />
           </div>
           <input 
@@ -147,7 +147,7 @@ const SortableCategoryCard = ({
             checked={!!visible} 
             onChange={(e) => onToggleVisible(category, e.target.checked)} 
           />
-          <span className={`text-xs transition-colors ${visible ? 'text-blue-400' : 'text-gray-400 group-hover:text-gray-300'}`}>
+          <span className={`text-xs transition-colors ${visible ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300'}`}>
             {visible ? 'Visible en web' : 'Oculto'}
           </span>
         </label>
@@ -620,7 +620,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
       className={`px-4 py-2.5 rounded-xl flex items-center gap-2 text-sm font-medium transition-all ${
         tab === id 
           ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/20' 
-          : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white border border-transparent hover:border-gray-600'
+          : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:text-gray-900 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700 dark:hover:bg-gray-700 dark:hover:text-white'
       }`}
     >
       <Icon className="w-4 h-4" />
@@ -643,16 +643,16 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
   return (
     <div className="space-y-6 relative animate-in fade-in duration-500">
       {loading && !products.length && (
-        <div className="absolute inset-0 z-50 bg-gray-950/50 backdrop-blur-sm flex items-center justify-center rounded-2xl">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
+        <div className="absolute inset-0 z-50 bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm flex items-center justify-center rounded-2xl">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
             <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4" />
-            <div className="text-white font-medium">Cargando datos...</div>
+            <div className="text-gray-900 dark:text-white font-medium">Cargando datos...</div>
           </div>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-gray-900 p-2 rounded-2xl border border-gray-800">
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white/80 dark:bg-gray-900 p-2 rounded-2xl border border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-2">
           <TabButton id="productos" label="Productos" icon={ShoppingBag} />
           <TabButton id="ofertas" label="Ofertas" icon={Tag} />
@@ -667,7 +667,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
             href={`http://localhost:8081/?aid=${adminId}`}
             target="_blank"
             rel="noreferrer"
-            className="px-4 py-2.5 rounded-xl bg-gray-800 text-white border border-gray-700 hover:bg-gray-700 text-sm font-medium transition-all flex items-center gap-2"
+            className="px-4 py-2.5 rounded-xl bg-white text-gray-800 border border-gray-200 hover:bg-gray-50 hover:text-gray-900 text-sm font-medium transition-all flex items-center gap-2 dark:bg-gray-800 dark:text-white dark:border-gray-700 dark:hover:bg-gray-700"
           >
             <Eye className="w-4 h-4" />
             Vista Previa
@@ -685,14 +685,14 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
       </div>
 
       {msg && (
-        <div className={`p-4 rounded-xl text-sm flex items-center gap-3 border ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+        <div className={`p-4 rounded-xl text-sm flex items-center gap-3 border ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'}`}>
           {msg.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
           {msg.text}
         </div>
       )}
 
       {/* Content */}
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-sm min-h-[400px]">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm min-h-[400px]">
         
         {/* Productos Tab */}
         {tab === 'productos' && (
@@ -703,14 +703,14 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                 <input 
                   value={query} 
                   onChange={(e) => setQuery(e.target.value)} 
-                  className="w-full pl-9 pr-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" 
+                  className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 placeholder-gray-400 dark:placeholder-gray-500" 
                   placeholder="Buscar producto..." 
                 />
               </div>
               <select 
                 value={filterCat} 
                 onChange={(e) => setFilterCat(e.target.value)} 
-                className="px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               >
                 <option value="">Todas las categorías</option>
                 {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
@@ -718,7 +718,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
               <select 
                 value={filterActive} 
                 onChange={(e) => setFilterActive(e.target.value)} 
-                className="px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                className="px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
               >
                 <option value="">Todos los estados</option>
                 <option value="1">Activos</option>
@@ -728,19 +728,19 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filteredProducts.map((p) => (
-                <div key={p.id} className="bg-gray-800/50 border border-gray-700 rounded-xl p-4 hover:border-gray-600 transition-colors group">
-                  <div className="aspect-video bg-gray-800 rounded-lg mb-3 overflow-hidden border border-gray-700 relative">
+                <div key={p.id} className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors group">
+                  <div className="aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg mb-3 overflow-hidden border border-gray-200 dark:border-gray-700 relative">
                     {p.image ? (
                       <img src={mediaUrl(p.image)} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-600">
+                      <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600">
                         <ShoppingBag className="w-8 h-8 opacity-50" />
                       </div>
                     )}
                     <div className="absolute top-2 right-2">
                        <button 
                           onClick={() => toggleVisible(p, !visible[p.id])}
-                          className={`p-1.5 rounded-lg backdrop-blur-sm border transition-colors ${visible[p.id] ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-gray-900/60 text-gray-400 border-gray-700 hover:text-white'}`}
+                          className={`p-1.5 rounded-lg backdrop-blur-sm border transition-colors ${visible[p.id] ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' : 'bg-white/60 dark:bg-gray-900/60 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:text-gray-900 dark:hover:text-white'}`}
                           title={visible[p.id] ? 'Visible en web' : 'Oculto en web'}
                        >
                          {visible[p.id] ? <Eye size={14} /> : <EyeOff size={14} />}
@@ -749,28 +749,28 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                   </div>
                   
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <h3 className="font-medium text-white truncate" title={p.name}>{p.name}</h3>
-                    <span className="font-bold text-emerald-400 shrink-0">
+                    <h3 className="font-medium text-gray-900 dark:text-white truncate" title={p.name}>{p.name}</h3>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
                       {Number(p.price || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
                     </span>
                   </div>
                   
-                  <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
-                    <span className="bg-gray-700 px-2 py-0.5 rounded text-gray-300">{p.category?.name || 'Sin cat.'}</span>
+                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-3">
+                    <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-700 dark:text-gray-300">{p.category?.name || 'Sin cat.'}</span>
                     <span>•</span>
                     <span>Stock: {Number(p.total_stock ?? p.inventory_qty ?? 0)}</span>
                   </div>
 
-                  <div className="flex items-center gap-2 mt-auto pt-3 border-t border-gray-700/50">
+                  <div className="flex items-center gap-2 mt-auto pt-3 border-t border-gray-100 dark:border-gray-700/50">
                     <button 
                       onClick={() => setProductEditing && setProductEditing(p)}
-                      className="flex-1 py-1.5 rounded-lg bg-indigo-600/10 hover:bg-indigo-600/20 text-indigo-400 text-xs font-medium transition-colors flex items-center justify-center gap-1"
+                      className="flex-1 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-600/10 hover:bg-indigo-100 dark:hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 text-xs font-medium transition-colors flex items-center justify-center gap-1"
                     >
                       <Edit size={14} /> Editar
                     </button>
                     <button 
                       onClick={() => removeProduct(p)}
-                      className="flex-1 py-1.5 rounded-lg bg-rose-600/10 hover:bg-rose-600/20 text-rose-400 text-xs font-medium transition-colors flex items-center justify-center gap-1"
+                      className="flex-1 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-600/10 hover:bg-rose-100 dark:hover:bg-rose-600/20 text-rose-600 dark:text-rose-400 text-xs font-medium transition-colors flex items-center justify-center gap-1"
                     >
                       <Trash size={14} /> Eliminar
                     </button>
@@ -790,21 +790,21 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
         {/* Ofertas Tab */}
         {tab === 'ofertas' && (
           <div className="p-6 space-y-6">
-            <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6 mb-6">
-              <h3 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
-                <Tag className="w-5 h-5 text-blue-400" />
+            <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <Tag className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 Configurar Oferta Masiva
               </h3>
               <div className="flex flex-col md:flex-row gap-4 items-end">
                 <div className="flex-1 w-full">
-                  <label className="block text-sm font-medium text-gray-400 mb-2">Porcentaje de Descuento (%)</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">Porcentaje de Descuento (%)</label>
                   <input 
                     type="number" 
                     min="0" 
                     max="100" 
                     value={offerPercent} 
                     onChange={(e) => setOfferPercent(Number(e.target.value))}
-                    className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
                 <button 
@@ -830,7 +830,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
             </div>
 
             <div className="flex items-center justify-between mb-4">
-              <h4 className="text-gray-300 font-medium">Seleccionar Productos</h4>
+              <h4 className="text-gray-700 dark:text-gray-300 font-medium">Seleccionar Productos</h4>
               <button 
                 onClick={() => {
                   if (selectedOfferProducts.length === products.length) {
@@ -839,7 +839,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                     setSelectedOfferProducts(products.map(p => p.id));
                   }
                 }}
-                className="text-sm text-blue-400 hover:text-blue-300"
+                className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
               >
                 {selectedOfferProducts.length === products.length ? 'Deseleccionar Todos' : 'Seleccionar Todos'}
               </button>
@@ -858,36 +858,36 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                   }}
                   className={`border rounded-xl p-4 cursor-pointer transition-all relative group ${
                     selectedOfferProducts.includes(p.id) 
-                      ? 'bg-blue-900/20 border-blue-500/50' 
-                      : 'bg-gray-800/50 border-gray-700 hover:border-gray-600'
+                      ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500/50' 
+                      : 'bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
                   <div className="absolute top-4 right-4 z-10">
                     <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
-                      selectedOfferProducts.includes(p.id) ? 'bg-blue-500 border-blue-500' : 'border-gray-500'
+                      selectedOfferProducts.includes(p.id) ? 'bg-blue-500 border-blue-500' : 'border-gray-400 dark:border-gray-500'
                     }`}>
                       {selectedOfferProducts.includes(p.id) && <CheckCircle className="w-3.5 h-3.5 text-white" />}
                     </div>
                   </div>
 
                   <div className="flex gap-4">
-                    <div className="w-20 h-20 rounded-lg bg-gray-800 border border-gray-700 overflow-hidden shrink-0">
+                    <div className="w-20 h-20 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
                       {p.image ? (
                         <img src={mediaUrl(p.image)} alt={p.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-600">
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600">
                           <ShoppingBag className="w-8 h-8 opacity-50" />
                         </div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-white truncate pr-6">{p.name}</h3>
+                      <h3 className="font-medium text-gray-900 dark:text-white truncate pr-6">{p.name}</h3>
                       <div className="flex flex-col gap-1 mt-1">
-                        <span className="text-sm text-gray-400">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
                           Precio: {Number(p.price || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
                         </span>
                         {p.is_sale && (
-                          <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded w-fit">
+                          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded w-fit">
                             Oferta: {Number(p.sale_price || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
                           </span>
                         )}
@@ -908,7 +908,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
               <input 
                 value={query} 
                 onChange={(e) => setQuery(e.target.value)} 
-                className="w-full md:w-1/2 pl-9 pr-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" 
+                className="w-full md:w-1/2 pl-9 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" 
                 placeholder="Buscar categoría..." 
               />
             </div>
@@ -942,17 +942,17 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
           <div className="p-6">
             <div className="max-w-2xl mx-auto space-y-8">
               <div className="text-center">
-                <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Globe className="w-8 h-8 text-blue-500" />
+                <div className="w-16 h-16 bg-blue-50 dark:bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Globe className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-2">Configuración de Dominio</h2>
-                <p className="text-gray-400">Define la dirección web donde tus clientes podrán acceder a tu tienda.</p>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Configuración de Dominio</h2>
+                <p className="text-gray-600 dark:text-gray-400">Define la dirección web donde tus clientes podrán acceder a tu tienda.</p>
               </div>
 
-              <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 shadow-xl">
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-xl">
                 <form onSubmit={saveSiteUrl} className="space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">URL del Sitio</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">URL del Sitio</label>
                     <div className="relative">
                       <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                       <input 
@@ -960,7 +960,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                         value={siteUrl}
                         onChange={(e) => setSiteUrl(e.target.value)}
                         placeholder="ejemplo.com"
-                        className="w-full pl-10 pr-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 placeholder-gray-400 dark:placeholder-gray-500"
                       />
                     </div>
                     <p className="mt-2 text-xs text-gray-500">Ingresa el dominio sin http:// o https://</p>
@@ -990,20 +990,20 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
 
               {urlStatus && (
                 <div className={`p-6 rounded-2xl border flex items-start gap-4 ${urlStatus.ok ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20'}`}>
-                  <div className={`p-2 rounded-lg ${urlStatus.ok ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                  <div className={`p-2 rounded-lg ${urlStatus.ok ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/20 text-rose-600 dark:text-rose-400'}`}>
                     {urlStatus.ok ? <CheckCircle size={24} /> : <AlertTriangle size={24} />}
                   </div>
                   <div>
-                    <h3 className={`font-bold mb-1 ${urlStatus.ok ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    <h3 className={`font-bold mb-1 ${urlStatus.ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
                       {urlStatus.ok ? 'Configuración Correcta' : 'Error de Configuración'}
                     </h3>
-                    <p className="text-gray-300 text-sm leading-relaxed">{urlStatus.message}</p>
+                    <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{urlStatus.message}</p>
                     {urlStatus.ok && (
                       <a 
                         href={`https://${urlStatus.site_url}`} 
                         target="_blank" 
                         rel="noreferrer"
-                        className="inline-flex items-center gap-2 mt-3 text-sm font-medium text-emerald-400 hover:text-emerald-300 hover:underline"
+                        className="inline-flex items-center gap-2 mt-3 text-sm font-medium text-emerald-700 hover:text-emerald-600 hover:underline dark:text-emerald-400 dark:hover:text-emerald-300"
                       >
                         Visitar sitio <ExternalLink size={14} />
                       </a>
@@ -1021,15 +1021,15 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
         {tab === 'pagos' && (
           <div className="p-6 space-y-8">
             {/* WhatsApp Section */}
-            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center">
-                    <svg viewBox="0 0 24 24" className="w-6 h-6 text-green-500" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                    <svg viewBox="0 0 24 24" className="w-6 h-6 text-green-600 dark:text-green-500" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white">WhatsApp</h3>
-                    <p className="text-gray-400 text-sm">Vinculación directa para pedidos por WhatsApp.</p>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">WhatsApp</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">Vinculación directa para pedidos por WhatsApp.</p>
                   </div>
                 </div>
 
@@ -1040,20 +1040,20 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                     checked={paymentMethods.find(p => p.provider === 'whatsapp')?.active || false}
                     onChange={(e) => toggleWhatsApp(e.target.checked)}
                   />
-                  <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                 </label>
               </div>
 
               {paymentMethods.find(p => p.provider === 'whatsapp')?.active && (
                 <form onSubmit={saveWhatsApp} className="flex gap-4 items-end animate-in fade-in slide-in-from-top-4 duration-300">
                   <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Número de WhatsApp</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Número de WhatsApp</label>
                     <input 
                       type="text" 
                       value={appSettings?.company_whatsapp || ''}
                       onChange={(e) => setAppSettings(prev => prev ? ({ ...prev, company_whatsapp: e.target.value }) : null)}
                       placeholder="Ej: 573001234567"
-                      className="w-full px-4 py-2.5 bg-gray-900 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                      className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500/50"
                     />
                   </div>
                   <button 
@@ -1068,15 +1068,15 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
             </div>
 
             {/* Mercado Pago Section */}
-            <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center">
-                    <CreditCard className="w-6 h-6 text-blue-500" />
+                    <CreditCard className="w-6 h-6 text-blue-600 dark:text-blue-500" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white">Mercado Pago</h3>
-                    <p className="text-gray-400 text-sm">Pagos en línea con tarjetas y otros medios.</p>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">Mercado Pago</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">Pagos en línea con tarjetas y otros medios.</p>
                   </div>
                 </div>
                 
@@ -1087,7 +1087,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                     checked={paymentMethods.find(p => p.provider === 'mercadopago')?.active || false}
                     onChange={(e) => toggleMercadoPago(e.target.checked)}
                   />
-                  <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                 </label>
               </div>
 
@@ -1095,7 +1095,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Public Key</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Public Key</label>
                       <input 
                         type="text" 
                         value={paymentMethods.find(p => p.provider === 'mercadopago')?.extra_config?.public_key || ''}
@@ -1112,11 +1112,11 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                             return updated;
                           });
                         }}
-                        className="w-full px-4 py-2.5 bg-gray-900 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">Access Token</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Access Token</label>
                       <input 
                         type="password" 
                         value={paymentMethods.find(p => p.provider === 'mercadopago')?.extra_config?.private_key || ''}
@@ -1134,13 +1134,13 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                           });
                         }}
                         placeholder="••••••••••••••••"
-                        className="w-full px-4 py-2.5 bg-gray-900 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       />
                     </div>
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Comisión (%)</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Comisión (%)</label>
                     <div className="flex items-center gap-2">
                       <input 
                         type="number" 
@@ -1157,9 +1157,9 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                             return updated;
                           });
                         }}
-                        className="w-32 px-4 py-2.5 bg-gray-900 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-32 px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       />
-                      <span className="text-gray-400 text-sm">Lo que cobra la pasarela</span>
+                      <span className="text-gray-500 dark:text-gray-400 text-sm">Lo que cobra la pasarela</span>
                     </div>
                   </div>
 
@@ -1185,21 +1185,21 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
         {tab === 'envios' && (
           <div className="p-6">
             <div className="max-w-2xl mx-auto">
-              <div className="bg-gray-800 border border-gray-700 rounded-2xl p-6 shadow-xl">
+              <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-xl">
                 <div className="flex items-center gap-4 mb-8">
                   <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center">
-                    <Truck className="w-6 h-6 text-blue-500" />
+                    <Truck className="w-6 h-6 text-blue-600 dark:text-blue-500" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-white">Configuración de Envíos</h2>
-                    <p className="text-gray-400">Gestiona los costos de envío y opciones de entrega.</p>
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Configuración de Envíos</h2>
+                    <p className="text-gray-500 dark:text-gray-400">Gestiona los costos de envío y opciones de entrega.</p>
                   </div>
                 </div>
 
                 <form onSubmit={saveShipping} className="space-y-6">
                   {/* Costo de Envío Estándar */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Costo de Envío Estándar</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Costo de Envío Estándar</label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
                       <input 
@@ -1207,7 +1207,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                         min="0"
                         value={shippingCost}
                         onChange={(e) => setShippingCost(Number(e.target.value))}
-                        className="w-full pl-8 pr-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full pl-8 pr-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       />
                     </div>
                     <p className="mt-2 text-xs text-gray-500">Este valor se cobrará si no se cumple la condición de envío gratis.</p>
@@ -1215,7 +1215,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
 
                   {/* Envío Gratis Desde */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Envío Gratis por compras superiores a</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Envío Gratis por compras superiores a</label>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">$</span>
                       <input 
@@ -1223,16 +1223,16 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                         min="0"
                         value={freeShippingThreshold}
                         onChange={(e) => setFreeShippingThreshold(Number(e.target.value))}
-                        className="w-full pl-8 pr-4 py-3 bg-gray-900 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-full pl-8 pr-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       />
                     </div>
                     <p className="mt-2 text-xs text-gray-500">Si el subtotal del pedido supera este valor, el envío será gratis.</p>
                   </div>
 
                   {/* Recogida en Tienda Toggle */}
-                  <div className="flex items-center justify-between p-4 bg-gray-900 rounded-xl border border-gray-700">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
                     <div>
-                      <h3 className="font-medium text-white">Habilitar Recogida en Tienda</h3>
+                      <h3 className="font-medium text-gray-900 dark:text-white">Habilitar Recogida en Tienda</h3>
                       <p className="text-sm text-gray-500">Permitir a los clientes recoger sus pedidos gratis.</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -1242,11 +1242,11 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                         checked={pickupEnabled}
                         onChange={(e) => setPickupEnabled(e.target.checked)}
                       />
-                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                     </label>
                   </div>
 
-                  <div className="flex items-center justify-end pt-4 border-t border-gray-700">
+                  <div className="flex items-center justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
                     <button 
                       type="submit" 
                       disabled={savingShipping}

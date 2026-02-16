@@ -129,10 +129,10 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
   };
 
   const StatCard = ({ label, value, icon: Icon, color }: any) => (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-gray-700 transition-all group">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-gray-300 dark:hover:border-gray-700 transition-all group">
       <div>
-        <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">{label}</p>
-        <p className="text-2xl font-bold text-white group-hover:scale-105 transition-transform origin-left">{value}</p>
+        <p className="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">{label}</p>
+        <p className="text-2xl font-bold text-gray-900 dark:text-white group-hover:scale-105 transition-transform origin-left">{value}</p>
       </div>
       <div className={`p-3 rounded-lg bg-opacity-10 ${color.bg}`}>
         <Icon className={`w-6 h-6 ${color.text}`} />
@@ -171,7 +171,7 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
       </div>
 
       {msg && (
-        <div className={`p-4 rounded-xl text-sm flex items-center gap-3 border ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+        <div className={`p-4 rounded-xl text-sm flex items-center gap-3 border ${msg.type === 'success' ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' : 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'}`}>
           {msg.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
           {msg.text}
         </div>
@@ -182,34 +182,34 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
         
         {/* Left Column: Actions */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-sm h-full">
-            <div className="p-5 border-b border-gray-800 flex items-center gap-3 bg-gray-900/50">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <Wallet className="w-5 h-5 text-blue-500" />
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm dark:shadow-none h-full">
+            <div className="p-5 border-b border-gray-200 dark:border-gray-800 flex items-center gap-3 bg-gray-50 dark:bg-gray-900/50">
+              <div className="p-2 bg-blue-100 dark:bg-blue-500/10 rounded-lg">
+                <Wallet className="w-5 h-5 text-blue-600 dark:text-blue-500" />
               </div>
-              <h2 className="text-lg font-semibold text-white">Control de Caja</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Control de Caja</h2>
             </div>
             
             <div className="p-6">
               {!cashSession ? (
                 <form onSubmit={(e) => { e.preventDefault(); const amt = (e.currentTarget.elements.namedItem('initial') as HTMLInputElement).value; openCashbox(amt); e.currentTarget.reset(); }} className="space-y-6">
-                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
+                  <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-xl p-4">
                     <div className="flex gap-3">
-                      <AlertCircle className="w-5 h-5 text-blue-400 shrink-0" />
-                      <p className="text-sm text-blue-200">La caja se encuentra cerrada. Ingrese el monto base para iniciar el turno.</p>
+                      <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
+                      <p className="text-sm text-blue-700 dark:text-blue-200">La caja se encuentra cerrada. Ingrese el monto base para iniciar el turno.</p>
                     </div>
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-2">Monto Base Inicial</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">Monto Base Inicial</label>
                     <div className="relative group">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 group-focus-within:text-blue-500 transition-colors" />
                       <input 
                         name="initial" 
                         type="number" 
                         step="0.01" 
                         placeholder="0.00" 
-                        className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" 
+                        className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" 
                         required 
                       />
                     </div>
@@ -226,35 +226,35 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
                 </form>
               ) : (
                 <form onSubmit={(e) => { e.preventDefault(); const amt = (e.currentTarget.elements.namedItem('counted') as HTMLInputElement).value; closeCashbox(amt); e.currentTarget.reset(); }} className="space-y-6">
-                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+                  <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 rounded-xl p-4">
                     <div className="flex gap-3">
-                      <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
-                      <p className="text-sm text-amber-200">Para cerrar, cuente el dinero físico. El sistema calculará diferencias.</p>
+                      <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <p className="text-sm text-amber-700 dark:text-amber-200">Para cerrar, cuente el dinero físico. El sistema calculará diferencias.</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <div className="p-4 bg-gray-800/50 rounded-xl border border-gray-700/50 space-y-3">
+                    <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/50 space-y-3">
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-400">Inicio:</span>
-                        <span className="text-white font-mono">{new Date(cashSession.started_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                        <span className="text-gray-500 dark:text-gray-400">Inicio:</span>
+                        <span className="text-gray-900 dark:text-white font-mono">{new Date(cashSession.started_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                       </div>
                       <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-400">Base:</span>
-                        <span className="text-emerald-400 font-mono">{formatCurrency(cashSession.initial_amount)}</span>
+                        <span className="text-gray-500 dark:text-gray-400">Base:</span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-mono">{formatCurrency(cashSession.initial_amount)}</span>
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-2">Total Efectivo Contado</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-2">Total Efectivo Contado</label>
                       <div className="relative group">
-                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-rose-500 transition-colors" />
+                        <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 group-focus-within:text-rose-500 transition-colors" />
                         <input 
                           name="counted" 
                           type="number" 
                           step="0.01" 
                           placeholder="0.00" 
-                          className="w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500 transition-all" 
+                          className="w-full pl-10 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-rose-500/50 focus:border-rose-500 transition-all" 
                           required 
                         />
                       </div>
@@ -277,32 +277,32 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
 
         {/* Right Column: History */}
         <div className="lg:col-span-2">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-sm h-full">
-            <div className="p-5 border-b border-gray-800 flex items-center justify-between bg-gray-900/50">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm dark:shadow-none h-full">
+            <div className="p-5 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-500/10 rounded-lg">
-                  <History className="w-5 h-5 text-purple-500" />
+                <div className="p-2 bg-purple-100 dark:bg-purple-500/10 rounded-lg">
+                  <History className="w-5 h-5 text-purple-600 dark:text-purple-500" />
                 </div>
-                <h2 className="text-lg font-semibold text-white">Historial de Cierres</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Historial de Cierres</h2>
               </div>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-gray-800 bg-gray-800/30">
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Fecha</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Usuario</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Base</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Ventas</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Contado</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Diferencia</th>
+                  <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Usuario</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Base</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Ventas</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Contado</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Diferencia</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-800">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                   {cashHistory.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                      <td colSpan={6} className="px-6 py-12 text-center text-gray-400 dark:text-gray-500">
                         <div className="flex flex-col items-center justify-center gap-2">
                           <History className="w-8 h-8 opacity-20" />
                           <p>No hay registros de cierres aún</p>
@@ -311,28 +311,28 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
                     </tr>
                   ) : (
                     cashHistory.map((h, i) => (
-                      <tr key={i} className="hover:bg-gray-800/30 transition-colors">
+                      <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="text-sm text-white font-medium">{new Date(h.closed_at).toLocaleDateString()}</div>
+                          <div className="text-sm text-gray-900 dark:text-white font-medium">{new Date(h.closed_at).toLocaleDateString()}</div>
                           <div className="text-xs text-gray-500">{new Date(h.closed_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-sm text-gray-300">{h.user}</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-300">{h.user}</div>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <div className="text-sm font-mono text-gray-400">{formatCurrency(h.initial_amount)}</div>
+                          <div className="text-sm font-mono text-gray-500 dark:text-gray-400">{formatCurrency(h.initial_amount)}</div>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <div className="text-sm font-mono text-blue-400">{formatCurrency(h.sales_amount)}</div>
+                          <div className="text-sm font-mono text-blue-600 dark:text-blue-400">{formatCurrency(h.sales_amount)}</div>
                         </td>
                         <td className="px-6 py-4 text-right">
-                          <div className="text-sm font-mono text-white">{formatCurrency(h.counted_amount)}</div>
+                          <div className="text-sm font-mono text-gray-900 dark:text-white">{formatCurrency(h.counted_amount)}</div>
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className={`text-sm font-mono font-bold px-2 py-1 rounded-md inline-block ${
-                            h.difference === 0 ? 'bg-gray-800 text-gray-400' :
-                            h.difference > 0 ? 'bg-emerald-500/10 text-emerald-400' :
-                            'bg-rose-500/10 text-rose-400'
+                            h.difference === 0 ? 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400' :
+                            h.difference > 0 ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' :
+                            'bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400'
                           }`}>
                             {h.difference > 0 ? '+' : ''}{formatCurrency(h.difference)}
                           </div>

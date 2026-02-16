@@ -40,32 +40,32 @@ interface CategoriesManagerProps {
 }
 
 const SortableRow = ({ category, children }: { category: any, children: React.ReactNode }) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: category.id });
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id: category.id });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 50 : 'auto',
-    position: 'relative' as const,
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+      zIndex: isDragging ? 50 : 'auto',
+      position: 'relative' as const,
+    };
+
+    return (
+      <tr ref={setNodeRef} style={style} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors group">
+        <td className="px-2 py-4 w-10 text-gray-400 dark:text-gray-500 cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
+          <GripVertical className="w-5 h-5 hover:text-gray-600 dark:hover:text-gray-300" />
+        </td>
+        {children}
+      </tr>
+    );
   };
-
-  return (
-    <tr ref={setNodeRef} style={style} className="hover:bg-gray-800/30 transition-colors group">
-      <td className="px-2 py-4 w-10 text-gray-500 cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
-        <GripVertical className="w-5 h-5 hover:text-gray-300" />
-      </td>
-      {children}
-    </tr>
-  );
-};
 
 const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, role }) => {
   const [items, setItems] = useState<any[]>([]);
@@ -231,10 +231,10 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
 
   const StatCard = ({ label, value, icon: Icon, color }: any) => (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-gray-700 transition-all">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-gray-300 dark:hover:border-gray-700 transition-all">
       <div>
-        <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">{label}</p>
-        <p className="text-2xl font-bold text-white">{value}</p>
+        <p className="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">{label}</p>
+        <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
       </div>
       <div className={`p-3 rounded-lg bg-opacity-10 ${color.bg}`}>
         <Icon className={`w-6 h-6 ${color.text}`} />
@@ -246,10 +246,10 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
     <div className="space-y-6 relative animate-in fade-in duration-500">
       {/* Loading Overlay */}
       {loading && (
-        <div className="absolute inset-0 z-50 bg-gray-950/50 backdrop-blur-sm flex items-center justify-center rounded-2xl">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
+        <div className="absolute inset-0 z-50 bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm flex items-center justify-center rounded-2xl">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
             <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4" />
-            <div className="text-white font-medium">Cargando datos...</div>
+            <div className="text-gray-900 dark:text-white font-medium">Cargando datos...</div>
           </div>
         </div>
       )}
@@ -290,25 +290,25 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
       )}
 
       {/* Main Content */}
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
         {/* Toolbar */}
-        <div className="p-5 border-b border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-900/50">
+        <div className="p-5 border-b border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gray-50/50 dark:bg-gray-900/50">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/10 rounded-lg">
               <Layers className="w-5 h-5 text-blue-500" />
             </div>
-            <h2 className="text-lg font-semibold text-white">Gestión de Categorías</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Gestión de Categorías</h2>
           </div>
           
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 group-focus-within:text-blue-500 transition-colors" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => { setPage(1); setSearch(e.target.value); }}
                 placeholder="Buscar categoría..."
-                className="pl-9 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all w-full sm:w-64"
+                className="pl-9 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all w-full sm:w-64"
               />
             </div>
             
@@ -317,14 +317,14 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                 <select
                   value={ordering}
                   onChange={(e) => setOrdering(e.target.value)}
-                  className="appearance-none pl-3 pr-8 py-2 bg-gray-800 border border-gray-700 rounded-xl text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 cursor-pointer hover:bg-gray-750 transition-colors"
+                  className="appearance-none pl-3 pr-8 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
                 >
                   <option value="-created_at">Más recientes</option>
                   <option value="name">Nombre A-Z</option>
                   <option value="-name">Nombre Z-A</option>
                   <option value="active">Estado</option>
                 </select>
-                <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-500 pointer-events-none" />
+                <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 dark:text-gray-500 pointer-events-none" />
               </div>
 
               <button 
@@ -348,16 +348,16 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-gray-800 bg-gray-800/30">
+                <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
                   <th className="w-10 px-2"></th>
-                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Categoría</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Descripción</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Estado</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Imagen</th>
-                  <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Acciones</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Categoría</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Descripción</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Imagen</th>
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800">
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                 <SortableContext 
                   items={items.map((c) => c.id)}
                   strategy={verticalListSortingStrategy}
@@ -366,30 +366,30 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                     <SortableRow key={c.id} category={c}>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-gray-800 border border-gray-700 flex items-center justify-center text-gray-500 font-bold text-sm">
+                          <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 font-bold text-sm">
                             {c.name.charAt(0).toUpperCase()}
                           </div>
-                          <span className="font-medium text-white group-hover:text-blue-400 transition-colors">{c.name}</span>
+                          <span className="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{c.name}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm text-gray-400 max-w-xs truncate">{c.description || 'Sin descripción'}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">{c.description || 'Sin descripción'}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${c.active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-gray-700 text-gray-400 border-gray-600'}`}>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${c.active ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600'}`}>
                           {c.active ? 'Activo' : 'Inactivo'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         {c.image ? (
-                          <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-700 relative group/img">
+                          <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 relative group/img">
                             <img src={mediaUrl(c.image)} alt={c.name} className="w-full h-full object-cover" />
                             <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity cursor-pointer">
                               <ImageIcon className="w-4 h-4 text-white" />
                             </div>
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-600 italic">Sin imagen</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-600 italic">Sin imagen</span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -397,7 +397,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                           <button 
                             onClick={() => startEdit(c)} 
                             disabled={role !== 'admin' && role !== 'super_admin'}
-                            className="p-2 rounded-lg hover:bg-blue-500/10 text-gray-400 hover:text-blue-400 transition-colors"
+                            className="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-500/10 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             title="Editar"
                           >
                             <Edit2 className="w-4 h-4" />
@@ -405,7 +405,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                           <button 
                             onClick={() => removeCategory(c.id)} 
                             disabled={role !== 'admin' && role !== 'super_admin'}
-                            className="p-2 rounded-lg hover:bg-rose-500/10 text-gray-400 hover:text-rose-400 transition-colors"
+                            className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
                             title="Eliminar"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -417,7 +417,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                 </SortableContext>
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-500">
                       <div className="flex flex-col items-center justify-center">
                         <FolderOpen className="w-12 h-12 mb-3 opacity-20" />
                         <p>No se encontraron categorías</p>
@@ -431,22 +431,22 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
         </DndContext>
 
         {/* Pagination */}
-        <div className="px-6 py-4 border-t border-gray-800 flex items-center justify-between bg-gray-900/50">
-          <div className="text-sm text-gray-500">
-            Mostrando página <span className="font-medium text-white">{page}</span> de <span className="font-medium text-white">{totalPages}</span>
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/50">
+          <div className="text-sm text-gray-500 dark:text-gray-500">
+            Mostrando página <span className="font-medium text-gray-900 dark:text-white">{page}</span> de <span className="font-medium text-gray-900 dark:text-white">{totalPages}</span>
           </div>
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setPage((p) => Math.max(1, p - 1))} 
               disabled={page === 1}
-              className="px-3 py-1.5 rounded-lg border border-gray-700 text-sm text-gray-300 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Anterior
             </button>
             <button 
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))} 
               disabled={page === totalPages}
-              className="px-3 py-1.5 rounded-lg border border-gray-700 text-sm text-gray-300 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Siguiente
             </button>
@@ -457,10 +457,10 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
       {/* Modal Form */}
       {open && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-800 flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-white">{editing ? 'Editar Categoría' : 'Nueva Categoría'}</h3>
-              <button onClick={() => { setOpen(false); setEditing(null); }} className="text-gray-500 hover:text-white transition-colors">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{editing ? 'Editar Categoría' : 'Nueva Categoría'}</h3>
+              <button onClick={() => { setOpen(false); setEditing(null); }} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -468,34 +468,34 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
             <form onSubmit={editing ? updateCategory : createCategory} className="p-6 space-y-5">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1.5">Nombre</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Nombre</label>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
                     maxLength={100}
-                    className={`w-full px-4 py-2.5 bg-gray-800 border ${errors.name ? 'border-rose-500' : 'border-gray-700'} rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                    className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.name ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
                     placeholder="Ej. Electrónica"
                   />
                   {errors.name && <p className="mt-1 text-xs text-rose-400">{errors.name}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1.5">Descripción</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Descripción</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     maxLength={500}
                     rows={3}
-                    className={`w-full px-4 py-2.5 bg-gray-800 border ${errors.description ? 'border-rose-500' : 'border-gray-700'} rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all resize-none`}
+                    className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.description ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all resize-none`}
                     placeholder="Breve descripción de la categoría..."
                   />
                 </div>
 
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-400 mb-1.5">Imagen</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Imagen</label>
                     <div className="relative">
                       <input
                         type="file"
@@ -506,7 +506,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                       />
                       <label 
                         htmlFor="cat-image-upload" 
-                        className="flex items-center justify-center w-full px-4 py-2.5 bg-gray-800 border border-gray-700 border-dashed rounded-xl text-sm text-gray-400 hover:text-white hover:border-gray-500 cursor-pointer transition-all"
+                        className="flex items-center justify-center w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 border-dashed rounded-xl text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-white hover:border-blue-500 dark:hover:border-gray-500 cursor-pointer transition-all"
                       >
                         <ImageIcon className="w-4 h-4 mr-2" />
                         {imageFile ? imageFile.name : 'Subir imagen'}
@@ -516,17 +516,17 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                   
                   <div className="flex items-center h-full pt-6">
                     <label className="flex items-center gap-3 cursor-pointer group">
-                      <div className={`w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${active ? 'bg-blue-600' : 'bg-gray-700'}`}>
+                      <div className={`w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${active ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
                         <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${active ? 'translate-x-6' : 'translate-x-0'}`} />
                       </div>
-                      <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">Activa</span>
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Activa</span>
                       <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="hidden" />
                     </label>
                   </div>
                 </div>
 
                 {(imageFile || (editing && editing.image)) && (
-                  <div className="mt-2 relative w-full h-32 bg-gray-800 rounded-xl overflow-hidden border border-gray-700">
+                  <div className="mt-2 relative w-full h-32 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
                     <img 
                       src={imageFile ? URL.createObjectURL(imageFile) : mediaUrl(editing.image)} 
                       alt="Preview" 
@@ -540,7 +540,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                 <button 
                   type="button" 
                   onClick={() => { setOpen(false); setEditing(null); }} 
-                  className="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 font-medium transition-colors"
+                  className="px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium transition-colors"
                 >
                   Cancelar
                 </button>

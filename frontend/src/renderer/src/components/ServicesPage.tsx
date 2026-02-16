@@ -780,50 +780,50 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 h-full flex flex-col">
+    <div className="space-y-6 animate-in fade-in duration-500 h-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
       {/* Header & Actions */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-900 p-6 rounded-2xl border border-gray-800">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
-              <span className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+              <span className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500 dark:text-indigo-400">
                 <Briefcase className="w-5 h-5" />
               </span>
               Gestión de Servicios
             </h1>
-            <p className="text-gray-400 text-sm mt-1">Administra los servicios ofrecidos a tus clientes</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Administra los servicios ofrecidos a tus clientes</p>
           </div>
           
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="flex bg-gray-800 p-1 rounded-lg mr-2">
+            <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg mr-2">
               <button
                 onClick={() => setViewMode('tickets')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'tickets' ? 'bg-indigo-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'tickets' ? 'bg-white dark:bg-indigo-500 text-indigo-600 dark:text-white shadow-sm dark:shadow-lg' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
               >
                 Servicios Activos
               </button>
               <button
                 onClick={() => setViewMode('catalog')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'catalog' ? 'bg-indigo-500 text-white shadow-lg' : 'text-gray-400 hover:text-white'}`}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'catalog' ? 'bg-white dark:bg-indigo-500 text-indigo-600 dark:text-white shadow-sm dark:shadow-lg' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
               >
                 Catálogo
               </button>
             </div>
 
             <div className="relative flex-1 sm:flex-initial">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
               <input 
                 type="text" 
                 placeholder="Buscar servicio..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:w-64 bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none placeholder:text-gray-600"
+                className="w-full sm:w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none placeholder:text-gray-400 dark:placeholder:text-gray-600"
               />
             </div>
             <select
               value={ordering}
               onChange={(e) => setOrdering(e.target.value)}
-              className="bg-gray-800 border-none text-xs text-gray-400 rounded-lg focus:ring-0 px-3 py-2"
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-400 rounded-lg focus:ring-0 px-3 py-2"
             >
               <option value="-created_at">Más recientes</option>
               <option value="created_at">Más antiguos</option>
@@ -848,7 +848,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                   setIsCatalogModalOpen(true);
                 }
               }}
-              className="btn-brand px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
+              className="btn-brand px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">{viewMode === 'tickets' ? 'Nuevo Servicio' : 'Agregar al Catálogo'}</span>
@@ -856,60 +856,60 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="relative overflow-hidden rounded-2xl bg-gray-900 border border-gray-800 p-6 transition-all hover:border-gray-700 hover:shadow-lg hover:shadow-black/50 group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 text-blue-400">
+          <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 transition-all hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-lg group shadow-sm">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 text-blue-500 dark:text-blue-400">
               <Briefcase className="w-16 h-16" />
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 rounded-lg bg-gray-800 text-blue-400 bg-opacity-10">
+                <div className="p-2 rounded-lg bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400 bg-opacity-10">
                   <Briefcase className="w-5 h-5" />
                 </div>
-                <h3 className="text-sm font-medium text-gray-400">Total Servicios</h3>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Servicios</h3>
               </div>
-              <div className="text-3xl font-bold text-white">{stats.total}</div>
+              <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.total}</div>
             </div>
           </div>
-          <div className="relative overflow-hidden rounded-2xl bg-gray-900 border border-gray-800 p-6 transition-all hover:border-gray-700 hover:shadow-lg hover:shadow-black/50 group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 text-emerald-400">
+          <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 transition-all hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-lg group shadow-sm">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 text-emerald-500 dark:text-emerald-400">
               <CheckCircle className="w-16 h-16" />
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 rounded-lg bg-gray-800 text-emerald-400 bg-opacity-10">
+                <div className="p-2 rounded-lg bg-emerald-50 dark:bg-gray-800 text-emerald-600 dark:text-emerald-400 bg-opacity-10">
                   <CheckCircle className="w-5 h-5" />
                 </div>
-                <h3 className="text-sm font-medium text-gray-400">Entregados</h3>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Entregados</h3>
               </div>
-              <div className="text-3xl font-bold text-white">{stats.delivered}</div>
+              <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.delivered}</div>
             </div>
           </div>
-          <div className="relative overflow-hidden rounded-2xl bg-gray-900 border border-gray-800 p-6 transition-all hover:border-gray-700 hover:shadow-lg hover:shadow-black/50 group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 text-amber-400">
+          <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 transition-all hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-lg group shadow-sm">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 text-amber-500 dark:text-amber-400">
               <Clock className="w-16 h-16" />
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 rounded-lg bg-gray-800 text-amber-400 bg-opacity-10">
+                <div className="p-2 rounded-lg bg-amber-50 dark:bg-gray-800 text-amber-600 dark:text-amber-400 bg-opacity-10">
                   <Clock className="w-5 h-5" />
                 </div>
-                <h3 className="text-sm font-medium text-gray-400">Recibidos</h3>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Recibidos</h3>
               </div>
-              <div className="text-3xl font-bold text-white">{stats.received}</div>
+              <div className="text-3xl font-bold text-gray-900 dark:text-white">{stats.received}</div>
             </div>
           </div>
-          <div className="relative overflow-hidden rounded-2xl bg-gray-900 border border-gray-800 p-6 transition-all hover:border-gray-700 hover:shadow-lg hover:shadow-black/50 group">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 text-purple-400">
+          <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 transition-all hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-lg group shadow-sm">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 text-purple-500 dark:text-purple-400">
               <DollarSign className="w-16 h-16" />
             </div>
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-3">
-                <div className="p-2 rounded-lg bg-gray-800 text-purple-400 bg-opacity-10">
+                <div className="p-2 rounded-lg bg-purple-50 dark:bg-gray-800 text-purple-600 dark:text-purple-400 bg-opacity-10">
                   <DollarSign className="w-5 h-5" />
                 </div>
-                <h3 className="text-sm font-medium text-gray-400">Valor Total</h3>
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Valor Total</h3>
               </div>
-              <div className="text-3xl font-bold text-white">
+              <div className="text-3xl font-bold text-gray-900 dark:text-white">
                 {stats.total_value.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
               </div>
             </div>
@@ -918,11 +918,11 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       </div>
 
       {/* Services Table */}
-      <div className="flex-1 bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden flex flex-col shadow-xl">
+      <div className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden flex flex-col shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-gray-800/50 text-xs uppercase text-gray-400">
-              <tr className="border-b border-gray-800">
+            <thead className="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase text-gray-500 dark:text-gray-400">
+              <tr className="border-b border-gray-200 dark:border-gray-800">
                 {viewMode === 'tickets' ? (
                   <>
                     <th className="px-6 py-3 font-medium tracking-wider">Servicio</th>
@@ -944,36 +944,36 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                 <th className="px-6 py-3 font-medium tracking-wider text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
               {viewMode === 'tickets' ? (
                 (services.length > 0 ? services : []).length > 0 ? (
                 (services || []).filter(s => 
                   s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                   (s.client_name || '').toLowerCase().includes(searchTerm.toLowerCase())
                 ).map((service) => (
-                  <tr key={service.id} className="group hover:bg-white/5 transition-colors">
+                  <tr key={service.id} className="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="font-medium text-white">{service.name}</div>
-                      <div className="text-sm text-gray-500 truncate max-w-xs">{service.description}</div>
+                      <div className="font-medium text-gray-900 dark:text-white">{service.name}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-500 truncate max-w-xs">{service.description}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-gray-300">
-                        <User className="w-3 h-3 text-gray-500" />
+                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                        <User className="w-3 h-3 text-gray-400 dark:text-gray-500" />
                         {service.client_name}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-gray-400 text-sm">
+                      <div className="text-gray-500 dark:text-gray-400 text-sm">
                         {service.worker_name || '-'}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-gray-400 text-sm">
+                      <div className="text-gray-500 dark:text-gray-400 text-sm">
                          {service.third_party_provider || '-'}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-medium text-white">
+                      <div className="font-medium text-gray-900 dark:text-white">
                         ${Number(service.value || 0).toLocaleString()}
                       </div>
                     </td>
@@ -982,8 +982,8 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                         onClick={() => toggleStatus(service.id, service.status)}
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
                           service.status === 'entregado' 
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20' 
-                            : 'bg-amber-500/10 text-amber-400 border-amber-500/20 hover:bg-amber-500/20'
+                            ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20 hover:bg-emerald-200 dark:hover:bg-emerald-500/20' 
+                            : 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20 hover:bg-amber-200 dark:hover:bg-amber-500/20'
                         }`}
                       >
                         {service.status === 'entregado' ? (
@@ -1001,20 +1001,20 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                       <div className="flex items-center justify-end gap-2">
                         <button 
                           onClick={() => handleSilentPrint(service)}
-                          className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                           title="Imprimir Recibo"
                         >
                           <Printer className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => handleEdit(service)}
-                          className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => handleDelete(service.id)}
-                          className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors"
+                          className="p-1.5 text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
                         >
                           <Trash className="w-4 h-4" />
                         </button>
@@ -1026,10 +1026,10 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
               <tr>
                   <td colSpan={6} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center justify-center text-gray-500">
-                      <div className="bg-gray-800 p-4 rounded-full mb-3">
+                      <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-full mb-3">
                         <Briefcase className="w-8 h-8 opacity-50" />
                       </div>
-                      <p className="text-lg font-medium text-gray-400">No hay servicios registrados</p>
+                      <p className="text-lg font-medium text-gray-600 dark:text-gray-400">No hay servicios registrados</p>
                       <p className="text-sm mt-1">Comienza agregando un nuevo servicio para tus clientes.</p>
                     </div>
                   </td>
@@ -1039,26 +1039,26 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
               // Catalog View
               filteredCatalog.length > 0 ? (
                 filteredCatalog.map((item) => (
-                  <tr key={item.id} className="group hover:bg-white/5 transition-colors">
+                  <tr key={item.id} className="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="font-medium text-white">{item.name}</div>
+                      <div className="font-medium text-gray-900 dark:text-white">{item.name}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-500 truncate max-w-xs">{item.description}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-500 truncate max-w-xs">{item.description}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-medium text-white">
+                      <div className="font-medium text-gray-900 dark:text-white">
                         ${Number(item.price || 0).toLocaleString()}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-400">{item.estimated_duration || '-'}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{item.estimated_duration || '-'}</div>
                     </td>
                     <td className="px-6 py-4">
                       {item.image ? (
-                        <img src={item.image} alt={item.name} className="w-10 h-10 rounded-lg object-cover bg-gray-800" />
+                        <img src={item.image} alt={item.name} className="w-10 h-10 rounded-lg object-cover bg-gray-100 dark:bg-gray-800" />
                       ) : (
-                        <div className="w-10 h-10 rounded-lg bg-gray-800 flex items-center justify-center text-gray-600">
+                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 dark:text-gray-600">
                           <Briefcase className="w-5 h-5" />
                         </div>
                       )}
@@ -1067,13 +1067,13 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                       <div className="flex items-center justify-end gap-2">
                         <button 
                           onClick={() => handleCatalogEdit(item)}
-                          className="p-1.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                          className="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => handleCatalogDelete(item.id)}
-                          className="p-1.5 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors"
+                          className="p-1.5 text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
                         >
                           <Trash className="w-4 h-4" />
                         </button>
@@ -1085,10 +1085,10 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center justify-center text-gray-500">
-                      <div className="bg-gray-800 p-4 rounded-full mb-3">
+                      <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-full mb-3">
                         <Briefcase className="w-8 h-8 opacity-50" />
                       </div>
-                      <p className="text-lg font-medium text-gray-400">El catálogo está vacío</p>
+                      <p className="text-lg font-medium text-gray-600 dark:text-gray-400">El catálogo está vacío</p>
                       <p className="text-sm mt-1">Agrega servicios predefinidos para agilizar tus tickets.</p>
                     </div>
                   </td>
@@ -1103,10 +1103,10 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       {/* Add Service Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-800/50">
-              <h2 className="text-xl font-bold text-white">{editingId ? 'Editar Servicio' : 'Nuevo Servicio'}</h2>
-              <button onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData({ name: '', description: '', third_party_provider: '', value: '', clientId: '', status: 'recibido' }); if (onClose) onClose(); }} className="text-gray-400 hover:text-white transition-colors">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">{editingId ? 'Editar Servicio' : 'Nuevo Servicio'}</h2>
+              <button onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData({ name: '', description: '', third_party_provider: '', value: '', clientId: '', status: 'recibido' }); if (onClose) onClose(); }} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1115,15 +1115,15 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
               
               {/* Client Selection (Always Global) */}
               <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Cliente</label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Cliente</label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       <select 
                         name="clientId"
                         value={formData.clientId}
                         onChange={handleInputChange}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all"
+                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all"
                         required
                       >
                         <option value="">Seleccionar Cliente</option>
@@ -1135,7 +1135,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                     <button
                       type="button"
                       onClick={() => setIsClientModalOpen(true)}
-                      className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-gray-400 hover:text-white hover:border-gray-600 transition-colors"
+                      className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
                       title="Crear nuevo cliente"
                     >
                       <Plus className="w-5 h-5" />
@@ -1147,15 +1147,15 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                 <div className="max-h-[60vh] overflow-y-auto pr-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                    {serviceItems.map((item, index) => (
-                      <div key={item.id} className="p-4 border border-gray-700 rounded-xl bg-gray-800/50 relative">
+                      <div key={item.id} className="p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50 relative">
                          {serviceItems.length > 1 && (
-                            <button type="button" onClick={() => removeServiceItem(item.id)} className="absolute top-2 right-2 text-gray-500 hover:text-red-400">
+                            <button type="button" onClick={() => removeServiceItem(item.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400">
                                <Trash className="w-4 h-4" />
                             </button>
                          )}
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                              <div className="col-span-2">
-                                <label className="block text-xs font-medium text-gray-400 mb-1">Servicio #{index + 1} - Cargar desde Catálogo</label>
+                                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Servicio #{index + 1} - Cargar desde Catálogo</label>
                                 <select 
                                   onChange={(e) => {
                                     const catItem = catalog.find(c => String(c.id) === e.target.value);
@@ -1165,7 +1165,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                                       updateServiceItem(item.id, 'value', String(catItem.price));
                                     }
                                   }}
-                                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-xs text-white"
+                                  className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-xs text-gray-900 dark:text-white"
                                 >
                                   <option value="">Seleccionar...</option>
                                   {catalog.map(c => <option key={c.id} value={c.id}>{c.name} - ${Number(c.price).toLocaleString()}</option>)}
@@ -1173,19 +1173,19 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                              </div>
                              
                              <div className="col-span-2">
-                               <input type="text" placeholder="Nombre del Servicio" value={item.name} onChange={(e) => updateServiceItem(item.id, 'name', e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" required />
+                               <input type="text" placeholder="Nombre del Servicio" value={item.name} onChange={(e) => updateServiceItem(item.id, 'name', e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white" required />
                              </div>
                              
                              <div className="col-span-2">
-                               <textarea placeholder="Descripción" value={item.description} onChange={(e) => updateServiceItem(item.id, 'description', e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white resize-none" rows={2} required />
+                               <textarea placeholder="Descripción" value={item.description} onChange={(e) => updateServiceItem(item.id, 'description', e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white resize-none" rows={2} required />
                              </div>
                              
                              <div>
-                               <input type="number" placeholder="Valor (Opcional)" value={item.value} onChange={(e) => updateServiceItem(item.id, 'value', e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" min="0" />
+                               <input type="number" placeholder="Valor (Opcional)" value={item.value} onChange={(e) => updateServiceItem(item.id, 'value', e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white" min="0" />
                              </div>
 
                              <div>
-                                <select value={item.worker} onChange={(e) => updateServiceItem(item.id, 'worker', e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white">
+                                <select value={item.worker} onChange={(e) => updateServiceItem(item.id, 'worker', e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white">
                                   <option value="">Asignar Empleado (Opcional)</option>
                                   {employees.map(emp => {
                                     const name = emp.first_name || emp.last_name ? `${emp.first_name} ${emp.last_name}`.trim() : emp.username;
@@ -1195,19 +1195,19 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                              </div>
 
                              <div>
-                                <input type="text" placeholder="Proveedor Externo (Opcional)" value={item.third_party_provider} onChange={(e) => updateServiceItem(item.id, 'third_party_provider', e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" />
+                                <input type="text" placeholder="Proveedor Externo (Opcional)" value={item.third_party_provider} onChange={(e) => updateServiceItem(item.id, 'third_party_provider', e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white" />
                              </div>
                              
                              {item.third_party_provider && (
                                  <div>
-                                    <input type="number" placeholder="Costo Tercero (Opcional)" value={item.third_party_cost} onChange={(e) => updateServiceItem(item.id, 'third_party_cost', e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" min="0" />
+                                    <input type="number" placeholder="Costo Tercero (Opcional)" value={item.third_party_cost} onChange={(e) => updateServiceItem(item.id, 'third_party_cost', e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white" min="0" />
                                  </div>
                              )}
                          </div>
                       </div>
                    ))}
                   </div>
-                  <button type="button" onClick={addServiceItem} className="w-full py-2 border border-dashed border-gray-600 rounded-lg text-gray-400 hover:text-white hover:border-gray-500 transition-all flex items-center justify-center gap-2 mt-4">
+                  <button type="button" onClick={addServiceItem} className="w-full py-2 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-400 dark:hover:border-gray-500 transition-all flex items-center justify-center gap-2 mt-4">
                     <Plus className="w-4 h-4" /> Agregar otro servicio
                   </button>
                 </div>
@@ -1216,9 +1216,9 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                   
                   {/* Catalog Selection */}
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Cargar desde Catálogo (Opcional)</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Cargar desde Catálogo (Opcional)</label>
                     <div className="relative">
-                      <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       <select 
                         onChange={(e) => {
                           const item = catalog.find(c => String(c.id) === e.target.value);
@@ -1231,7 +1231,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                             }));
                           }
                         }}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all"
+                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all"
                       >
                         <option value="">Seleccionar del Catálogo...</option>
                         {catalog.map(item => (
@@ -1242,41 +1242,41 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Nombre del Servicio</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Nombre del Servicio</label>
                     <div className="relative">
-                      <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       <input 
                         type="text" 
                         name="name"
                         value={formData.name}
                         onChange={handleInputChange}
                         placeholder="Ej. Reparación de PC"
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
                         required
                       />
                     </div>
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Descripción</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Descripción</label>
                     <div className="relative">
-                      <FileText className="absolute left-3 top-3 w-4 h-4 text-gray-500" />
+                      <FileText className="absolute left-3 top-3 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       <textarea 
                         name="description"
                         value={formData.description}
                         onChange={handleInputChange}
                         placeholder="Detalles del servicio..."
                         rows={3}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all resize-none"
+                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all resize-none"
                         required
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Valor</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Valor</label>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       <input 
                         type="number" 
                         name="value"
@@ -1284,20 +1284,20 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                         onChange={handleInputChange}
                         placeholder="0.00 (Opcional)"
                         min="0"
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Asignar a</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Asignar a</label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       <select 
                         name="worker"
                         value={formData.worker}
                         onChange={handleInputChange}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all"
+                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all"
                       >
                         <option value="">Sin Asignar</option>
                         {employees.map(emp => {
@@ -1311,24 +1311,24 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Proveedor Externo</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Proveedor Externo</label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       <input 
                         type="text"
                         name="third_party_provider"
                         value={formData.third_party_provider}
                         onChange={handleInputChange}
                         placeholder="Opcional"
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Costo Tercero</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Costo Tercero</label>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       <input 
                         type="number" 
                         name="third_party_cost"
@@ -1336,18 +1336,18 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                         onChange={handleInputChange}
                         placeholder="0.00"
                         min="0"
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
                       />
                     </div>
                   </div>
                   
                    <div>
-                      <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Estado</label>
+                      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Estado</label>
                       <select 
                         name="status"
                         value={formData.status}
                         onChange={handleInputChange}
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all"
+                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all"
                       >
                         <option value="recibido">Recibido</option>
                         <option value="entregado">Entregado</option>
@@ -1363,9 +1363,9 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                     id="printReceipt" 
                     checked={printReceipt} 
                     onChange={(e) => setPrintReceipt(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-700 bg-gray-800 text-indigo-600 focus:ring-indigo-500/40"
+                    className="w-4 h-4 rounded border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-indigo-600 focus:ring-indigo-500/40"
                   />
-                  <label htmlFor="printReceipt" className="text-sm text-gray-400 select-none cursor-pointer flex items-center gap-2">
+                  <label htmlFor="printReceipt" className="text-sm text-gray-600 dark:text-gray-400 select-none cursor-pointer flex items-center gap-2">
                     <Printer className="w-4 h-4" />
                     Imprimir recibo de entrada
                   </label>
@@ -1376,13 +1376,13 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                 <button 
                   type="button" 
                   onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData({ name: '', description: '', third_party_provider: '', value: '', clientId: '', status: 'recibido' }); if (onClose) onClose(); }}
-                  className="flex-1 px-4 py-2.5 border border-gray-700 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 transition-colors"
+                  className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 px-4 py-2.5 btn-brand rounded-lg text-sm font-medium text-white transition-all"
+                  className="flex-1 px-4 py-2.5 btn-brand rounded-lg text-sm font-medium text-white transition-all bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500"
                 >
                   {editingId ? 'Actualizar Servicio' : 'Guardar Servicio'}
                 </button>
@@ -1394,73 +1394,73 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       {/* Add Client Modal (Nested) */}
       {isClientModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-800/50">
-              <h2 className="text-xl font-bold text-white">Registrar Nuevo Cliente</h2>
-              <button onClick={() => setIsClientModalOpen(false)} className="text-gray-400 hover:text-white transition-colors">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Registrar Nuevo Cliente</h2>
+              <button onClick={() => setIsClientModalOpen(false)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
             
             <form onSubmit={handleClientSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Nombre Completo</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Nombre Completo</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                   <input 
                     type="text" 
                     name="full_name"
                     value={clientFormData.full_name}
                     onChange={handleClientInputChange}
                     placeholder="Nombre del cliente"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Cédula / NIT</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Cédula / NIT</label>
                 <div className="relative">
-                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                   <input 
                     type="text" 
                     name="cedula"
                     value={clientFormData.cedula}
                     onChange={handleClientInputChange}
                     placeholder="Número de identificación"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Correo Electrónico</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Correo Electrónico</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                   <input 
                     type="email" 
                     name="email"
                     value={clientFormData.email}
                     onChange={handleClientInputChange}
                     placeholder="cliente@ejemplo.com"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Dirección</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Dirección</label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                   <input 
                     type="text" 
                     name="address"
                     value={clientFormData.address}
                     onChange={handleClientInputChange}
                     placeholder="Dirección de residencia"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
                   />
                 </div>
               </div>
@@ -1469,7 +1469,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                 <button 
                   type="button" 
                   onClick={() => setIsClientModalOpen(false)}
-                  className="flex-1 px-4 py-2.5 border border-gray-700 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 transition-colors"
+                  className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
                   Cancelar
                 </button>
@@ -1487,10 +1487,10 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       {/* Catalog Modal */}
       {isCatalogModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-800 flex justify-between items-center bg-gray-800/50">
-              <h2 className="text-xl font-bold text-white">{catalogEditingId ? 'Editar Item Catálogo' : 'Nuevo Item Catálogo'}</h2>
-              <button onClick={() => { setIsCatalogModalOpen(false); setCatalogEditingId(null); setCatalogFormData({ name: '', description: '', price: '', estimated_duration: '', image: null }); }} className="text-gray-400 hover:text-white transition-colors">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">{catalogEditingId ? 'Editar Item Catálogo' : 'Nuevo Item Catálogo'}</h2>
+              <button onClick={() => { setIsCatalogModalOpen(false); setCatalogEditingId(null); setCatalogFormData({ name: '', description: '', price: '', estimated_duration: '', image: null }); }} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1498,32 +1498,32 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
             <form onSubmit={handleCatalogSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Nombre del Servicio</label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Nombre del Servicio</label>
                   <div className="relative">
-                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                     <input 
                       type="text" 
                       name="name"
                       value={catalogFormData.name}
                       onChange={(e) => setCatalogFormData({...catalogFormData, name: e.target.value})}
                       placeholder="Ej. Formateo Windows"
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                      className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
                       required
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Descripción</label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Descripción</label>
                   <div className="relative">
-                    <FileText className="absolute left-3 top-3 w-4 h-4 text-gray-500" />
+                    <FileText className="absolute left-3 top-3 w-4 h-4 text-gray-400 dark:text-gray-500" />
                     <textarea 
                       name="description"
                       value={catalogFormData.description}
                       onChange={(e) => setCatalogFormData({...catalogFormData, description: e.target.value})}
                       placeholder="Detalles del servicio predefinido..."
                       rows={3}
-                      className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all resize-none"
+                      className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all resize-none"
                       required
                     />
                   </div>
@@ -1531,9 +1531,9 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Precio Base</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Precio Base</label>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       <input 
                         type="number" 
                         name="price"
@@ -1541,30 +1541,30 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                         onChange={(e) => setCatalogFormData({...catalogFormData, price: e.target.value})}
                         placeholder="0.00"
                         min="0"
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
                         required
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Duración Estimada</label>
+                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Duración Estimada</label>
                     <div className="relative">
-                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                       <input 
                         type="text" 
                         name="estimated_duration"
                         value={catalogFormData.estimated_duration}
                         onChange={(e) => setCatalogFormData({...catalogFormData, estimated_duration: e.target.value})}
                         placeholder="Ej. 2 horas"
-                        className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Imagen (Opcional)</label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Imagen (Opcional)</label>
                   <input 
                     type="file" 
                     onChange={(e) => {
@@ -1573,7 +1573,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                       }
                     }}
                     accept="image/*"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-white hover:file:bg-gray-600"
+                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 dark:file:bg-gray-700 file:text-gray-700 dark:file:text-white hover:file:bg-gray-200 dark:hover:file:bg-gray-600"
                   />
                 </div>
 
@@ -1583,13 +1583,13 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                 <button 
                   type="button" 
                   onClick={() => { setIsCatalogModalOpen(false); setCatalogEditingId(null); setCatalogFormData({ name: '', description: '', price: '', estimated_duration: '', image: null }); }}
-                  className="flex-1 px-4 py-2.5 border border-gray-700 rounded-lg text-sm font-medium text-gray-300 hover:bg-gray-800 transition-colors"
+                  className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 px-4 py-2.5 btn-brand rounded-lg text-sm font-medium text-white transition-all"
+                  className="flex-1 px-4 py-2.5 btn-brand rounded-lg text-sm font-medium text-white transition-all bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500"
                 >
                   {catalogEditingId ? 'Actualizar' : 'Guardar'}
                 </button>
@@ -1608,19 +1608,19 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       {/* Print Preview Modal */}
       {printingService && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg h-[80vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-             <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-800/50">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                   <Printer className="w-5 h-5 text-indigo-400" />
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-lg h-[80vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+             <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                   <Printer className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
                    Imprimir Recibo de Servicio
                 </h3>
-                <button onClick={() => setPrintingService(null)} className="text-gray-500 hover:text-gray-800 transition-colors">
+                <button onClick={() => setPrintingService(null)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                    <X className="w-5 h-5" />
                 </button>
              </div>
              
              {/* Receipt Content - Iframe */}
-             <div className="flex-1 overflow-hidden bg-gray-200 flex justify-center p-4">
+             <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-gray-200 flex justify-center p-4">
                 <div className="shadow-lg bg-white overflow-hidden" style={{ width: `${settings.paper_width_mm || 58}mm`, maxHeight: '100%', overflowY: 'auto' }}>
                   <iframe 
                     srcDoc={generateReceiptHtml(printingService)} 
@@ -1632,7 +1632,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
              </div>
              
              {/* Actions */}
-             <div className="p-4 border-t border-gray-800 bg-gray-900 flex gap-3">
+             <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex gap-3">
                 <button 
                    onClick={handlePrint}
                    className="flex-1 bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-500 transition-colors flex items-center justify-center gap-2"
@@ -1641,7 +1641,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                 </button>
                 <button 
                    onClick={() => setPrintingService(null)}
-                   className="px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 transition-colors"
+                   className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
                    Cerrar
                 </button>
@@ -1653,18 +1653,18 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       {/* Intake Receipt Preview Modal */}
       {printingIntake && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg h-[80vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
-             <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-800/50">
-                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                   <Printer className="w-5 h-5 text-indigo-400" />
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-lg h-[80vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+             <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                   <Printer className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
                    Recibo de Entrada (Sin Precios)
                 </h3>
-                <button onClick={() => setPrintingIntake(null)} className="text-gray-500 hover:text-gray-800 transition-colors">
+                <button onClick={() => setPrintingIntake(null)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                    <X className="w-5 h-5" />
                 </button>
              </div>
              
-             <div className="flex-1 overflow-hidden bg-gray-200 flex justify-center p-4">
+             <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-gray-200 flex justify-center p-4">
                 <div className="shadow-lg bg-white overflow-hidden" style={{ width: `${settings.paper_width_mm || 58}mm`, maxHeight: '100%', overflowY: 'auto' }}>
                   <iframe 
                     srcDoc={generateIntakeReceiptHtml(printingIntake.clientName, printingIntake.items)} 
@@ -1675,7 +1675,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                 </div>
              </div>
              
-             <div className="p-4 border-t border-gray-800 bg-gray-900 flex gap-3">
+             <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex gap-3">
                 <button 
                    onClick={handlePrintIntake}
                    className="flex-1 bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-500 transition-colors flex items-center justify-center gap-2"
@@ -1684,7 +1684,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                 </button>
                 <button 
                    onClick={() => setPrintingIntake(null)}
-                   className="px-4 py-2 border border-gray-700 rounded-lg text-gray-300 hover:bg-gray-800 transition-colors"
+                   className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
                    Cerrar
                 </button>

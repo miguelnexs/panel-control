@@ -400,15 +400,15 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
   return (
     <div className="space-y-6 animate-fade-in max-w-7xl mx-auto">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-800 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 dark:border-gray-800 pb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">Configuración del Sistema</h1>
-          <p className="text-gray-400 text-sm">Gestiona tu perfil, la identidad de tu empresa y preferencias de impresión</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Configuración del Sistema</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">Gestiona tu perfil, la identidad de tu empresa y preferencias de impresión</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
             onClick={tab==='datos'?() => loadMe():loadSettings} 
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white transition-colors border border-gray-700"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors border border-gray-200 dark:border-gray-700"
             disabled={loading}
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
@@ -418,7 +418,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
       </div>
 
       {/* Tabs */}
-      <div className="flex p-1 bg-gray-900/60 rounded-xl border border-gray-800 w-full md:w-fit overflow-x-auto">
+      <div className="flex p-1 bg-gray-100 dark:bg-gray-900/60 rounded-xl border border-gray-200 dark:border-gray-800 w-full md:w-fit overflow-x-auto">
         {[
           { id: 'datos', label: 'Datos Personales', icon: User },
           { id: 'empresa', label: 'Empresa', icon: Building },
@@ -431,8 +431,8 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
             className={`
               flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap
               ${tab === t.id 
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20' 
-                : 'text-gray-400 hover:text-white hover:bg-white/5'
+                ? 'bg-white dark:bg-emerald-600 text-gray-900 dark:text-white shadow-sm dark:shadow-lg dark:shadow-emerald-900/20' 
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/5'
               }
             `}
           >
@@ -444,7 +444,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
 
       {/* Messages */}
       {msg && (
-        <div className={`flex items-center gap-3 p-4 rounded-xl border ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+        <div className={`flex items-center gap-3 p-4 rounded-xl border ${msg.type === 'success' ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' : 'bg-red-100 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/20'}`}>
           {msg.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
           <span className="text-sm font-medium">{msg.text}</span>
         </div>
@@ -454,100 +454,100 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
       <div className="relative">
         {/* Datos Personales */}
         {tab === 'datos' && (
-          <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-6 md:p-8 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 md:p-8 animate-fade-in shadow-sm dark:shadow-none">
             <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 rounded-full bg-emerald-500/10 text-emerald-400">
+              <div className="p-3 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                 <User size={24} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">Información de Perfil</h3>
-                <p className="text-sm text-gray-400">Actualiza tus datos personales y de contacto</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Información de Perfil</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Actualiza tus datos personales y de contacto</p>
               </div>
             </div>
 
             <form onSubmit={saveMe} className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
                     <User size={14} /> Usuario
                   </label>
                   <input 
                     name="username" 
                     value={me.username} 
                     disabled 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-800/50 text-gray-500 border border-gray-800 cursor-not-allowed" 
+                    className="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800/50 text-gray-500 border border-gray-200 dark:border-gray-800 cursor-not-allowed" 
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
                     <Mail size={14} /> Correo Electrónico
                   </label>
                   <input 
                     name="email" 
                     value={me.email} 
                     onChange={handleChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-600"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                     placeholder="ejemplo@correo.com"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Nombre</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Nombre</label>
                   <input 
                     name="first_name" 
                     value={me.first_name} 
                     onChange={handleChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-600"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Apellido</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Apellido</label>
                   <input 
                     name="last_name" 
                     value={me.last_name} 
                     onChange={handleChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-600"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
                     <Phone size={14} /> Teléfono
                   </label>
                   <input 
                     name="phone" 
                     value={me.phone || ''} 
                     onChange={handleChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-600"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                     placeholder="+57 300 000 0000"
                   />
                 </div>
               </div>
 
-              <div className="pt-6 border-t border-gray-800 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+              <div className="pt-6 border-t border-gray-200 dark:border-gray-800 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
                     <Building size={14} /> Departamento
                   </label>
                   <input 
                     name="department" 
                     value={me.department || ''} 
                     onChange={handleChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-600"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
                     <Briefcase size={14} /> Cargo
                   </label>
                   <input 
                     name="position" 
                     value={me.position || ''} 
                     onChange={handleChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-600"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                   />
                 </div>
               </div>
@@ -568,67 +568,67 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
 
         {/* Empresa */}
         {tab === 'empresa' && (
-          <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-6 md:p-8 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 md:p-8 animate-fade-in shadow-sm dark:shadow-none">
             <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 rounded-full bg-blue-500/10 text-blue-400">
+              <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
                 <Building size={24} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">Identidad Corporativa</h3>
-                <p className="text-sm text-gray-400">Personaliza la información pública de tu negocio</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Identidad Corporativa</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Personaliza la información pública de tu negocio</p>
               </div>
             </div>
 
             <form onSubmit={saveSettings} className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Nombre de la Empresa</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Nombre de la Empresa</label>
                   <input 
                     name="company_name" 
                     value={settings.company_name} 
                     onChange={handleSettingsChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-600"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                     placeholder="Mi Empresa S.A.S"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">NIT / Identificación</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400">NIT / Identificación</label>
                   <input 
                     name="company_nit" 
                     value={settings.company_nit} 
                     onChange={handleSettingsChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-600"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                     placeholder="900.000.000-1"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
                     <Phone size={14} /> Teléfono
                   </label>
                   <input 
                     name="company_phone" 
                     value={settings.company_phone} 
                     onChange={handleSettingsChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-600"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
                     <Smartphone size={14} /> WhatsApp
                   </label>
                   <input 
                     name="company_whatsapp" 
                     value={settings.company_whatsapp} 
                     onChange={handleSettingsChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-600"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
                     <Mail size={14} /> Correo Corporativo
                   </label>
                   <input 
@@ -636,47 +636,47 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
                     name="company_email" 
                     value={settings.company_email} 
                     onChange={handleSettingsChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-600"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
                     <MapPin size={14} /> Dirección Principal
                   </label>
                   <input 
                     name="company_address" 
                     value={settings.company_address} 
                     onChange={handleSettingsChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-600"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-400">Descripción del Negocio</label>
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Descripción del Negocio</label>
                 <textarea 
                   name="company_description" 
                   value={settings.company_description} 
                   onChange={handleSettingsChange} 
-                  className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-600 min-h-[100px] resize-none"
+                  className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600 min-h-[100px] resize-none"
                   placeholder="Una breve descripción que aparecerá en tu perfil público..."
                 />
               </div>
 
-              <div className="pt-6 border-t border-gray-800">
-                <h4 className="text-white font-medium mb-4 flex items-center gap-2">
-                  <Palette size={18} className="text-blue-400" /> Branding y Marca
+              <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
+                <h4 className="text-gray-900 dark:text-white font-medium mb-4 flex items-center gap-2">
+                  <Palette size={18} className="text-blue-600 dark:text-blue-400" /> Branding y Marca
                 </h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-400">Colores de Marca</label>
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Colores de Marca</label>
                       <div className="flex gap-4">
                         <div className="flex-1 space-y-1">
-                          <span className="text-xs text-gray-500">Primario</span>
-                          <div className="flex items-center gap-2 p-2 rounded-lg bg-gray-800 border border-gray-700">
+                          <span className="text-xs text-gray-500 dark:text-gray-500">Primario</span>
+                          <div className="flex items-center gap-2 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                             <input 
                               type="color" 
                               name="primary_color" 
@@ -684,12 +684,12 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
                               onChange={handleSettingsChange} 
                               className="w-8 h-8 rounded cursor-pointer border-none p-0 bg-transparent" 
                             />
-                            <span className="text-sm text-gray-300 font-mono">{settings.primary_color}</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-300 font-mono">{settings.primary_color}</span>
                           </div>
                         </div>
                         <div className="flex-1 space-y-1">
-                          <span className="text-xs text-gray-500">Secundario</span>
-                          <div className="flex items-center gap-2 p-2 rounded-lg bg-gray-800 border border-gray-700">
+                          <span className="text-xs text-gray-500 dark:text-gray-500">Secundario</span>
+                          <div className="flex items-center gap-2 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                             <input 
                               type="color" 
                               name="secondary_color" 
@@ -697,7 +697,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
                               onChange={handleSettingsChange} 
                               className="w-8 h-8 rounded cursor-pointer border-none p-0 bg-transparent" 
                             />
-                            <span className="text-sm text-gray-300 font-mono">{settings.secondary_color}</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-300 font-mono">{settings.secondary_color}</span>
                           </div>
                         </div>
                       </div>
@@ -705,17 +705,17 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-400 flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
                       <ImageIcon size={14} /> Logo
                     </label>
                     <div className="flex items-start gap-4">
-                      <div className="w-24 h-24 rounded-xl overflow-hidden bg-gray-800 border border-gray-700 flex items-center justify-center shrink-0">
+                      <div className="w-24 h-24 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center shrink-0">
                         {logoFile ? (
                           <img src={URL.createObjectURL(logoFile)} alt="Preview" className="w-full h-full object-contain" />
                         ) : settings.logo ? (
                           <img src={absUrl(settings.logo)} alt="Logo" className="w-full h-full object-contain" />
                         ) : (
-                          <ImageIcon className="text-gray-600" size={32} />
+                          <ImageIcon className="text-gray-400 dark:text-gray-600" size={32} />
                         )}
                       </div>
                       <div className="flex-1">
@@ -723,9 +723,9 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
                           type="file" 
                           accept="image/*" 
                           onChange={handleLogo} 
-                          className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer" 
+                          className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer" 
                         />
-                        <p className="mt-2 text-xs text-gray-500">
+                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-500">
                           Recomendado: PNG con fondo transparente, mín. 200x200px.
                         </p>
                       </div>
@@ -750,26 +750,26 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
 
         {/* Impresora */}
         {tab === 'impresora' && (
-          <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-6 md:p-8 animate-fade-in">
+          <div className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 md:p-8 animate-fade-in shadow-sm dark:shadow-none">
             <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 rounded-full bg-purple-500/10 text-purple-400">
+              <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">
                 <Printer size={24} />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-white">Configuración de Impresión</h3>
-                <p className="text-sm text-gray-400">Personaliza el formato de tus recibos y facturas POS</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Configuración de Impresión</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Personaliza el formato de tus recibos y facturas POS</p>
               </div>
             </div>
 
             <form onSubmit={saveSettings} className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Tipo de Impresión</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Tipo de Impresión</label>
                   <select 
                     name="printer_type" 
                     value={settings.printer_type || 'system'} 
                     onChange={handleSettingsChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all"
                   >
                     <option value="system">Impresora del Sistema (Predeterminada)</option>
                     <option value="pos">Impresora POS Directa</option>
@@ -777,27 +777,27 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Nombre del Dispositivo</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Nombre del Dispositivo</label>
                   <input 
                     name="printer_name" 
                     value={settings.printer_name || ''} 
                     onChange={handleSettingsChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all placeholder-gray-600"
+                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                     placeholder="Ej: EPSON TM-T20"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-400">Ancho del Papel (mm)</label>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Ancho del Papel (mm)</label>
                   <div className="relative">
                     <input 
                       type="number" 
                       name="paper_width_mm" 
                       value={settings.paper_width_mm || 58} 
                       onChange={handleSettingsChange} 
-                      className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all placeholder-gray-600"
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                     />
-                    <span className="absolute right-4 top-3 text-gray-500 text-sm">mm</span>
+                    <span className="absolute right-4 top-3 text-gray-500 dark:text-gray-500 text-sm">mm</span>
                   </div>
                 </div>
 
@@ -808,29 +808,29 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
                     name="auto_print" 
                     checked={!!settings.auto_print} 
                     onChange={(e) => setSettings((s) => ({ ...s, auto_print: e.target.checked }))}
-                    className="w-5 h-5 rounded border-gray-600 text-purple-600 focus:ring-purple-500 bg-gray-800"
+                    className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500 bg-white dark:bg-gray-800"
                   />
-                  <label htmlFor="auto_print" className="text-sm text-gray-300 cursor-pointer">
+                  <label htmlFor="auto_print" className="text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
                     Imprimir automáticamente al registrar venta
                   </label>
                 </div>
               </div>
 
-              <div className="pt-6 border-t border-gray-800">
-                <h4 className="text-white font-medium mb-6 flex items-center gap-2">
-                  <FileText size={18} className="text-purple-400" /> Diseño del Recibo
+              <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
+                <h4 className="text-gray-900 dark:text-white font-medium mb-6 flex items-center gap-2">
+                  <FileText size={18} className="text-purple-600 dark:text-purple-400" /> Diseño del Recibo
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                  <div className="md:col-span-2 flex items-center gap-3 p-4 bg-gray-800/50 rounded-xl border border-gray-700">
+                  <div className="md:col-span-2 flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
                     <input 
                       type="checkbox" 
                       id="show_logo"
                       checked={!!printerOpts.show_logo} 
                       onChange={(e) => setPrinterOpts((p) => ({ ...p, show_logo: e.target.checked }))} 
-                      className="w-5 h-5 rounded border-gray-600 text-purple-600 focus:ring-purple-500 bg-gray-800"
+                      className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500 bg-white dark:bg-gray-800"
                     />
-                    <label htmlFor="show_logo" className="text-sm font-medium text-white cursor-pointer flex-1">
+                    <label htmlFor="show_logo" className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer flex-1">
                       Incluir Logo en el Encabezado
                     </label>
                   </div>
@@ -838,11 +838,11 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
                   {printerOpts.show_logo && (
                     <>
                       <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-400">Fuente del Logo</label>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Fuente del Logo</label>
                         <select 
                           value={printerOpts.logo_mode} 
                           onChange={(e) => setPrinterOpts((p) => ({ ...p, logo_mode: e.target.value }))} 
-                          className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-purple-500 outline-none"
+                          className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 outline-none"
                         >
                           <option value="company">Usar Logo de la Empresa</option>
                           <option value="custom">URL Personalizada</option>
@@ -850,22 +850,22 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
                       </div>
 
                       <div className="space-y-2">
-                         <label className="text-sm font-medium text-gray-400">Ancho del Logo (mm)</label>
+                         <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Ancho del Logo (mm)</label>
                          <input 
                            type="number" 
                            value={printerOpts.logo_width_mm} 
                            onChange={(e) => setPrinterOpts((p) => ({ ...p, logo_width_mm: Number(e.target.value || 45) }))} 
-                           className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-purple-500 outline-none"
+                           className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 outline-none"
                          />
                       </div>
 
                       {printerOpts.logo_mode === 'custom' && (
                         <div className="md:col-span-2 space-y-2">
-                          <label className="text-sm font-medium text-gray-400">URL de la Imagen</label>
+                          <label className="text-sm font-medium text-gray-700 dark:text-gray-400">URL de la Imagen</label>
                           <input 
                             value={printerOpts.logo_url} 
                             onChange={(e) => setPrinterOpts((p) => ({ ...p, logo_url: e.target.value }))} 
-                            className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-purple-500 outline-none"
+                            className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 outline-none"
                             placeholder="https://ejemplo.com/logo-ticket.png" 
                           />
                         </div>
@@ -873,19 +873,19 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
 
                       {/* Logo Preview */}
                       <div className="md:col-span-2 mt-4">
-                        <label className="text-sm font-medium text-gray-400 mb-2 block">Vista Previa del Logo</label>
-                        <div className="flex justify-center p-4 bg-white/5 rounded-xl border border-dashed border-gray-700">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-400 mb-2 block">Vista Previa del Logo</label>
+                        <div className="flex justify-center p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
                           {printerOpts.logo_mode === 'company' ? (
                             settings.logo ? (
                                <img src={absUrl(settings.logo)} alt="Logo Preview" className="h-24 object-contain" />
                             ) : (
-                               <div className="text-gray-500 text-sm italic">Sin logo de empresa configurado (ve a la pestaña Empresa)</div>
+                               <div className="text-gray-500 dark:text-gray-500 text-sm italic">Sin logo de empresa configurado (ve a la pestaña Empresa)</div>
                             )
                           ) : (
                             printerOpts.logo_url ? (
                                <img src={printerOpts.logo_url} alt="Logo Preview" className="h-24 object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
                             ) : (
-                               <div className="text-gray-500 text-sm italic">Ingrese una URL válida</div>
+                               <div className="text-gray-500 dark:text-gray-500 text-sm italic">Ingrese una URL válida</div>
                             )
                           )}
                         </div>
@@ -894,28 +894,28 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
                   )}
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-400">Encabezado Línea 1</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Encabezado Línea 1</label>
                     <input 
                       value={printerOpts.header1} 
                       onChange={(e) => setPrinterOpts((p) => ({ ...p, header1: e.target.value }))} 
-                      className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-purple-500 outline-none"
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 outline-none"
                       placeholder="Ej: Régimen Común" 
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-400">Encabezado Línea 2</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Encabezado Línea 2</label>
                     <input 
                       value={printerOpts.header2} 
                       onChange={(e) => setPrinterOpts((p) => ({ ...p, header2: e.target.value }))} 
-                      className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-purple-500 outline-none"
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 outline-none"
                       placeholder="Ej: Resolución DIAN No..." 
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-400">Alineación de Texto</label>
-                    <div className="flex bg-gray-800 rounded-xl p-1 border border-gray-700">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Alineación de Texto</label>
+                    <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 border border-gray-200 dark:border-gray-700">
                       {[
                         { val: 'left', icon: <Type size={16} /> }, // Using generic Type icon for left (conceptually) or I need specific Align icons
                         { val: 'center', icon: <AlignCenter size={16} /> },
@@ -925,7 +925,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
                           key={opt.val}
                           type="button"
                           onClick={() => setPrinterOpts((p) => ({ ...p, align: opt.val }))}
-                          className={`flex-1 flex justify-center items-center py-2 rounded-lg transition-all ${printerOpts.align === opt.val ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                          className={`flex-1 flex justify-center items-center py-2 rounded-lg transition-all ${printerOpts.align === opt.val ? 'bg-purple-600 text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
                         >
                           {opt.icon}
                         </button>
@@ -934,22 +934,22 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-400">Tamaño Fuente (px)</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Tamaño Fuente (px)</label>
                     <input 
                       type="number" 
                       value={printerOpts.font_size} 
                       onChange={(e) => setPrinterOpts((p) => ({ ...p, font_size: Number(e.target.value || 11) }))} 
-                      className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-purple-500 outline-none"
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 outline-none"
                     />
                   </div>
                   
                   <div className="md:col-span-2 space-y-2">
-                    <label className="text-sm font-medium text-gray-400">Pie de Página</label>
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Pie de Página</label>
                     <textarea 
                       name="receipt_footer" 
                       value={settings.receipt_footer || ''} 
                       onChange={handleSettingsChange} 
-                      className="w-full px-4 py-3 rounded-xl bg-gray-800 text-white border border-gray-700 focus:border-purple-500 outline-none min-h-[80px] resize-none" 
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 outline-none min-h-[80px] resize-none" 
                       placeholder="Gracias por su compra. Vuelva pronto." 
                     />
                   </div>
@@ -960,28 +960,28 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
                       id="show_qr"
                       checked={!!printerOpts.show_qr} 
                       onChange={(e) => setPrinterOpts((p) => ({ ...p, show_qr: e.target.checked }))} 
-                      className="w-5 h-5 rounded border-gray-600 text-purple-600 focus:ring-purple-500 bg-gray-800"
+                      className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500 bg-white dark:bg-gray-800"
                     />
-                    <label htmlFor="show_qr" className="text-sm text-gray-300 cursor-pointer flex items-center gap-2">
+                    <label htmlFor="show_qr" className="text-sm text-gray-600 dark:text-gray-300 cursor-pointer flex items-center gap-2">
                       <QrCode size={16} /> Incluir Código QR al final
                     </label>
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-800">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-200 dark:border-gray-800">
                 <div className="flex gap-2 w-full md:w-auto">
                   <button 
                     type="button" 
                     onClick={previewPosSample} 
-                    className="flex-1 md:flex-none px-4 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-medium border border-gray-700 transition-colors text-sm"
+                    className="flex-1 md:flex-none px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-white font-medium border border-gray-200 dark:border-gray-700 transition-colors text-sm"
                   >
                     Vista Previa (Venta)
                   </button>
                   <button 
                     type="button" 
                     onClick={previewServiceSample} 
-                    className="flex-1 md:flex-none px-4 py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-medium border border-gray-700 transition-colors text-sm"
+                    className="flex-1 md:flex-none px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-white font-medium border border-gray-200 dark:border-gray-700 transition-colors text-sm"
                   >
                     Vista Previa (Servicio)
                   </button>

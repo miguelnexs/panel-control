@@ -93,7 +93,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut })
   }, [token]);
 
   return (
-    <div className="h-full bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex overflow-hidden">
+    <div className="h-full bg-gradient-to-br from-blue-100 via-blue-50/50 to-blue-100 dark:bg-none dark:bg-[#0B0D14] flex overflow-hidden transition-colors duration-300">
         <Sidebar 
           view={view} 
           setView={(v) => { 
@@ -114,16 +114,16 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut })
         />
       <main className="flex-1 p-6 space-y-6 relative overflow-y-auto">
         {navLoading && (
-          <div className="absolute inset-0 z-40 bg-gray-900 flex items-center justify-center">
-            <div className="bg-gray-800/80 border border-white/10 rounded-xl p-5 shadow-xl text-center">
+          <div className="absolute inset-0 z-40 bg-white/80 dark:bg-gray-900/80 flex items-center justify-center backdrop-blur-sm transition-all">
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-xl p-5 shadow-xl text-center">
               <div className="mx-auto w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-              <div className="mt-2 text-white text-sm">Cargando vista...</div>
+              <div className="mt-2 text-gray-900 dark:text-white text-sm font-medium">Cargando vista...</div>
             </div>
           </div>
         )}
         <div className={`${navLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
           <div className="flex items-center justify-between mb-6 gap-4">
-            <h1 className="text-2xl font-semibold text-white">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
               {view === 'dashboard' ? 'Dashboard' : 
                view === 'users' ? 'Gestión de usuarios' : 
                view === 'productos' ? 'Productos' : 
@@ -140,12 +140,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut })
                view === 'client_details' ? 'Detalle del Cliente' :
                'Pedidos'}
             </h1>
-            <div className="text-sm text-gray-300">Rol: <span className="font-medium">{role}</span></div>
+            <div className="text-sm text-gray-500 dark:text-gray-400 font-medium px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">Rol: <span className="text-gray-900 dark:text-white ml-1">{role}</span></div>
           </div>
           {view === 'dashboard' && (
             <DashboardView stats={stats} seriesA={seriesA} seriesB={seriesB} recentOrders={recentOrders} topProducts={topProducts} />
           )}
-        <React.Suspense fallback={<div className="text-white text-sm">Cargando módulo...</div>}>
+        <React.Suspense fallback={<div className="text-gray-500 dark:text-gray-400 text-sm flex items-center gap-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"/> Cargando módulo...</div>}>
           {view === 'users' && (
             <UsersManager token={token} apiBase={apiBase} role={role} />
           )}

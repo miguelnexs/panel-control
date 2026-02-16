@@ -121,18 +121,18 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
     const handleDragLeave = () => { setDrag(false); };
     return (
       <div
-        className={`w-full rounded-xl border-2 border-dashed ${drag ? 'border-blue-500 bg-blue-500/10' : 'border-gray-700 bg-gray-800/50'} p-8 flex flex-col items-center justify-center cursor-pointer transition-all hover:border-blue-500/50 hover:bg-gray-800`}
+        className={`w-full rounded-xl border-2 border-dashed ${drag ? 'border-blue-500 bg-blue-500/10' : 'border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50'} p-8 flex flex-col items-center justify-center cursor-pointer transition-all hover:border-blue-500/50 hover:bg-gray-100 dark:hover:bg-gray-800`}
         onClick={handleClick}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
       >
-        <div className="flex flex-col items-center gap-3 text-gray-400">
-          <div className="p-4 rounded-full bg-gray-800 border border-gray-700">
+        <div className="flex flex-col items-center gap-3 text-gray-500 dark:text-gray-400">
+          <div className="p-4 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
             <Upload className="w-6 h-6 text-blue-500" />
           </div>
           <div className="text-center">
-            <div className="text-sm font-medium text-gray-300">Haz clic o arrastra imágenes aquí</div>
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Haz clic o arrastra imágenes aquí</div>
             <div className="text-xs text-gray-500 mt-1">Soporta JPG, PNG, WEBP</div>
           </div>
         </div>
@@ -149,7 +149,9 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
         const data = await res.json();
         const results = Array.isArray(data.results) ? data.results : [];
         setCategories(results);
-        if (results.length > 0 && !categoryId) setCategoryId(String(results[0].id));
+        if (results.length > 0) {
+          setCategoryId(prev => (prev ? prev : String(results[0].id)));
+        }
       } catch (e) {}
       finally { setLoading(false); }
     };
@@ -382,12 +384,12 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
   };
 
   return (
-    <div className="min-h-full bg-gray-900 text-white animate-in fade-in duration-500">
+    <div className="min-h-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white animate-in fade-in duration-500">
       {loading && (
-        <div className="absolute inset-0 z-50 bg-gray-950/50 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
+        <div className="absolute inset-0 z-50 bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
             <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4" />
-            <div className="text-white font-medium">Cargando datos...</div>
+            <div className="text-gray-900 dark:text-white font-medium">Cargando datos...</div>
           </div>
         </div>
       )}
@@ -398,13 +400,13 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
           <div className="flex items-center gap-4">
             <button 
               onClick={onCancel}
-              className="p-2 rounded-xl bg-gray-800 border border-gray-700 hover:bg-gray-700 text-gray-400 hover:text-white transition-all"
+              className="p-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-white">{product ? 'Editar Producto' : 'Nuevo Producto'}</h1>
-              <p className="text-sm text-gray-400">Complete la información del producto a continuación</p>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{product ? 'Editar Producto' : 'Nuevo Producto'}</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Complete la información del producto a continuación</p>
             </div>
           </div>
           
@@ -425,31 +427,31 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
         )}
 
         {/* Tabs */}
-        <div className="flex items-center gap-1 border-b border-gray-800 overflow-x-auto">
+        <div className="flex items-center gap-1 border-b border-gray-200 dark:border-gray-800 overflow-x-auto">
           <button
             onClick={() => setActiveTab('detalles')}
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'detalles' ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'detalles' ? 'border-blue-500 text-blue-500 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
           >
             <Package className="w-4 h-4" />
             <span>Información General</span>
           </button>
           <button
             onClick={() => setActiveTab('colores')}
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'colores' ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'colores' ? 'border-blue-500 text-blue-500 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
           >
             <Palette className="w-4 h-4" />
             <span>Colores</span>
           </button>
           <button
             onClick={() => setActiveTab('variantes')}
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'variantes' ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'variantes' ? 'border-blue-500 text-blue-500 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
           >
             <Layers className="w-4 h-4" />
             <span>Variantes</span>
           </button>
           <button
             onClick={() => setActiveTab('caracteristicas')}
-            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'caracteristicas' ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-400 hover:text-white'}`}
+            className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'caracteristicas' ? 'border-blue-500 text-blue-500 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
           >
             <CheckCircle2 className="w-4 h-4" />
             <span>Características</span>
@@ -462,20 +464,20 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
             <>
               {/* Left Column */}
               <div className="lg:col-span-2 space-y-6">
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-sm">
-                  <div className="flex items-center gap-2 mb-6 text-gray-400 text-sm font-medium uppercase tracking-wider">
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center gap-2 mb-6 text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
                     <FileText className="w-4 h-4" />
                     <span>Datos Básicos</span>
                   </div>
                   
                   <div className="space-y-5">
                     <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1.5">Nombre del Producto</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Nombre del Producto</label>
                       <input 
                         type="text" 
                         value={name} 
                         onChange={(e) => setName(e.target.value)} 
-                        className={`w-full px-4 py-2.5 bg-gray-800 border ${errors.name ? 'border-rose-500' : 'border-gray-700'} rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                        className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.name ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
                         placeholder="Ej. Camiseta Deportiva Premium"
                       />
                       {errors.name && <p className="mt-1 text-xs text-rose-400">{errors.name}</p>}
@@ -483,29 +485,29 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1.5">Precio (COP)</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Precio (COP)</label>
                         <div className="relative">
-                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                           <input 
                             type="text" 
                             value={price} 
                             onChange={(e) => setPrice(normalizePrice(e.target.value))} 
-                            className={`w-full pl-9 pr-4 py-2.5 bg-gray-800 border ${errors.price ? 'border-rose-500' : 'border-gray-700'} rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                            className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.price ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
                             placeholder="0.00"
                           />
                         </div>
-                        <p className="mt-1 text-xs text-emerald-400 font-medium">{formatCurrency(price)}</p>
+                        <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">{formatCurrency(price)}</p>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1.5">SKU / Código</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">SKU / Código</label>
                         <div className="relative">
-                          <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                          <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                           <input 
                             type="text" 
                             value={sku} 
                             onChange={(e) => setSku(e.target.value)} 
-                            className={`w-full pl-9 pr-4 py-2.5 bg-gray-800 border ${errors.sku ? 'border-rose-500' : 'border-gray-700'} rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                            className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.sku ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
                             placeholder="PROD-001"
                           />
                         </div>
@@ -513,20 +515,20 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1.5">Descripción</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Descripción</label>
                       <textarea 
                         value={description} 
                         onChange={(e) => setDescription(e.target.value)} 
                         rows={4}
-                        className={`w-full px-4 py-2.5 bg-gray-800 border ${errors.description ? 'border-rose-500' : 'border-gray-700'} rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all resize-none`}
+                        className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.description ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all resize-none`}
                         placeholder="Describe las características principales del producto..."
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-sm">
-                  <div className="flex items-center gap-2 mb-6 text-gray-400 text-sm font-medium uppercase tracking-wider">
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center gap-2 mb-6 text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
                     <ImageIcon className="w-4 h-4" />
                     <span>Imagen Principal</span>
                   </div>
@@ -537,13 +539,13 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                       {errors.image && <p className="mt-1 text-xs text-rose-400">{errors.image}</p>}
                     </div>
                     <div>
-                      <div className="w-full aspect-square rounded-xl bg-gray-800 border border-gray-700 overflow-hidden flex items-center justify-center relative group">
+                      <div className="w-full aspect-square rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden flex items-center justify-center relative group">
                         {imageFile ? (
                           <img src={URL.createObjectURL(imageFile)} alt="Preview" className="w-full h-full object-cover" />
                         ) : product?.image ? (
                           <img src={mediaUrl(product.image)} alt="Current" className="w-full h-full object-cover" />
                         ) : (
-                          <div className="flex flex-col items-center text-gray-600">
+                          <div className="flex flex-col items-center text-gray-400 dark:text-gray-600">
                             <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
                             <span className="text-xs">Sin imagen</span>
                           </div>
@@ -556,41 +558,41 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
               {/* Right Column */}
               <div className="space-y-6">
-                <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-sm">
-                  <div className="flex items-center gap-2 mb-6 text-gray-400 text-sm font-medium uppercase tracking-wider">
+                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center gap-2 mb-6 text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
                     <Layers className="w-4 h-4" />
                     <span>Organización</span>
                   </div>
                   
                   <div className="space-y-5">
                     <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1.5">Categoría</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Categoría</label>
                       <select 
                         value={categoryId} 
                         onChange={(e) => setCategoryId(e.target.value)} 
-                        className={`w-full px-4 py-2.5 bg-gray-800 border ${errors.category ? 'border-rose-500' : 'border-gray-700'} rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all appearance-none cursor-pointer`}
+                        className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.category ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all appearance-none cursor-pointer`}
                       >
                         {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
                       </select>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1.5">Inventario Global</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Inventario Global</label>
                       <input 
                         type="number" 
                         value={inventoryQty} 
                         onChange={(e) => setInventoryQty(e.target.value)} 
                         min={0}
-                        className={`w-full px-4 py-2.5 bg-gray-800 border ${errors.inventoryQty ? 'border-rose-500' : 'border-gray-700'} rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                        className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.inventoryQty ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
                       />
                     </div>
 
-                    <div className="pt-4 border-t border-gray-800">
+                    <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
                       <label className="flex items-center gap-3 cursor-pointer group">
-                        <div className={`w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${active ? 'bg-blue-600' : 'bg-gray-700'}`}>
+                        <div className={`w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${active ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
                           <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${active ? 'translate-x-6' : 'translate-x-0'}`} />
                         </div>
-                        <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">Producto Activo</span>
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white transition-colors">Producto Activo</span>
                         <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="hidden" />
                       </label>
                     </div>
@@ -602,30 +604,30 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
           {activeTab === 'colores' && (
             <div className="lg:col-span-3 space-y-6">
-               <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-sm">
+               <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-2 text-gray-400 text-sm font-medium uppercase tracking-wider">
+                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
                       <Palette className="w-4 h-4" />
                       <span>Gestión de Colores</span>
                     </div>
                  </div>
 
                  {/* Add Color Form */}
-                 <div className="p-4 bg-gray-800/50 rounded-xl border border-gray-700/50 mb-6">
-                    <h4 className="text-sm font-medium text-white mb-3">Agregar Nuevo Color</h4>
+                 <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/50 mb-6">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Agregar Nuevo Color</h4>
                     <div className="flex flex-wrap items-end gap-4">
                       <div className="flex-1 min-w-[200px]">
-                        <label className="block text-xs text-gray-400 mb-1">Nombre del Color</label>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Nombre del Color</label>
                         <input 
                           type="text" 
                           value={colorName} 
                           onChange={(e) => setColorName(e.target.value)} 
                           placeholder="Ej. Rojo Pasión" 
-                          className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:border-blue-500 focus:outline-none"
+                          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none"
                         />
                       </div>
                       <div className="w-24">
-                        <label className="block text-xs text-gray-400 mb-1">Color</label>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Color</label>
                         <div className="flex items-center gap-2">
                           <input 
                             type="color" 
@@ -636,13 +638,13 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                         </div>
                       </div>
                       <div className="w-32">
-                        <label className="block text-xs text-gray-400 mb-1">Stock</label>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Stock</label>
                         <input 
                           type="number" 
                           value={colorStock} 
                           onChange={(e) => setColorStock(e.target.value)} 
                           min={0}
-                          className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:border-blue-500 focus:outline-none"
+                          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none"
                         />
                       </div>
                       <button 
@@ -659,33 +661,33 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                  {/* Color List */}
                  <div className="space-y-4">
                     {colors.map((c, idx) => (
-                      <div key={`${c.id || 'new'}-${idx}`} className="bg-gray-800/30 border border-gray-700 rounded-xl p-4 transition-all hover:border-gray-600">
-                        <div className="flex flex-wrap items-center gap-4 mb-4 pb-4 border-b border-gray-700/50">
-                          <div className="w-10 h-10 rounded-lg shadow-sm border border-gray-600" style={{ backgroundColor: c.hex }} />
+                      <div key={`${c.id || 'new'}-${idx}`} className="bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 rounded-xl p-4 transition-all hover:border-gray-300 dark:hover:border-gray-600">
+                        <div className="flex flex-wrap items-center gap-4 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700/50">
+                          <div className="w-10 h-10 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600" style={{ backgroundColor: c.hex }} />
                           
                           <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <input 
                               type="text" 
                               value={c.name} 
                               onChange={(e) => setColors((cols) => cols.map((x, i) => i === idx ? { ...x, name: e.target.value } : x))} 
-                              className="px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white focus:border-blue-500 focus:outline-none"
+                              className="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none"
                             />
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-500 text-sm">Hex:</span>
+                              <span className="text-gray-500 dark:text-gray-500 text-sm">Hex:</span>
                               <input 
                                 type="text" 
                                 value={c.hex} 
                                 onChange={(e) => setColors((cols) => cols.map((x, i) => i === idx ? { ...x, hex: e.target.value } : x))} 
-                                className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white focus:border-blue-500 focus:outline-none font-mono"
+                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none font-mono"
                               />
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="text-gray-500 text-sm">Stock:</span>
+                              <span className="text-gray-500 dark:text-gray-500 text-sm">Stock:</span>
                               <input 
                                 type="number" 
                                 value={c.stock} 
                                 onChange={(e) => setColors((cols) => cols.map((x, i) => i === idx ? { ...x, stock: e.target.value } : x))} 
-                                className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-sm text-white focus:border-blue-500 focus:outline-none"
+                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none"
                               />
                             </div>
                           </div>
@@ -693,7 +695,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                           <button 
                             type="button" 
                             onClick={() => setColors((cols) => cols.filter((x, i) => i !== idx))} 
-                            className="p-2 text-gray-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                            className="p-2 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
                           >
                             <Trash2 className="w-5 h-5" />
                           </button>
@@ -702,9 +704,9 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                         {/* Color Images */}
                         <div>
                           <div className="flex items-center justify-between mb-3">
-                            <div className="text-xs font-medium text-gray-400 uppercase tracking-wider">Imágenes de la Variante (Máx 4)</div>
+                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Imágenes de la Variante (Máx 4)</div>
                             <div className="w-48">
-                              <label className="flex items-center justify-center px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-xs text-gray-300 hover:text-white hover:border-gray-500 cursor-pointer transition-all">
+                              <label className="flex items-center justify-center px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-500 cursor-pointer transition-all">
                                 <Plus className="w-3 h-3 mr-1.5" />
                                 Agregar Imágenes
                                 <input 
@@ -733,7 +735,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                           
                           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
                             {(c.images || []).map((img: any, j) => (
-                              <div key={`img-${j}`} className="relative group aspect-square rounded-lg bg-gray-900 border border-gray-700 overflow-hidden">
+                              <div key={`img-${j}`} className="relative group aspect-square rounded-lg bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 overflow-hidden">
                                 <img 
                                   src={img.preview ? img.preview : mediaUrl(img.image)} 
                                   alt="Color variant" 
@@ -751,7 +753,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                               </div>
                             ))}
                             {(!c.images || c.images.length === 0) && (
-                              <div className="col-span-full py-4 text-center text-gray-500 text-xs border border-dashed border-gray-800 rounded-lg">
+                              <div className="col-span-full py-4 text-center text-gray-500 dark:text-gray-500 text-xs border border-dashed border-gray-300 dark:border-gray-800 rounded-lg">
                                 No hay imágenes para este color
                               </div>
                             )}
@@ -760,7 +762,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                       </div>
                     ))}
                     {colors.length === 0 && (
-                      <div className="text-center py-12 text-gray-500">
+                      <div className="text-center py-12 text-gray-500 dark:text-gray-500">
                         <Palette className="w-12 h-12 mx-auto mb-3 opacity-20" />
                         <p>No hay variantes de color agregadas.</p>
                       </div>
@@ -773,31 +775,31 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
           {activeTab === 'variantes' && (
             <div className="lg:col-span-3 space-y-6">
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-sm">
-                 <div className="flex items-center gap-2 mb-6 text-gray-400 text-sm font-medium uppercase tracking-wider">
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
+                 <div className="flex items-center gap-2 mb-6 text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
                     <Layers className="w-4 h-4" />
                     <span>Variantes de Producto (Talla, Material, etc.)</span>
                  </div>
                  
-                 <div className="p-4 bg-gray-800/50 rounded-xl border border-gray-700/50 mb-6">
+                 <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/50 mb-6">
                     <div className="flex flex-wrap items-end gap-4">
                       <div className="flex-1 min-w-[200px]">
-                        <label className="block text-xs text-gray-400 mb-1">Nombre (ej. Talla L, XL)</label>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Nombre (ej. Talla L, XL)</label>
                         <input 
                           type="text" 
                           value={variantName} 
                           onChange={(e) => setVariantName(e.target.value)} 
-                          className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:border-blue-500 focus:outline-none"
+                          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none"
                         />
                       </div>
                       <div className="w-32">
-                        <label className="block text-xs text-gray-400 mb-1">Sobrecosto</label>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Sobrecosto</label>
                         <input 
                           type="number" 
                           value={variantPrice} 
                           onChange={(e) => setVariantPrice(e.target.value)} 
                           min={0}
-                          className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:border-blue-500 focus:outline-none"
+                          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none"
                         />
                       </div>
                       <button 
@@ -813,13 +815,13 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
                  <div className="space-y-3">
                     {variants.map((v, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-gray-800/30 border border-gray-700 rounded-lg">
+                      <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 rounded-lg">
                          <div className="flex items-center gap-4 flex-1">
                             <input 
                               type="text" 
                               value={v.name} 
                               onChange={(e) => setVariants(vars => vars.map((x, i) => i === idx ? { ...x, name: e.target.value } : x))}
-                              className="bg-transparent border-none text-white focus:ring-0 p-0 text-sm font-medium w-full"
+                              className="bg-transparent border-none text-gray-900 dark:text-white focus:ring-0 p-0 text-sm font-medium w-full"
                             />
                          </div>
                          <div className="flex items-center gap-4">
@@ -829,16 +831,16 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                                 type="number" 
                                 value={v.extra_price} 
                                 onChange={(e) => setVariants(vars => vars.map((x, i) => i === idx ? { ...x, extra_price: e.target.value } : x))}
-                                className="w-24 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-sm text-white focus:border-blue-500 focus:outline-none text-right"
+                                className="w-24 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none text-right"
                               />
                             </div>
-                            <button onClick={() => setVariants(vars => vars.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-rose-400 transition-colors">
+                            <button onClick={() => setVariants(vars => vars.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors">
                                <Trash2 className="w-4 h-4" />
                             </button>
                          </div>
                       </div>
                     ))}
-                    {variants.length === 0 && <p className="text-center text-gray-500 text-sm py-4">No hay variantes definidas.</p>}
+                    {variants.length === 0 && <p className="text-center text-gray-500 dark:text-gray-500 text-sm py-4">No hay variantes definidas.</p>}
                  </div>
               </div>
             </div>
@@ -846,22 +848,22 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
           {activeTab === 'caracteristicas' && (
             <div className="lg:col-span-3 space-y-6">
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-sm">
-                 <div className="flex items-center gap-2 mb-6 text-gray-400 text-sm font-medium uppercase tracking-wider">
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
+                 <div className="flex items-center gap-2 mb-6 text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Características del Producto</span>
                  </div>
                  
-                 <div className="p-4 bg-gray-800/50 rounded-xl border border-gray-700/50 mb-6">
+                 <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700/50 mb-6">
                     <div className="flex gap-4">
                       <div className="flex-1">
-                        <label className="block text-xs text-gray-400 mb-1">Característica</label>
+                        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Característica</label>
                         <input 
                           type="text" 
                           value={featureName} 
                           onChange={(e) => setFeatureName(e.target.value)} 
                           placeholder="Ej. Resistente al agua"
-                          className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:border-blue-500 focus:outline-none"
+                          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none"
                         />
                       </div>
                       <button 
@@ -877,21 +879,21 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
                  <div className="space-y-3">
                     {features.map((f, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-gray-800/30 border border-gray-700 rounded-lg">
+                      <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 rounded-lg">
                          <div className="flex-1">
                             <input 
                               type="text" 
                               value={f.name} 
                               onChange={(e) => setFeatures(fs => fs.map((x, i) => i === idx ? { ...x, name: e.target.value } : x))}
-                              className="bg-transparent border-none text-white focus:ring-0 p-0 text-sm w-full"
+                              className="bg-transparent border-none text-gray-900 dark:text-white focus:ring-0 p-0 text-sm w-full"
                             />
                          </div>
-                         <button onClick={() => setFeatures(fs => fs.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-rose-400 transition-colors">
+                         <button onClick={() => setFeatures(fs => fs.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors">
                             <Trash2 className="w-4 h-4" />
                          </button>
                       </div>
                     ))}
-                    {features.length === 0 && <p className="text-center text-gray-500 text-sm py-4">No hay características definidas.</p>}
+                    {features.length === 0 && <p className="text-center text-gray-500 dark:text-gray-500 text-sm py-4">No hay características definidas.</p>}
                  </div>
               </div>
             </div>

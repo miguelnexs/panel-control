@@ -159,11 +159,11 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
 
   const StatCard = ({ label, value, icon: Icon, color, subValue }: any) => (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-gray-700 transition-all group">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-gray-300 dark:hover:border-gray-700 transition-all group">
       <div>
-        <p className="text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">{label}</p>
+        <p className="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">{label}</p>
         <div className="flex items-baseline gap-2">
-          <p className="text-2xl font-bold text-white group-hover:scale-105 transition-transform origin-left">{value}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white group-hover:scale-105 transition-transform origin-left">{value}</p>
           {subValue && <span className="text-xs text-gray-500">{subValue}</span>}
         </div>
       </div>
@@ -177,9 +177,9 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
     <div className="space-y-6 relative animate-in fade-in duration-500">
       {loading && !items.length && (
         <div className="absolute inset-0 z-50 bg-gray-950/50 backdrop-blur-sm flex items-center justify-center rounded-2xl">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
             <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4" />
-            <div className="text-white font-medium">Cargando clientes...</div>
+            <div className="text-gray-900 dark:text-white font-medium">Cargando clientes...</div>
           </div>
         </div>
       )}
@@ -190,57 +190,57 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
           label="Total Clientes" 
           value={stats.total} 
           icon={Users} 
-          color={{ bg: 'bg-blue-500', text: 'text-blue-500' }} 
+          color={{ bg: 'bg-blue-100 dark:bg-blue-500', text: 'text-blue-600 dark:text-blue-200' }} 
         />
         <StatCard 
           label="Nuevos (Mes)" 
           value={stats.new_this_month} 
           icon={TrendingUp} 
-          color={{ bg: 'bg-emerald-500', text: 'text-emerald-500' }} 
+          color={{ bg: 'bg-emerald-100 dark:bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-200' }} 
         />
         <StatCard 
           label="Nuevos (Hoy)" 
           value={stats.new_today || 0} 
           icon={Calendar} 
-          color={{ bg: 'bg-indigo-500', text: 'text-indigo-500' }} 
+          color={{ bg: 'bg-indigo-100 dark:bg-indigo-500', text: 'text-indigo-600 dark:text-indigo-200' }} 
         />
         <StatCard 
           label="Top Ciudad" 
           value={stats.top_cities[0]?.count || 0} 
           subValue={stats.top_cities[0]?.label || 'N/A'}
           icon={Globe} 
-          color={{ bg: 'bg-purple-500', text: 'text-purple-500' }} 
+          color={{ bg: 'bg-purple-100 dark:bg-purple-500', text: 'text-purple-600 dark:text-purple-200' }} 
         />
       </div>
 
       {msg && (
-        <div className={`p-4 rounded-xl text-sm flex items-center gap-3 border ${msg.type === 'success' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+        <div className={`p-4 rounded-xl text-sm flex items-center gap-3 border ${msg.type === 'success' ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' : 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20'}`}>
           {msg.type === 'success' ? <CheckCircle size={18} /> : <AlertTriangle size={18} />}
           {msg.text}
         </div>
       )}
 
       {/* Main Content */}
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
         {/* Toolbar */}
-        <div className="p-5 border-b border-gray-800 flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-gray-900/50">
+        <div className="p-5 border-b border-gray-200 dark:border-gray-800 flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-gray-50 dark:bg-gray-900/50">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-500/10 rounded-lg">
-              <Users className="w-5 h-5 text-indigo-500" />
+            <div className="p-2 bg-indigo-100 dark:bg-indigo-500/10 rounded-lg">
+              <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-500" />
             </div>
-            <h2 className="text-lg font-semibold text-white">Directorio de Clientes</h2>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Directorio de Clientes</h2>
           </div>
 
           <div className="flex flex-col md:flex-row gap-3">
             {/* Search */}
             <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 group-focus-within:text-blue-500 transition-colors" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => { setPage(1); setSearch(e.target.value); }}
                 placeholder="Buscar cliente..."
-                className="pl-9 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all w-full md:w-64"
+                className="pl-9 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all w-full md:w-64"
               />
             </div>
 
@@ -249,7 +249,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
               <select
                 value={ordering}
                 onChange={(e) => setOrdering(e.target.value)}
-                className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-xl text-sm text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
+                className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 cursor-pointer"
               >
                 <option value="full_name">Nombre A-Z</option>
                 <option value="-full_name">Nombre Z-A</option>
@@ -260,8 +260,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-2 border-l border-gray-800 pl-2 ml-2">
-              <button onClick={() => { loadClients(); loadStats(); }} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors" title="Recargar">
+            <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-800 pl-2 ml-2">
+              <button onClick={() => { loadClients(); loadStats(); }} className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title="Recargar">
                 <RefreshCw className="w-4 h-4" />
               </button>
               <button 
@@ -279,23 +279,23 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-gray-800 bg-gray-800/30">
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Cliente</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Contacto</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Ubicación</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Acciones</th>
+              <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
+                <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
+                <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contacto</th>
+                <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ubicación</th>
+                <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-800">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
               {items.map((c) => (
-                <tr key={c.id} className="hover:bg-gray-800/30 transition-colors group">
+                <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-gray-300 font-bold border border-gray-600">
+                      <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-700 dark:text-gray-300 font-bold border border-gray-300 dark:border-gray-600">
                         {c.full_name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="font-medium text-white group-hover:text-blue-400 transition-colors">{c.full_name}</div>
+                        <div className="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{c.full_name}</div>
                         <div className="flex items-center gap-1 text-xs text-gray-500">
                           <CreditCard className="w-3 h-3" />
                           {c.cedula}
@@ -304,14 +304,14 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-gray-300 text-sm">
-                      <Mail className="w-3.5 h-3.5 text-gray-500" />
+                    <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
+                      <Mail className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
                       {c.email}
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-start gap-2 text-gray-300 text-sm">
-                      <MapPin className="w-3.5 h-3.5 text-gray-500 mt-0.5" />
+                    <div className="flex items-start gap-2 text-gray-700 dark:text-gray-300 text-sm">
+                      <MapPin className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 mt-0.5" />
                       <span className="truncate max-w-[200px]">{c.address}</span>
                     </div>
                   </td>
@@ -343,21 +343,21 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                             }
                           } catch(_){} finally { setViewLoading(false); } 
                         }}
-                        className="p-2 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors"
+                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
                         title="Ver detalles"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => { setEditClient(c); setEditForm({ full_name: c.full_name || '', cedula: c.cedula || '', email: c.email || '', address: c.address || '' }); }}
-                        className="p-2 rounded-lg hover:bg-blue-500/10 text-gray-400 hover:text-blue-400 transition-colors"
+                        className="p-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/10 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                         title="Editar"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={async () => { if (!confirm('Eliminar cliente?')) return; try { const res = await fetch(`${apiBase}/clients/${c.id}/`, { method: 'DELETE', headers: authHeaders(token) }); if (res.ok) { loadClients(); loadStats(); } } catch(_){} }}
-                        className="p-2 rounded-lg hover:bg-rose-500/10 text-gray-400 hover:text-rose-400 transition-colors"
+                        className="p-2 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/10 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
                         title="Eliminar"
                       >
                         <Trash className="w-4 h-4" />
@@ -381,32 +381,32 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
         </div>
         
         {/* Pagination */}
-        <div className="p-4 border-t border-gray-800 flex items-center justify-between bg-gray-900/50">
-          <div className="text-sm text-gray-400">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
             Mostrando {items.length} de {total} clientes
           </div>
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setPage((p) => Math.max(1, p - 1))} 
               disabled={page === 1}
-              className="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-gray-300 text-sm hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Anterior
             </button>
-            <span className="text-sm text-gray-300 px-2">
+            <span className="text-sm text-gray-700 dark:text-gray-300 px-2">
               Página {page} de {totalPages}
             </span>
             <button 
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))} 
               disabled={page === totalPages}
-              className="px-3 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-gray-300 text-sm hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Siguiente
             </button>
             <select 
               value={pageSize} 
               onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }} 
-              className="px-2 py-1.5 rounded-lg bg-gray-800 border border-gray-700 text-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="px-2 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             >
               {[10,20,50].map((n) => (<option key={n} value={n}>{n}/página</option>))}
             </select>
@@ -417,29 +417,29 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
       {/* New Client Modal */}
       {open && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <User className="w-5 h-5 text-blue-500" />
+                <div className="p-2 bg-blue-100 dark:bg-blue-500/10 rounded-lg">
+                  <User className="w-5 h-5 text-blue-600 dark:text-blue-500" />
                 </div>
-                <h3 className="text-xl font-semibold text-white">Nuevo Cliente</h3>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Nuevo Cliente</h3>
               </div>
-              <button onClick={() => setOpen(false)} className="text-gray-500 hover:text-white transition-colors">
+              <button onClick={() => setOpen(false)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-gray-400 text-sm font-medium mb-1.5">Nombre Completo</label>
+                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Nombre Completo</label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                   <input 
                     type="text" 
                     value={form.full_name} 
                     onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))} 
-                    className={`w-full pl-9 pr-4 py-2.5 bg-gray-800 border ${errors.full_name ? 'border-rose-500' : 'border-gray-700'} rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                    className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.full_name ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
                     placeholder="Ej. Juan Pérez"
                   />
                 </div>
@@ -447,14 +447,14 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
               </div>
 
               <div>
-                <label className="block text-gray-400 text-sm font-medium mb-1.5">Cédula / Identificación</label>
+                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Cédula / Identificación</label>
                 <div className="relative">
-                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                   <input 
                     type="text" 
                     value={form.cedula} 
                     onChange={(e) => setForm((f) => ({ ...f, cedula: e.target.value }))} 
-                    className={`w-full pl-9 pr-4 py-2.5 bg-gray-800 border ${errors.cedula ? 'border-rose-500' : 'border-gray-700'} rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                    className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.cedula ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
                     placeholder="Ej. 12345678"
                   />
                 </div>
@@ -462,14 +462,14 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
               </div>
 
               <div>
-                <label className="block text-gray-400 text-sm font-medium mb-1.5">Correo Electrónico</label>
+                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Correo Electrónico</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                   <input 
                     type="email" 
                     value={form.email} 
                     onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} 
-                    className={`w-full pl-9 pr-4 py-2.5 bg-gray-800 border ${errors.email ? 'border-rose-500' : 'border-gray-700'} rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                    className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.email ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
                     placeholder="juan@ejemplo.com"
                   />
                 </div>
@@ -477,13 +477,13 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
               </div>
 
               <div>
-                <label className="block text-gray-400 text-sm font-medium mb-1.5">Dirección</label>
+                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Dirección</label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-500" />
+                  <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400 dark:text-gray-500" />
                   <textarea 
                     value={form.address} 
                     onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} 
-                    className={`w-full pl-9 pr-4 py-2.5 bg-gray-800 border ${errors.address ? 'border-rose-500' : 'border-gray-700'} rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all min-h-[100px] resize-none`}
+                    className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.address ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all min-h-[100px] resize-none`}
                     placeholder="Dirección completa"
                   />
                 </div>
@@ -494,7 +494,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                 <button 
                   type="button" 
                   onClick={() => setOpen(false)} 
-                  className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-medium transition-colors"
+                  className="px-4 py-2 rounded-xl bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-white font-medium transition-colors"
                 >
                   Cancelar
                 </button>
@@ -514,35 +514,35 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
       {/* View Client Details Modal */}
       {viewClient && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-3xl shadow-2xl scale-100 animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
-            <div className="p-6 border-b border-gray-800 flex items-center justify-between shrink-0">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-3xl shadow-2xl scale-100 animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-500/10 rounded-lg">
-                  <User className="w-5 h-5 text-indigo-500" />
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-500/10 rounded-lg">
+                  <User className="w-5 h-5 text-indigo-600 dark:text-indigo-500" />
                 </div>
-                <h3 className="text-xl font-semibold text-white">Detalle del Cliente</h3>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Detalle del Cliente</h3>
               </div>
-              <button onClick={() => { setViewClient(null); setViewOrders([]); setViewServices([]); }} className="text-gray-500 hover:text-white transition-colors">
+              <button onClick={() => { setViewClient(null); setViewOrders([]); setViewServices([]); }} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
             
             <div className="p-6 overflow-y-auto">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="col-span-1 bg-gray-800/50 rounded-xl p-6 border border-gray-700 flex flex-col items-center text-center">
-                  <div className="w-20 h-20 rounded-full bg-gray-700 flex items-center justify-center text-3xl font-bold text-white mb-4 border-2 border-gray-600">
+                <div className="col-span-1 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6 border border-gray-200 dark:border-gray-700 flex flex-col items-center text-center">
+                  <div className="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-3xl font-bold text-gray-700 dark:text-white mb-4 border-2 border-gray-300 dark:border-gray-600">
                     {viewClient.full_name.charAt(0).toUpperCase()}
                   </div>
-                  <h2 className="text-xl font-bold text-white mb-1">{viewClient.full_name}</h2>
-                  <p className="text-sm text-gray-400 mb-4">{viewClient.email}</p>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{viewClient.full_name}</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{viewClient.email}</p>
                   
                   <div className="w-full space-y-3 text-left">
-                    <div className="flex items-center gap-3 text-sm text-gray-300 bg-gray-800 p-3 rounded-lg">
-                      <CreditCard className="w-4 h-4 text-gray-500" />
+                    <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <CreditCard className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                       <span>{viewClient.cedula}</span>
                     </div>
-                    <div className="flex items-start gap-3 text-sm text-gray-300 bg-gray-800 p-3 rounded-lg">
-                      <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
+                    <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5" />
                       <span>{viewClient.address}</span>
                     </div>
                   </div>
@@ -552,42 +552,42 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                   {/* Orders Section */}
                   <div>
                     <div className="flex items-center gap-2 mb-4">
-                      <ShoppingBag className="w-5 h-5 text-indigo-400" />
-                      <h3 className="text-lg font-medium text-white">Historial de Pedidos</h3>
+                      <ShoppingBag className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">Historial de Pedidos</h3>
                     </div>
 
                     {viewLoading ? (
-                       <div className="flex items-center justify-center py-12 bg-gray-800/30 rounded-xl border border-gray-800">
+                       <div className="flex items-center justify-center py-12 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-gray-200 dark:border-gray-800">
                          <div className="w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
                        </div>
                     ) : viewOrders.length > 0 ? (
                       <div className="space-y-3">
                         {viewOrders.map((o) => (
-                          <div key={o.id} className="bg-gray-800/30 border border-gray-700 rounded-xl p-4 hover:border-gray-600 transition-colors">
+                          <div key={o.id} className="bg-white dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono text-sm font-medium text-indigo-400">#{o.order_number}</span>
+                                <span className="font-mono text-sm font-medium text-indigo-600 dark:text-indigo-400">#{o.order_number}</span>
                                 <span className={`px-2 py-0.5 text-xs rounded-full border ${
-                                  o.status === 'delivered' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
-                                  o.status === 'pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 
-                                  'bg-gray-700 text-gray-300 border-gray-600'
+                                  o.status === 'delivered' ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' : 
+                                  o.status === 'pending' ? 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20' : 
+                                  'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600'
                                 }`}>
                                   {o.status}
                                 </span>
                               </div>
-                              <span className="text-sm font-bold text-white">
+                              <span className="text-sm font-bold text-gray-900 dark:text-white">
                                 {Number(o.total_amount).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
                               </span>
                             </div>
                             
-                            <div className="text-xs text-gray-400 mb-2">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                               {new Date(o.created_at).toLocaleDateString()} at {new Date(o.created_at).toLocaleTimeString()}
                             </div>
 
                             <div className="space-y-1">
                               {o.items.map((it, i) => (
-                                <div key={i} className="text-sm text-gray-300 flex items-center gap-2">
-                                  <span className="w-1 h-1 rounded-full bg-gray-500" />
+                                <div key={i} className="text-sm text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                                  <span className="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500" />
                                   <span>{it.quantity}x {it.product}</span>
                                   {it.color && <span className="text-gray-500 text-xs">({it.color})</span>}
                                 </div>
@@ -597,7 +597,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                         ))}
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center py-12 bg-gray-800/30 rounded-xl border border-gray-800 border-dashed text-gray-500">
+                      <div className="flex flex-col items-center justify-center py-12 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-gray-200 dark:border-gray-800 border-dashed text-gray-500">
                         <ShoppingBag className="w-10 h-10 mb-2 opacity-20" />
                         <p>No hay pedidos registrados</p>
                       </div>
@@ -607,34 +607,34 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                   {/* Services Section */}
                   <div>
                     <div className="flex items-center gap-2 mb-4">
-                      <Briefcase className="w-5 h-5 text-emerald-400" />
-                      <h3 className="text-lg font-medium text-white">Historial de Servicios</h3>
+                      <Briefcase className="w-5 h-5 text-emerald-500 dark:text-emerald-400" />
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">Historial de Servicios</h3>
                     </div>
 
                     {viewLoading ? (
-                       <div className="flex items-center justify-center py-12 bg-gray-800/30 rounded-xl border border-gray-800">
+                       <div className="flex items-center justify-center py-12 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-gray-200 dark:border-gray-800">
                          <div className="w-8 h-8 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
                        </div>
                     ) : viewServices.length > 0 ? (
                       <div className="space-y-3">
                         {viewServices.map((s) => (
-                          <div key={s.id} className="bg-gray-800/30 border border-gray-700 rounded-xl p-4 hover:border-gray-600 transition-colors">
+                          <div key={s.id} className="bg-white dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
-                                <span className="font-medium text-white">{s.name}</span>
+                                <span className="font-medium text-gray-900 dark:text-white">{s.name}</span>
                                 <span className={`px-2 py-0.5 text-xs rounded-full border ${
-                                  s.status === 'entregado' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
-                                  'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                  s.status === 'entregado' ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' : 
+                                  'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20'
                                 }`}>
                                   {s.status}
                                 </span>
                               </div>
-                              <span className="text-sm font-bold text-white">
+                              <span className="text-sm font-bold text-gray-900 dark:text-white">
                                 {Number(s.value).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
                               </span>
                             </div>
                             
-                            <p className="text-sm text-gray-400 mb-2 line-clamp-2">{s.description}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 line-clamp-2">{s.description}</p>
                             
                             <div className="flex items-center justify-between text-xs text-gray-500">
                               <div className="flex items-center gap-2">
@@ -652,7 +652,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                         ))}
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center justify-center py-12 bg-gray-800/30 rounded-xl border border-gray-800 border-dashed text-gray-500">
+                      <div className="flex flex-col items-center justify-center py-12 bg-gray-50 dark:bg-gray-800/30 rounded-xl border border-gray-200 dark:border-gray-800 border-dashed text-gray-500">
                         <Briefcase className="w-10 h-10 mb-2 opacity-20" />
                         <p>No hay servicios registrados</p>
                       </div>
@@ -662,10 +662,10 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
               </div>
             </div>
             
-            <div className="p-4 border-t border-gray-800 bg-gray-900/50 rounded-b-2xl flex justify-end">
+            <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 rounded-b-2xl flex justify-end">
               <button 
                 onClick={() => { setViewClient(null); setViewOrders([]); setViewServices([]); }} 
-                className="px-6 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-medium transition-colors"
+                className="px-6 py-2.5 rounded-xl bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-medium transition-colors"
               >
                 Cerrar
               </button>
@@ -677,54 +677,54 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
       {/* Edit Client Modal */}
       {editClient && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-amber-500/10 rounded-lg">
-                  <Edit className="w-5 h-5 text-amber-500" />
+                <div className="p-2 bg-amber-100 dark:bg-amber-500/10 rounded-lg">
+                  <Edit className="w-5 h-5 text-amber-600 dark:text-amber-500" />
                 </div>
-                <h3 className="text-xl font-semibold text-white">Editar Cliente</h3>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Editar Cliente</h3>
               </div>
-              <button onClick={() => setEditClient(null)} className="text-gray-500 hover:text-white transition-colors">
+              <button onClick={() => setEditClient(null)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
             
             <form onSubmit={async (e) => { e.preventDefault(); try { const res = await fetch(`${apiBase}/clients/${editClient.id}/`, { method: 'PATCH', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify(editForm) }); if (res.ok) { setEditClient(null); loadClients(); } } catch(_){} }} className="p-6 space-y-4">
               <div>
-                <label className="block text-gray-400 text-sm font-medium mb-1.5">Nombre Completo</label>
+                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Nombre Completo</label>
                 <input 
                   value={editForm.full_name} 
                   onChange={(e)=>setEditForm((f)=>({...f, full_name: e.target.value}))} 
-                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all" 
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all" 
                   placeholder="Nombre" 
                 />
               </div>
               <div>
-                <label className="block text-gray-400 text-sm font-medium mb-1.5">Cédula</label>
+                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Cédula</label>
                 <input 
                   value={editForm.cedula} 
                   onChange={(e)=>setEditForm((f)=>({...f, cedula: e.target.value}))} 
-                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all" 
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all" 
                   placeholder="Cédula" 
                 />
               </div>
               <div>
-                <label className="block text-gray-400 text-sm font-medium mb-1.5">Correo</label>
+                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Correo</label>
                 <input 
                   type="email"
                   value={editForm.email} 
                   onChange={(e)=>setEditForm((f)=>({...f, email: e.target.value}))} 
-                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all" 
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all" 
                   placeholder="Correo" 
                 />
               </div>
               <div>
-                <label className="block text-gray-400 text-sm font-medium mb-1.5">Dirección</label>
+                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Dirección</label>
                 <textarea 
                   value={editForm.address} 
                   onChange={(e)=>setEditForm((f)=>({...f, address: e.target.value}))} 
-                  className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all min-h-[100px] resize-none" 
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all min-h-[100px] resize-none" 
                   placeholder="Dirección" 
                 />
               </div>
@@ -733,7 +733,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                 <button 
                   type="button" 
                   onClick={() => setEditClient(null)} 
-                  className="px-4 py-2 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-medium transition-colors"
+                  className="px-4 py-2 rounded-xl bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-white font-medium transition-colors"
                 >
                   Cancelar
                 </button>

@@ -139,7 +139,7 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
     setEditingPlan(prev => prev ? ({ ...prev, [field]: value }) : null);
   };
 
-  if (loading) return <div className="p-8 text-center text-white">Cargando planes...</div>;
+  if (loading) return <div className="p-8 text-center text-gray-700 dark:text-white">Cargando planes...</div>;
 
   return (
     <div className="space-y-10 relative animate-fade-in">
@@ -153,8 +153,8 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
               className={`
                 relative flex flex-col p-8 rounded-2xl border transition-all duration-300 group
                 ${isPopular 
-                  ? 'bg-gradient-to-b from-gray-800/80 to-gray-900/80 border-emerald-500/50 shadow-2xl shadow-emerald-900/20 transform md:-translate-y-4' 
-                  : 'bg-gray-900/40 border-gray-800 hover:border-gray-700 hover:bg-gray-900/60'
+                  ? 'bg-gradient-to-b from-emerald-50 to-white border-emerald-200 shadow-xl md:-translate-y-2 dark:from-gray-800/80 dark:to-gray-900/80 dark:border-emerald-500/50 dark:shadow-2xl dark:shadow-emerald-900/20 dark:md:-translate-y-4' 
+                  : 'bg-white border-gray-200 hover:border-gray-300 hover:shadow-md dark:bg-gray-900/40 dark:border-gray-800 dark:hover:border-gray-700 dark:hover:bg-gray-900/60'
                 }
               `}
             >
@@ -175,33 +175,33 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
               )}
               
               <div className="mb-6">
-                <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
-                <p className="text-gray-400 text-sm leading-relaxed min-h-[40px]">{plan.description}</p>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{plan.name}</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed min-h-[40px]">{plan.description}</p>
               </div>
               
               <div className="mb-8 flex items-baseline">
-                <span className="text-4xl font-bold text-white tracking-tight">{formatCurrency(plan.price)}</span>
-                <span className="text-gray-500 ml-2 text-sm font-medium">/mes</span>
+                <span className="text-4xl font-bold text-gray-900 dark:text-white tracking-tight">{formatCurrency(plan.price)}</span>
+                <span className="text-gray-500 dark:text-gray-400 ml-2 text-sm font-medium">/mes</span>
               </div>
               
               <div className="space-y-4 mb-8 flex-1">
                 {/* Limits Section */}
-                <div className="space-y-3 pb-6 border-b border-gray-800/50">
+                <div className="space-y-3 pb-6 border-b border-gray-200 dark:border-gray-800/50">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Usuarios</span>
-                    <span className="font-semibold text-white">{plan.max_users === -1 ? 'Ilimitados' : plan.max_users}</span>
+                    <span className="text-gray-500 dark:text-gray-400">Usuarios</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{plan.max_users === -1 ? 'Ilimitados' : plan.max_users}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Productos</span>
-                    <span className="font-semibold text-white">{plan.max_products === -1 ? 'Ilimitados' : plan.max_products}</span>
+                    <span className="text-gray-500 dark:text-gray-400">Productos</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{plan.max_products === -1 ? 'Ilimitados' : plan.max_products}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Categorías</span>
-                    <span className="font-semibold text-white">{plan.max_categories === -1 ? 'Ilimitadas' : plan.max_categories}</span>
+                    <span className="text-gray-500 dark:text-gray-400">Categorías</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{plan.max_categories === -1 ? 'Ilimitadas' : plan.max_categories}</span>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-400">Transacciones</span>
-                    <span className="font-semibold text-white">{plan.max_transactions_per_month === -1 ? 'Ilimitadas' : plan.max_transactions_per_month}/mes</span>
+                    <span className="text-gray-500 dark:text-gray-400">Transacciones</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{plan.max_transactions_per_month === -1 ? 'Ilimitadas' : plan.max_transactions_per_month}/mes</span>
                   </div>
                 </div>
                 
@@ -219,10 +219,10 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
                       { key: 'enable_electronic_invoicing', label: 'Facturación Electrónica' },
                     ].map((feature) => (
                       <div key={feature.key} className="flex items-start gap-3 text-sm group/item">
-                        <div className={`mt-0.5 p-0.5 rounded-full ${plan[feature.key as keyof Plan] ? 'text-emerald-400 bg-emerald-500/10' : 'text-gray-600 bg-gray-800'}`}>
+                        <div className={`mt-0.5 p-0.5 rounded-full ${plan[feature.key as keyof Plan] ? 'text-emerald-500 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-500/10' : 'text-gray-400 bg-gray-100 dark:text-gray-600 dark:bg-gray-800'}`}>
                           {plan[feature.key as keyof Plan] ? <Check size={12} strokeWidth={3} /> : <X size={12} strokeWidth={3} />}
                         </div>
-                        <span className={`${plan[feature.key as keyof Plan] ? 'text-gray-300' : 'text-gray-600 line-through'}`}>
+                        <span className={`${plan[feature.key as keyof Plan] ? 'text-gray-700 dark:text-gray-300' : 'text-gray-400 dark:text-gray-600 line-through'}`}>
                           {feature.label}
                         </span>
                       </div>
@@ -234,7 +234,7 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
                 w-full py-3.5 rounded-xl font-semibold text-sm transition-all duration-200 shadow-lg
                 ${isPopular 
                   ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white shadow-emerald-900/20' 
-                  : 'bg-gray-800 hover:bg-gray-700 text-white hover:text-white border border-gray-700'
+                  : 'bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 hover:text-gray-900 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-white dark:border-gray-700'
                 }
               `}>
                 Seleccionar Plan
@@ -245,14 +245,14 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
       </div>
 
       {/* Assignment Section */}
-      <div className="pt-8 border-t border-gray-800">
-        <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+      <div className="pt-8 border-t border-gray-200 dark:border-gray-800">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
           <span className="w-1 h-6 bg-emerald-500 rounded-full"></span>
           Asignación de Planes
         </h3>
-        <div className="bg-gray-900/40 rounded-2xl overflow-hidden border border-gray-800 shadow-xl">
-          <table className="w-full text-left text-gray-300">
-            <thead className="bg-gray-900 text-gray-400">
+        <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm dark:bg-gray-900/40 dark:border-gray-800 dark:shadow-xl">
+          <table className="w-full text-left text-gray-700 dark:text-gray-300">
+            <thead className="bg-gray-50 text-gray-500 dark:bg-gray-900 dark:text-gray-400">
               <tr>
                 <th className="p-4">Administrador</th>
                 <th className="p-4">Email</th>
@@ -261,31 +261,31 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
                 <th className="p-4">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-700">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {tenants.map(tenant => (
-                <tr key={tenant.id} className="hover:bg-gray-750">
-                  <td className="p-4 font-medium text-white">{tenant.username}</td>
+                <tr key={tenant.id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <td className="p-4 font-medium text-gray-900 dark:text-white">{tenant.username}</td>
                   <td className="p-4">{tenant.email}</td>
                   <td className="p-4">
-                  <div className="flex flex-col space-y-1 text-xs text-gray-400">
-                    <div><span className="text-white font-medium">{tenant.clients_count || 0}</span> Clientes</div>
-                    <div><span className="text-white font-medium">{tenant.sales_count || 0}</span> Ventas</div>
-                    <div><span className="text-white font-medium">{tenant.products_count || 0}</span> Productos</div>
+                  <div className="flex flex-col space-y-1 text-xs text-gray-500 dark:text-gray-400">
+                    <div><span className="text-gray-900 dark:text-white font-medium">{tenant.clients_count || 0}</span> Clientes</div>
+                    <div><span className="text-gray-900 dark:text-white font-medium">{tenant.sales_count || 0}</span> Ventas</div>
+                    <div><span className="text-gray-900 dark:text-white font-medium">{tenant.products_count || 0}</span> Productos</div>
                   </div>
                 </td>
                 <td className="p-4">
                   <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                    !tenant.plan_name ? 'bg-gray-700 text-gray-400' :
-                    tenant.plan_name.includes('Básico') ? 'bg-blue-900 text-blue-300' :
-                    tenant.plan_name.includes('Medio') ? 'bg-purple-900 text-purple-300' :
-                    'bg-green-900 text-green-300'
+                    !tenant.plan_name ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400' :
+                    tenant.plan_name.includes('Básico') ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                    tenant.plan_name.includes('Medio') ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' :
+                    'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
                   }`}>
                     {tenant.plan_name || 'Sin Plan'}
                   </span>
                 </td>
                 <td className="p-4">
                   <select 
-                    className="bg-gray-700 border-none rounded text-sm text-white focus:ring-2 focus:ring-blue-500"
+                    className="bg-white border border-gray-300 rounded text-sm text-gray-800 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-none dark:text-white"
                     value={tenant.plan_id || ''}
                     onChange={(e) => handleAssign(tenant.admin_id, e.target.value)}
                     disabled={assigning}
@@ -300,7 +300,7 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
               ))}
               {tenants.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="p-8 text-center text-gray-500">No hay administradores registrados</td>
+                  <td colSpan={5} className="p-8 text-center text-gray-500 dark:text-gray-500">No hay administradores registrados</td>
                 </tr>
               )}
             </tbody>
@@ -311,10 +311,10 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
       {/* Edit Modal */}
       {editingPlan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-gray-800 rounded-xl border border-gray-700 shadow-2xl w-full max-w-lg overflow-hidden">
-            <div className="p-6 border-b border-gray-700 flex justify-between items-center bg-gray-900">
-              <h3 className="text-xl font-bold text-white">Editar {editingPlan.name}</h3>
-              <button onClick={() => setEditingPlan(null)} className="text-gray-400 hover:text-white">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-2xl w-full max-w-lg overflow-hidden">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Editar {editingPlan.name}</h3>
+              <button onClick={() => setEditingPlan(null)} className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
                 <X size={24} />
               </button>
             </div>
@@ -322,165 +322,165 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
             <form onSubmit={handleUpdatePlan} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Nombre</label>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre</label>
                   <input 
                     type="text" 
                     value={editingPlan.name} 
                     onChange={(e) => handleEditChange('name', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full bg-white border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Precio ($)</label>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Precio ($)</label>
                   <input 
                     type="number" 
                     step="0.01"
                     value={editingPlan.price} 
                     onChange={(e) => handleEditChange('price', e.target.value)}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full bg-white border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-1">Descripción</label>
+                <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción</label>
                 <textarea 
                   value={editingPlan.description} 
                   onChange={(e) => handleEditChange('description', e.target.value)}
-                  className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none h-20 resize-none"
+                  className="w-full bg-white border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none h-20 resize-none dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Máx. Usuarios (-1 ilim.)</label>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Máx. Usuarios (-1 ilim.)</label>
                   <input 
                     type="number" 
                     value={editingPlan.max_users} 
                     onChange={(e) => handleEditChange('max_users', parseInt(e.target.value))}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full bg-white border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Máx. Transacciones (-1 ilim.)</label>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Máx. Transacciones (-1 ilim.)</label>
                   <input 
                     type="number" 
                     value={editingPlan.max_transactions_per_month} 
                     onChange={(e) => handleEditChange('max_transactions_per_month', parseInt(e.target.value))}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full bg-white border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Máx. Productos (-1 ilim.)</label>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Máx. Productos (-1 ilim.)</label>
                   <input 
                     type="number" 
                     value={editingPlan.max_products} 
                     onChange={(e) => handleEditChange('max_products', parseInt(e.target.value))}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full bg-white border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">Máx. Categorías (-1 ilim.)</label>
+                  <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Máx. Categorías (-1 ilim.)</label>
                   <input 
                     type="number" 
                     value={editingPlan.max_categories} 
                     onChange={(e) => handleEditChange('max_categories', parseInt(e.target.value))}
-                    className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full bg-white border border-gray-300 rounded px-3 py-2 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   />
                 </div>
               </div>
 
-              <div className="space-y-3 pt-4 border-t border-gray-700">
-                <h4 className="font-medium text-white">Funcionalidades</h4>
+              <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h4 className="font-medium text-gray-900 dark:text-white">Funcionalidades</h4>
                 
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-700 cursor-pointer">
+                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                   <input 
                     type="checkbox" 
                     checked={editingPlan.enable_user_management} 
                     onChange={(e) => handleEditChange('enable_user_management', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700"
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <span className="text-gray-300">Habilitar Gestión de Usuarios</span>
+                  <span className="text-gray-700 dark:text-gray-300">Habilitar Gestión de Usuarios</span>
                 </label>
                 
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-700 cursor-pointer">
+                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                   <input 
                     type="checkbox" 
                     checked={editingPlan.enable_web_store} 
                     onChange={(e) => handleEditChange('enable_web_store', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700"
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <span className="text-gray-300">Habilitar Tienda Virtual</span>
+                  <span className="text-gray-700 dark:text-gray-300">Habilitar Tienda Virtual</span>
                 </label>
                 
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-700 cursor-pointer">
+                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                   <input 
                     type="checkbox" 
                     checked={editingPlan.enable_inventory_management} 
                     onChange={(e) => handleEditChange('enable_inventory_management', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700"
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <span className="text-gray-300">Habilitar Inventario Avanzado</span>
+                  <span className="text-gray-700 dark:text-gray-300">Habilitar Inventario Avanzado</span>
                 </label>
                 
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-700 cursor-pointer">
+                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                   <input 
                     type="checkbox" 
                     checked={editingPlan.enable_marketing_tools} 
                     onChange={(e) => handleEditChange('enable_marketing_tools', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700"
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <span className="text-gray-300">Habilitar Herramientas de Marketing</span>
+                  <span className="text-gray-700 dark:text-gray-300">Habilitar Herramientas de Marketing</span>
                 </label>
                 
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-700 cursor-pointer">
+                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                   <input 
                     type="checkbox" 
                     checked={editingPlan.enable_advanced_sales_analysis} 
                     onChange={(e) => handleEditChange('enable_advanced_sales_analysis', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700"
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <span className="text-gray-300">Habilitar Análisis Avanzado</span>
+                  <span className="text-gray-700 dark:text-gray-300">Habilitar Análisis Avanzado</span>
                 </label>
 
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-700 cursor-pointer">
+                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                   <input 
                     type="checkbox" 
                     checked={editingPlan.enable_supplier_management} 
                     onChange={(e) => handleEditChange('enable_supplier_management', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700"
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <span className="text-gray-300">Habilitar Gestión de Proveedores</span>
+                  <span className="text-gray-700 dark:text-gray-300">Habilitar Gestión de Proveedores</span>
                 </label>
 
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-700 cursor-pointer">
+                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                   <input 
                     type="checkbox" 
                     checked={editingPlan.enable_daily_backups} 
                     onChange={(e) => handleEditChange('enable_daily_backups', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700"
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <span className="text-gray-300">Habilitar Copias de Seguridad</span>
+                  <span className="text-gray-700 dark:text-gray-300">Habilitar Copias de Seguridad</span>
                 </label>
 
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-700 cursor-pointer">
+                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                   <input 
                     type="checkbox" 
                     checked={editingPlan.enable_whatsapp_notifications} 
                     onChange={(e) => handleEditChange('enable_whatsapp_notifications', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700"
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <span className="text-gray-300">Habilitar Notificaciones WhatsApp</span>
+                  <span className="text-gray-700 dark:text-gray-300">Habilitar Notificaciones WhatsApp</span>
                 </label>
 
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-700 cursor-pointer">
+                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
                   <input 
                     type="checkbox" 
                     checked={editingPlan.enable_electronic_invoicing} 
                     onChange={(e) => handleEditChange('enable_electronic_invoicing', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-600 text-blue-600 focus:ring-blue-500 bg-gray-700"
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
                   />
-                  <span className="text-gray-300">Habilitar Facturación Electrónica</span>
+                  <span className="text-gray-700 dark:text-gray-300">Habilitar Facturación Electrónica</span>
                 </label>
               </div>
 
@@ -488,7 +488,7 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
                 <button 
                   type="button"
                   onClick={() => setEditingPlan(null)}
-                  className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-white font-medium"
+                  className="px-4 py-2 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600 dark:text-white"
                 >
                   Cancelar
                 </button>
