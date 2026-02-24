@@ -6,7 +6,7 @@
   "author": "example.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/example/assent-dashboard.git"
+    "url": "https://github.com/miguelnexs/panel-control.git"
   },
   "homepage": "https://electron-vite.org",
   "scripts": {
@@ -46,6 +46,7 @@
     "chart.js": "^4.4.9",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "electron-log": "^5.4.3",
     "electron-store": "^10.1.0",
     "electron-updater": "^6.3.9",
     "form-data": "^4.0.3",
@@ -124,7 +125,15 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Assent Dashboard"
-    }
+      "shortcutName": "Assent Dashboard",
+      "deleteAppDataOnUninstall": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "miguelnexs",
+        "repo": "panel-control"
+      }
+    ]
   }
 }

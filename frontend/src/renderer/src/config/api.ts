@@ -1,7 +1,7 @@
 // Configuración de API
 export const API_CONFIG = {
   // Para desarrollo local
-  baseURL: 'http://localhost:8000',
+  baseURL: 'https://softwarebycg.shop',
 
   // Para producción (descomentar y comentar la de arriba)
   
