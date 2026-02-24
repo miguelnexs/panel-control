@@ -229,11 +229,22 @@ function createWindow(): BrowserWindow {
     mainWindow.loadFile(htmlPath);
   }
 
+  // Wait for window to be ready
   mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
-    // Check for updates after window is ready
-    if (!isDev) {
-      autoUpdater.checkForUpdatesAndNotify();
+    if (mainWindow) {
+      // Use a small timeout to allow UI to render first
+    setTimeout(() => {
+        mainWindow?.show();
+    }, 100);
+      // Check for updates after window is visible
+      if (!isDev) {
+        // Delay update check to ensure UI is responsive first
+        setTimeout(() => {
+          autoUpdater.checkForUpdatesAndNotify().catch(err => {
+            console.error('Error checking for updates:', err);
+          });
+        }, 3000);
+      }
     }
   });
 
