@@ -388,10 +388,17 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
   const loadClients = async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${apiBase}/clients/?page_size=100`, { headers: authHeaders(token) });
+      // Use direct headers to match ClientsPage behavior (no Content-Type for GET)
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`${apiBase}/clients/?page_size=1000`, { headers });
       const data = await res.json();
-      if (res.ok && Array.isArray(data.results)) {
-        setClients(data.results);
+      
+      if (res.ok) {
+        // Robust handling for paginated vs flat response
+        const results = Array.isArray(data.results) ? data.results : Array.isArray(data) ? data : [];
+        setClients(results);
       }
     } catch (error) {
       console.error("Error loading clients:", error);

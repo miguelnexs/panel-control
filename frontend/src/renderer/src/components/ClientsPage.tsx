@@ -690,7 +690,26 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
               </button>
             </div>
             
-            <form onSubmit={async (e) => { e.preventDefault(); try { const res = await fetch(`${apiBase}/clients/${editClient.id}/`, { method: 'PATCH', headers: { ...authHeaders(token), 'Content-Type': 'application/json' }, body: JSON.stringify(editForm) }); if (res.ok) { setEditClient(null); loadClients(); } } catch(_){} }} className="p-6 space-y-4">
+            <form onSubmit={async (e) => { 
+              e.preventDefault(); 
+              try { 
+                const fd = new FormData();
+                fd.append('full_name', editForm.full_name);
+                fd.append('cedula', editForm.cedula);
+                fd.append('email', editForm.email);
+                fd.append('address', editForm.address);
+
+                const res = await fetch(`${apiBase}/clients/${editClient.id}/`, { 
+                  method: 'PATCH', 
+                  headers: authHeaders(token), 
+                  body: fd 
+                }); 
+                if (res.ok) { 
+                  setEditClient(null); 
+                  loadClients(); 
+                } 
+              } catch(_){} 
+            }} className="p-6 space-y-4">
               <div>
                 <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Nombre Completo</label>
                 <input 

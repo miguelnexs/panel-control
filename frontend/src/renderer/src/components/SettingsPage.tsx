@@ -156,11 +156,11 @@ const SettingsPage: React.FC<SettingsPageProps> = ({ token, apiBase }) => {
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-xs text-gray-300">Teléfono</span>
-            <input name="company_phone" value={settings.company_phone} onChange={handleChange} className="px-3 py-2 rounded bg-gray-700 text-white border border-gray-600" placeholder="3001234567" />
+            <input name="company_phone" value={settings.company_phone} onChange={handleChange} className="px-3 py-2 rounded bg-gray-700 text-white border border-gray-600" placeholder="3018645967" />
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-xs text-gray-300">WhatsApp</span>
-            <input name="company_whatsapp" value={settings.company_whatsapp} onChange={handleChange} className="px-3 py-2 rounded bg-gray-700 text-white border border-gray-600" placeholder="3001234567" />
+            <input name="company_whatsapp" value={settings.company_whatsapp} onChange={handleChange} className="px-3 py-2 rounded bg-gray-700 text-white border border-gray-600" placeholder="3018645967" />
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-xs text-gray-300">Correo</span>

@@ -101,7 +101,7 @@ const ShopPage = () => {
     addToCart({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: product.is_sale && product.sale_price ? product.sale_price : product.price,
       image: product.image,
       quantity: 1
     });
@@ -180,7 +180,7 @@ const ShopPage = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
-      <main className="flex-grow pt-24 pb-16">
+      <main className="flex-grow pt-16 md:pt-24 pb-16">
         <div className="container mx-auto px-4">
           
           {/* Header de la Tienda */}

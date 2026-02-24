@@ -52,6 +52,17 @@ const ProductDetailPage = () => {
     }
   }, [product, isLoading, id, slug, navigate]);
 
+  // Calcular stock disponible
+  const stock = product ? (selectedColor && product.colors ? (product.colors.find((c: any) => c.id === selectedColor)?.stock || 0) : (product.total_stock || 0)) : 0;
+  const isAvailable = stock > 0;
+
+  // Actualizar cantidad cuando cambia el stock (selección de color o carga inicial)
+  useEffect(() => {
+    if (stock > 0) {
+      setQuantity(1);
+    }
+  }, [stock]);
+
   const handleAddToCart = () => {
     if (!product) return;
 
@@ -100,7 +111,7 @@ const ProductDetailPage = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Header />
-        <main className="flex-grow flex items-center justify-center pt-20">
+        <main className="flex-grow flex items-center justify-center pt-16 md:pt-24">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </main>
         <Footer />
@@ -112,7 +123,7 @@ const ProductDetailPage = () => {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Header />
-        <main className="flex-grow flex flex-col items-center justify-center pt-20 px-4 text-center">
+        <main className="flex-grow flex flex-col items-center justify-center pt-16 md:pt-24 px-4 text-center">
           <h1 className="text-2xl font-bold mb-4">Producto no encontrado</h1>
           <p className="text-muted-foreground mb-8">El producto que buscas no existe o no está disponible.</p>
           <Button asChild>
@@ -157,13 +168,10 @@ const ProductDetailPage = () => {
     }
   }
 
-  const stock = product.total_stock;
-  const isAvailable = stock > 0;
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="pt-24 pb-16">
+      <main className="pt-16 md:pt-24 pb-16">
         <div className="container mx-auto px-4">
           {/* Breadcrumb */}
           <div className="flex items-center text-sm text-muted-foreground mb-8">

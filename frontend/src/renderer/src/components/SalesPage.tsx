@@ -684,7 +684,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                     value={clientForm.phone} 
                     onChange={(e) => setClientForm((f) => ({ ...f, phone: e.target.value }))} 
                     className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                    placeholder="Ej. 3001234567"
+                    placeholder="Ej. 3018645967"
                   />
                 </div>
               </div>

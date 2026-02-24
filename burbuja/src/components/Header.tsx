@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, Monitor, Phone } from "lucide-react";
+import { Menu, X, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CartSheet } from "./CartSheet";
 
@@ -17,15 +17,14 @@ const Header = () => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-navy/95 backdrop-blur-md border-b border-secondary/30">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 md:h-20">
+        <div className="flex items-center justify-between h-16 md:h-24">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-lg bg-accent-gradient flex items-center justify-center shadow-glow">
-              <Monitor className="w-6 h-6 text-navy" />
-            </div>
-            <span className="font-heading font-bold text-xl text-navy-foreground">
-              Tech<span className="text-highlight">Store</span>
-            </span>
+            <img 
+              src="/logo.png" 
+              alt="La Burbuja Tecnológica Logo" 
+              className="h-16 md:h-24 w-auto object-contain transition-transform duration-300 group-hover:scale-105" 
+            />
           </Link>
 
           {/* Desktop Navigation */}
@@ -44,11 +43,11 @@ const Header = () => {
           {/* Actions */}
           <div className="hidden md:flex items-center gap-4">
             <CartSheet />
-            <a href="tel:+573001234567" className="flex items-center gap-2 text-highlight font-medium">
+            <a href="tel:+573018645967" className="flex items-center gap-2 text-highlight font-medium">
               <Phone className="w-4 h-4" />
-              <span className="text-sm">+57 300 123 4567</span>
+              <span className="text-sm">+57 301 864 5967</span>
             </a>
-            <Button variant="cta" size="sm">
+            <Button variant="cta" size="sm" onClick={() => window.open('https://wa.me/573018645967', '_blank')}>
               Cotizar Ahora
             </Button>
           </div>

@@ -26,8 +26,8 @@ const Contact = () => {
     {
       icon: MessageCircle,
       label: "WhatsApp",
-      value: "+57 300 123 4567",
-      href: "https://wa.me/573001234567",
+      value: "+57 301 864 5967",
+      href: "https://wa.me/573018645967",
       color: "hover:text-green-500",
     },
     {

@@ -1,5 +1,6 @@
 import { Wrench, Monitor, Laptop, Wifi, HardDrive, Settings, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const services = [
   {
@@ -93,9 +94,11 @@ const Services = () => {
 
         {/* CTA */}
         <div className="text-center mt-12">
-          <Button variant="cta" size="lg">
-            Solicitar Servicio
-            <ArrowRight className="w-5 h-5 ml-2" />
+          <Button variant="cta" size="lg" asChild>
+            <Link to="/support">
+              Solicitar Servicio
+              <ArrowRight className="w-5 h-5 ml-2" />
+            </Link>
           </Button>
         </div>
       </div>

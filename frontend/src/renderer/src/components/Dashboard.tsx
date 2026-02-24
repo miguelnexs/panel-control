@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { API_BASE_URL } from '../config/api.config';
 import DashboardView from './dashboard/DashboardView';
 import Sidebar from './dashboard/Sidebar';
 import UsersManager from './dashboard/UsersManager';
@@ -24,10 +23,10 @@ interface DashboardProps {
   role: string;
   userId: number;
   onSignOut: () => void;
+  apiBase: string;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut }) => {
-  const apiBase = API_BASE_URL;
+const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, apiBase }) => {
   const [view, setView] = useState('dashboard');
   const [orderNotif, setOrderNotif] = useState(0);
   const [navLoading, setNavLoading] = useState(false);

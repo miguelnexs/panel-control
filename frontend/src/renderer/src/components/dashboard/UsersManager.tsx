@@ -792,7 +792,7 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
                   value={editForm.phone}
                   onChange={handleEditChange}
                   className="w-full px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-                  placeholder="300 123 4567"
+                  placeholder="301 864 5967"
                 />
               </div>
 

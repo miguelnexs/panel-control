@@ -25,7 +25,7 @@ const Pricing = () => {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+  const API_BASE = "https://softwarebycg.shop";
 
   useEffect(() => {
       const token = localStorage.getItem("token");

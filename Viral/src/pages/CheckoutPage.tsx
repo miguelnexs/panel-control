@@ -20,11 +20,9 @@ const CheckoutPage = () => {
   const [pickupEnabled, setPickupEnabled] = useState(true);
   const [formData, setFormData] = useState({
     fullName: '',
-    phone: '',
+    cedula: '',
     email: '',
     address: '',
-    city: '',
-    postalCode: '',
     deliveryNotes: '',
     cardNumber: '',
     expiryDate: '',
@@ -86,8 +84,8 @@ const CheckoutPage = () => {
     switch (name) {
       case 'email':
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? '' : 'Email inválido';
-      case 'phone':
-        return /^[0-9]{10,}$/.test(value.replace(/\s/g, '')) ? '' : 'Teléfono inválido';
+      case 'cedula':
+        return /^[0-9]{6,12}$/.test(value) ? '' : 'Cédula inválida (6-12 dígitos)';
       default:
         return value.trim() ? '' : 'Campo requerido';
     }
@@ -127,104 +125,6 @@ const CheckoutPage = () => {
             {/* Columna Principal - Formulario */}
             <div className="lg:col-span-2 space-y-6">
               
-              {/* Método de Pago - Diseño claro */}
-              <div className="bg-white p-6 sm:p-8 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
-                  <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-gray-900">
-                      <CreditCard className="w-5 h-5 text-blue-600" />
-                      Medios de pago
-                  </h2>
-                  
-                  {mpPublicKey ? (
-                    <div className="mercadopago-container">
-                      <Payment
-                        initialization={{ amount: total }}
-                        onSubmit={async (param) => {
-                          // Validar que los datos de contacto estén completos antes de procesar
-                          const requiredFields = ['fullName', 'phone', 'email'];
-                          if (deliveryMethod === 'home') {
-                            requiredFields.push('address', 'city', 'postalCode');
-                          }
-                          
-                          const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData]);
-                          
-                          if (missingFields.length > 0) {
-                             // Scroll to contact form
-                             const contactForm = document.getElementById('contact-info');
-                             if (contactForm) contactForm.scrollIntoView({ behavior: 'smooth' });
-                             
-                             alert('Por favor completa tu información de contacto y entrega antes de realizar el pago.');
-                             return Promise.reject(); // Detener proceso de pago
-                          }
-
-                          try {
-                            setIsProcessing(true);
-                            // Construir URL con parámetros públicos (site/aid)
-                            const queryParams = getPublicParams().replace('?', '&');
-                            const url = buildApiUrl('sales/public/payment/') + '?' + queryParams;
-                            
-                            const payload = {
-                                items: items.map(i => ({
-                                    name: i.title, // Note: Burbuja uses 'title' in products but 'name' in cart items? Check CartItem interface
-                                    quantity: i.quantity,
-                                    price: i.price
-                                })),
-                                total_amount: total,
-                                customer: formData,
-                                payment_data: param,
-                                site: getPublicParams().includes('site=') ? getPublicParams().split('site=')[1].split('&')[0] : undefined
-                            };
-                            
-                            const response = await fetch(url, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify(payload)
-                            });
-                            
-                            const data = await response.json();
-                            
-                            if (response.ok && (data.status === 'approved' || data.status === 'in_process')) {
-                                alert(`¡Pago ${data.status === 'approved' ? 'aprobado' : 'en proceso'}! ID: ${data.id}`);
-                                // Aquí se podría redirigir a una página de éxito
-                            } else {
-                                alert('Error en el pago: ' + (data.detail || data.error || 'Desconocido'));
-                                console.error('Payment Error:', data);
-                            }
-                          } catch (error) {
-                              console.error('Connection Error:', error);
-                              alert('Error de conexión al procesar el pago');
-                          } finally {
-                              setIsProcessing(false);
-                          }
-                        }}
-                        customization={{
-                          paymentMethods: {
-                            ticket: ['efecty'],
-                            bankTransfer: ['pse'],
-                            creditCard: "all",
-                            debitCard: "all",
-                            mercadoPago: "all",
-                            maxInstallments: 12,
-                            minInstallments: 1
-                          },
-                          visual: {
-                              style: {
-                                  theme: 'default', // Tema claro
-                              }
-                          }
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <div className="text-center p-8 text-gray-500">Cargando pasarela de pagos...</div>
-                  )}
-                  
-                  <p className="text-center text-xs text-gray-500 mt-6">
-                      Al completar la compra, aceptas nuestros términos y condiciones.
-                  </p>
-              </div>
-
               {/* Información de Contacto */}
               <Card id="contact-info">
                 <CardHeader>
@@ -237,7 +137,7 @@ const CheckoutPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Input 
-                        placeholder="Nombre completo" 
+                        placeholder="Ej. Juan Pérez" 
                         value={formData.fullName}
                         onChange={(e) => handleInputChange('fullName', e.target.value)}
                         className={errors.fullName ? 'border-red-500' : ''}
@@ -248,20 +148,20 @@ const CheckoutPage = () => {
                     
                     <div className="space-y-2">
                       <Input 
-                        placeholder="Teléfono" 
-                        type="tel" 
-                        value={formData.phone}
-                        onChange={(e) => handleInputChange('phone', e.target.value)}
-                        className={errors.phone ? 'border-red-500' : ''}
+                        placeholder="Ej. 12345678" 
+                        type="text" 
+                        value={formData.cedula}
+                        onChange={(e) => handleInputChange('cedula', e.target.value)}
+                        className={errors.cedula ? 'border-red-500' : ''}
                         required 
                       />
-                      {errors.phone && <p className="text-red-500 text-xs">{errors.phone}</p>}
+                      {errors.cedula && <p className="text-red-500 text-xs">{errors.cedula}</p>}
                     </div>
                   </div>
                   
                   <div className="space-y-2">
                     <Input 
-                      placeholder="Correo electrónico" 
+                      placeholder="juan@ejemplo.com" 
                       type="email" 
                       value={formData.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
@@ -269,6 +169,16 @@ const CheckoutPage = () => {
                       required 
                     />
                     {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Textarea 
+                      placeholder="Dirección completa" 
+                      value={formData.address}
+                      onChange={(e) => handleInputChange('address', e.target.value)}
+                      required 
+                      className="min-h-[100px]"
+                    />
                   </div>
                 </CardContent>
               </Card>
@@ -318,30 +228,6 @@ const CheckoutPage = () => {
 
                   {deliveryMethod === 'home' && (
                     <div className="mt-6 space-y-4 pl-8 border-l-2 border-blue-100 animate-in fade-in slide-in-from-top-2">
-                      <div className="flex items-center gap-2 text-sm font-medium text-blue-800">
-                        <MapPin className="w-4 h-4" />
-                        Dirección de entrega
-                      </div>
-                      <Input 
-                        placeholder="Dirección completa" 
-                        value={formData.address}
-                        onChange={(e) => handleInputChange('address', e.target.value)}
-                        required 
-                      />
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input 
-                          placeholder="Ciudad" 
-                          value={formData.city}
-                          onChange={(e) => handleInputChange('city', e.target.value)}
-                          required 
-                        />
-                        <Input 
-                          placeholder="Código postal" 
-                          value={formData.postalCode}
-                          onChange={(e) => handleInputChange('postalCode', e.target.value)}
-                          required 
-                        />
-                      </div>
                       <Textarea 
                         placeholder="Instrucciones de entrega (opcional)" 
                         value={formData.deliveryNotes}
@@ -351,6 +237,103 @@ const CheckoutPage = () => {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Método de Pago - Diseño claro */}
+              <div className="bg-white p-6 sm:p-8 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
+                  <h2 className="text-xl font-bold mb-6 flex items-center gap-2 text-gray-900">
+                      <CreditCard className="w-5 h-5 text-blue-600" />
+                      Medios de pago
+                  </h2>
+                  
+                  {mpPublicKey ? (
+                    <div className="mercadopago-container">
+                      <Payment
+                        initialization={{ amount: total }}
+                        onSubmit={async (param) => {
+                          // Validar que los datos de contacto estén completos antes de procesar
+                          const requiredFields = ['fullName', 'cedula', 'email', 'address'];
+                          
+                          const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData]);
+                          
+                          if (missingFields.length > 0) {
+                             // Scroll to contact form
+                             const contactForm = document.getElementById('contact-info');
+                             if (contactForm) contactForm.scrollIntoView({ behavior: 'smooth' });
+                             
+                             alert('Por favor completa tu información de contacto y entrega antes de realizar el pago.');
+                             return Promise.reject(); // Detener proceso de pago
+                          }
+
+                          try {
+                            setIsProcessing(true);
+                            // Construir URL con parámetros públicos (site/aid)
+                            const queryParams = getPublicParams().replace('?', '&');
+                            const url = buildApiUrl('sales/public/payment/') + '?' + queryParams;
+                            
+                            const payload = {
+                                items: items.map(i => ({
+                                    name: i.title, // Note: Burbuja uses 'title' in products but 'name' in cart items? Check CartItem interface
+                                    quantity: i.quantity,
+                                    price: i.price
+                                })),
+                                total_amount: total,
+                                customer: {
+                                    ...formData,
+                                    full_name: formData.fullName
+                                },
+                                payment_data: param,
+                                site: getPublicParams().includes('site=') ? getPublicParams().split('site=')[1].split('&')[0] : undefined
+                            };
+                            
+                            const response = await fetch(url, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(payload)
+                            });
+                            
+                            const data = await response.json();
+                            
+                            if (response.ok && (data.status === 'approved' || data.status === 'in_process')) {
+                                alert(`¡Pago ${data.status === 'approved' ? 'aprobado' : 'en proceso'}! ID: ${data.id}`);
+                                // Aquí se podría redirigir a una página de éxito
+                            } else {
+                                alert('Error en el pago: ' + (data.detail || data.error || 'Desconocido'));
+                                console.error('Payment Error:', data);
+                            }
+                          } catch (error) {
+                              console.error('Connection Error:', error);
+                              alert('Error de conexión al procesar el pago');
+                          } finally {
+                              setIsProcessing(false);
+                          }
+                        }}
+                        customization={{
+                          paymentMethods: {
+                            ticket: ['efecty'],
+                            bankTransfer: ['pse'],
+                            creditCard: "all",
+                            debitCard: "all",
+                            maxInstallments: 12,
+                            minInstallments: 1
+                          },
+                          visual: {
+                              style: {
+                                  theme: 'default', // Tema claro
+                              }
+                          }
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-center p-8 text-gray-500">Cargando pasarela de pagos...</div>
+                  )}
+                  
+                  <p className="text-center text-xs text-gray-500 mt-6">
+                      Al completar la compra, aceptas nuestros términos y condiciones.
+                  </p>
+              </div>
             </div>
 
             {/* Resumen del Pedido - Sidebar */}

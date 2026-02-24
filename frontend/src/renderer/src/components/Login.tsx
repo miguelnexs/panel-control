@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
-import { API_BASE_URL } from '../config/api.config';
 import { 
   Briefcase, 
   TrendingUp, 
@@ -14,9 +13,10 @@ import logo from '../assets/logo.png';
 
 interface LoginProps {
   onLoginSuccess: (token: string, refresh: string | null, role: string | null, userId: string | number | null) => void;
+  apiBase: string;
 }
 
-const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
+const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,7 +28,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     setError(null);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/users/api/auth/login/`, {
+      const res = await fetch(`${apiBase}/users/api/auth/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -39,7 +39,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         throw new Error(data.detail || 'Credenciales inválidas');
       }
 
-      const meRes = await fetch(`${API_BASE_URL}/users/api/auth/me/`, {
+      const meRes = await fetch(`${apiBase}/users/api/auth/me/`, {
         headers: { Authorization: `Bearer ${data.access}` },
       });
       const meData = await meRes.json();
@@ -67,7 +67,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
       if (!token) throw new Error('No se recibió token');
 
-      const res = await fetch(`${API_BASE_URL}/users/api/auth/google/`, {
+      const res = await fetch(`${apiBase}/users/api/auth/google/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -79,7 +79,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
 
       if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión con Google');
 
-      const meRes = await fetch(`${API_BASE_URL}/users/api/auth/me/`, {
+      const meRes = await fetch(`${apiBase}/users/api/auth/me/`, {
         headers: { Authorization: `Bearer ${data.access}` },
       });
       const meData = await meRes.json();

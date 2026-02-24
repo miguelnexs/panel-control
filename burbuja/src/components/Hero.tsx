@@ -1,13 +1,14 @@
 import { ArrowRight, Shield, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 import heroImage from "@/assets/hero-tech.jpg";
 
 const Hero = () => {
   return (
-    <section id="inicio" className="relative min-h-screen bg-hero-gradient overflow-hidden pt-20">
+    <section id="inicio" className="relative min-h-screen bg-hero-gradient overflow-hidden pt-16 md:pt-24">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-accent/10 rounded-full blur-3xl animate-float" />
+        <div className="absolute top-16 md:top-24 left-10 w-72 h-72 bg-accent/10 rounded-full blur-3xl animate-float" />
         <div className="absolute bottom-20 right-10 w-96 h-96 bg-highlight/10 rounded-full blur-3xl animate-float" style={{ animationDelay: "2s" }} />
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl" />
         
@@ -16,7 +17,7 @@ const Hero = () => {
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
-        <div className="flex flex-col lg:flex-row items-center min-h-[calc(100vh-5rem)] gap-12 py-12">
+        <div className="flex flex-col lg:flex-row items-center min-h-[calc(100vh-4rem)] md:min-h-[calc(100vh-6rem)] gap-12 py-12">
           {/* Content */}
           <div className="flex-1 text-center lg:text-left animate-fade-in">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-accent/30 mb-6">
@@ -25,9 +26,9 @@ const Hero = () => {
             </div>
             
             <h1 className="font-heading font-bold text-4xl md:text-5xl lg:text-6xl xl:text-7xl text-navy-foreground leading-tight mb-6">
-              Soluciones Tech
+              La Burbuja
               <br />
-              <span className="text-gradient">Para Tu Negocio</span>
+              <span className="text-gradient">Tecnológica</span>
             </h1>
             
             <p className="text-lg md:text-xl text-navy-foreground/70 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
@@ -36,12 +37,16 @@ const Hero = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <Button variant="cta" size="lg" className="group">
-                Ver Productos
-                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+              <Button variant="cta" size="lg" className="group" asChild>
+                <Link to="/shop">
+                  Ver Productos
+                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </Button>
-              <Button variant="outline" size="lg" className="border-accent/50 text-navy hover:text-navy hover:bg-accent/10 hover:border-accent">
-                Solicitar Soporte
+              <Button variant="outline" size="lg" className="border-accent/50 text-navy hover:text-navy hover:bg-accent/10 hover:border-accent" asChild>
+                <Link to="/support">
+                  Solicitar Soporte
+                </Link>
               </Button>
             </div>
 

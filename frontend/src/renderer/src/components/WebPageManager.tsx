@@ -1052,7 +1052,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                       type="text" 
                       value={appSettings?.company_whatsapp || ''}
                       onChange={(e) => setAppSettings(prev => prev ? ({ ...prev, company_whatsapp: e.target.value }) : null)}
-                      placeholder="Ej: 573001234567"
+                      placeholder="Ej: 573018645967"
                       className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-green-500/50"
                     />
                   </div>

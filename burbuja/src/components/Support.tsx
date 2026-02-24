@@ -30,44 +30,51 @@ const Support = () => {
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          {/* Content */}
-          <div className="text-center lg:text-left">
-            <span className="inline-block px-4 py-2 rounded-full bg-highlight/10 text-highlight font-medium text-sm mb-4">
-              Soporte Técnico
-            </span>
-            <h2 className="font-heading font-bold text-3xl md:text-4xl lg:text-5xl text-navy-foreground mb-6">
-              ¿Necesitas <span className="text-gradient">Ayuda?</span>
-            </h2>
-            <p className="text-lg text-navy-foreground/70 mb-8 leading-relaxed">
-              Nuestro equipo de expertos está disponible para resolver cualquier problema técnico. 
-              Ofrecemos soporte remoto y presencial con tiempos de respuesta garantizados.
-            </p>
+          {/* Contact Information */}
+          <div className="space-y-12 animate-slide-up">
+            <div>
+              <h2 className="font-heading font-bold text-3xl text-navy-foreground mb-6">
+                Estamos Aquí para Ayudarte
+              </h2>
+              <p className="text-navy-foreground/70 text-lg mb-8 leading-relaxed">
+                ¿Tienes problemas con tu equipo? Nuestro equipo de expertos está listo para brindarte 
+                la mejor solución. Visítanos en nuestra tienda o contáctanos por nuestros canales digitales.
+              </p>
+            </div>
 
-            {/* Features */}
-            <div className="space-y-4 mb-8">
-              {supportFeatures.map((feature) => (
-                <div key={feature.title} className="flex items-center gap-4 text-left">
+            <div className="space-y-6">
+              {[
+                {
+                  icon: CheckCircle,
+                  title: "Ubicación",
+                  description: "Cra 6 # 16- 34, Centro Comercial Pasarela Local 58",
+                },
+                {
+                  icon: Phone,
+                  title: "Llámanos",
+                  description: "+57 301 864 5967",
+                },
+                {
+                  icon: Mail,
+                  title: "Correo Electrónico",
+                  description: "laburbujatecnologica@gmail.com",
+                },
+                {
+                  icon: Clock,
+                  title: "Horario de Atención",
+                  description: "Lunes a Sábado: 9:00 AM - 5:00 PM",
+                },
+              ].map((feature) => (
+                <div key={feature.title} className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center flex-shrink-0">
                     <feature.icon className="w-6 h-6 text-highlight" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-navy-foreground">{feature.title}</h4>
-                    <p className="text-sm text-navy-foreground/60">{feature.description}</p>
+                    <h4 className="font-semibold text-navy-foreground text-lg mb-1">{feature.title}</h4>
+                    <p className="text-navy-foreground/60">{feature.description}</p>
                   </div>
                 </div>
               ))}
-            </div>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <Button variant="cta" size="lg">
-                <MessageCircle className="w-5 h-5 mr-2" />
-                Chat en Vivo
-              </Button>
-              <Button variant="cta" size="lg">
-                <Phone className="w-5 h-5 mr-2" />
-                Llamar Ahora
-              </Button>
             </div>
           </div>
 

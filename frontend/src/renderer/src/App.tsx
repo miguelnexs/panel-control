@@ -3,6 +3,7 @@ import Dashboard from './components/Dashboard';
 import Login from './components/Login';
 import TitleBar from './components/TitleBar';
 import { API_BASE_URL, buildAuthHeaders } from './config/api.config';
+import { detectApiBase } from './config/api.runtime';
 
 interface Msg {
   type: 'success' | 'error';
@@ -27,7 +28,7 @@ const App = () => {
   const [refresh, setRefresh] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | number | null>(null);
 
-  const apiBase = API_BASE_URL;
+  const [apiBase, setApiBase] = useState<string>(API_BASE_URL);
   const authHeaders = buildAuthHeaders;
 
   // Removed auto-login from localStorage to force login screen on startup as requested
@@ -41,12 +42,11 @@ const App = () => {
   // }, []);
 
   useEffect(() => {
-    const ping = () => {
-      fetch(`${apiBase}/health/`).catch(() => {});
-    };
-    ping();
+    let mounted = true;
+    detectApiBase().then((b) => { if (mounted) setApiBase(b); }).catch(() => {});
+    const ping = () => { fetch(`${apiBase}/health/`).catch(() => {}); };
     const id = setInterval(ping, 5 * 60 * 1000);
-    return () => clearInterval(id);
+    return () => { mounted = false; clearInterval(id); };
   }, []);
 
   useEffect(() => {
@@ -104,9 +104,9 @@ const App = () => {
       <TitleBar />
       <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
         {token ? (
-          <Dashboard token={token} role={role!} userId={Number(userId)} onSignOut={handleSignOut} />
+          <Dashboard token={token} role={role!} userId={Number(userId)} onSignOut={handleSignOut} apiBase={apiBase} />
         ) : (
-          <Login onLoginSuccess={handleLoginSuccess} />
+          <Login onLoginSuccess={handleLoginSuccess} apiBase={apiBase} />
         )}
       </div>
     </div>

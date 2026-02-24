@@ -1,4 +1,4 @@
-import { Monitor, MapPin, Phone, Mail, Clock, Facebook, Instagram, Twitter, Youtube, CreditCard, ShieldCheck } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, Facebook, Instagram, Twitter, Youtube, CreditCard, ShieldCheck } from "lucide-react";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -11,28 +11,34 @@ const Footer = () => {
           {/* Brand */}
           <div>
             <a href="#" className="flex items-center gap-2 mb-6">
-              <div className="w-10 h-10 rounded-lg bg-accent-gradient flex items-center justify-center">
-                <Monitor className="w-6 h-6 text-navy" />
-              </div>
-              <span className="font-heading font-bold text-xl text-navy-foreground">
-                Tech<span className="text-highlight">Store</span>
-              </span>
+              <img 
+                src="/logo.png" 
+                alt="La Burbuja Tecnológica Logo" 
+                className="h-40 w-auto object-contain" 
+              />
             </a>
             <p className="text-navy-foreground/70 mb-6 leading-relaxed">
-              Tu aliado tecnológico de confianza. Más de 10 años brindando soluciones 
+              La Burbuja Tecnológica, tu aliado de confianza. Más de 10 años brindando soluciones 
               informáticas profesionales.
             </p>
             {/* Social Links */}
             <div className="flex gap-3">
-              {[Facebook, Instagram, Twitter, Youtube].map((Icon, index) => (
-                <a
-                  key={index}
-                  href="#"
-                  className="w-10 h-10 rounded-lg bg-secondary/50 flex items-center justify-center text-navy-foreground/70 hover:bg-accent hover:text-navy transition-all duration-300"
-                >
-                  <Icon className="w-5 h-5" />
-                </a>
-              ))}
+              <a
+                href="https://www.facebook.com/profile.php?id=100058813440797&locale"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-lg bg-secondary/50 flex items-center justify-center text-navy-foreground/70 hover:bg-accent hover:text-navy transition-all duration-300"
+              >
+                <Facebook className="w-5 h-5" />
+              </a>
+              <a
+                href="https://www.instagram.com/la_burbuja_tecnologica/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-10 h-10 rounded-lg bg-secondary/50 flex items-center justify-center text-navy-foreground/70 hover:bg-accent hover:text-navy transition-all duration-300"
+              >
+                <Instagram className="w-5 h-5" />
+              </a>
             </div>
           </div>
 
@@ -88,28 +94,23 @@ const Footer = () => {
             </h4>
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-highlight flex-shrink-0 mt-0.5" />
+                <MapPin className="w-5 h-5 text-highlight mt-1 flex-shrink-0" />
                 <span className="text-navy-foreground/70">
-                  Calle 123 #45-67, Centro Comercial Tech Plaza, Local 101
+                  Cra 6 # 16- 34<br />
+                  Centro Comercial Pasarela Local 58
                 </span>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="w-5 h-5 text-highlight flex-shrink-0" />
-                <a href="tel:+573001234567" className="text-navy-foreground/70 hover:text-highlight transition-colors">
-                  +57 300 123 4567
-                </a>
+                <span className="text-navy-foreground/70">+57 301 864 5967</span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-5 h-5 text-highlight flex-shrink-0" />
-                <a href="mailto:info@techstore.com" className="text-navy-foreground/70 hover:text-highlight transition-colors">
-                  info@techstore.com
-                </a>
+                <span className="text-navy-foreground/70">laburbujatecnologica@gmail.com</span>
               </li>
               <li className="flex items-center gap-3">
                 <Clock className="w-5 h-5 text-highlight flex-shrink-0" />
-                <span className="text-navy-foreground/70">
-                  Lun - Sáb: 8:00 AM - 7:00 PM
-                </span>
+                <span className="text-navy-foreground/70">Lun - Sab: 9:00 AM - 5:00 PM</span>
               </li>
             </ul>
           </div>
@@ -145,7 +146,7 @@ const Footer = () => {
         {/* Copyright */}
         <div className="pt-8 text-center">
           <p className="text-navy-foreground/50 text-sm">
-            © {currentYear} TechStore. Todos los derechos reservados. 
+            © {currentYear} La Burbuja Tecnológica. Todos los derechos reservados. 
             <span className="mx-2">|</span>
             <a href="#" className="hover:text-highlight transition-colors">Política de Privacidad</a>
             <span className="mx-2">|</span>
