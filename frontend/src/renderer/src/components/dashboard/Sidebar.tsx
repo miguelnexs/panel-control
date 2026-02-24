@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import Icon from './Icon'
 import asentingLogo from '../../assets/logo.png'
 import { ModeToggle } from '../ModeToggle'
+import pkg from '../../../../../package.json'
 
 interface SidebarProps {
   view: string;
@@ -123,6 +124,20 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
     }
   }
 
+  // Listen for update messages from main process
+  useEffect(() => {
+    // @ts-ignore
+    if (window.electron && window.electron.ipcRenderer) {
+      // @ts-ignore
+      const removeListener = window.electron.ipcRenderer.on('update-status', (_, message) => {
+        if (setUpdateMsg) setUpdateMsg(message);
+      });
+      return () => {
+        removeListener();
+      }
+    }
+  }, []);
+
   const absUrl = (path: string) => {
     try {
       if (!path) return ''
@@ -227,7 +242,10 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         <div className={`flex items-center overflow-hidden transition-all duration-300 ${collapsed ? 'justify-center w-full gap-0' : 'gap-3'}`}>
           <img src={asentingLogo} alt="Asenting" className="w-10 h-10 object-contain drop-shadow-lg shrink-0" />
           <div className={`${textClass} flex flex-col`}>
-             <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight leading-none">Asenting</span>
+             <div className="flex items-center gap-2">
+                <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight leading-none">Asenting</span>
+                <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-mono border border-blue-200 dark:border-blue-800">v{pkg.version}</span>
+             </div>
              <span className="text-[10px] text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">{companyName || 'Panel'}</span>
            </div>
         </div>

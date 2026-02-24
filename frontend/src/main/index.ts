@@ -1,8 +1,44 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { autoUpdater } from 'electron-updater';
 import path from 'path';
 import http from 'http';
 import fs from 'fs';
 import { URL } from 'url';
+
+// Auto-updater logging
+autoUpdater.logger = require('electron-log');
+// @ts-ignore
+autoUpdater.logger.transports.file.level = 'info';
+
+// Auto-updater events
+autoUpdater.on('checking-for-update', () => {
+  mainWindow?.webContents.send('update-status', 'Buscando actualizaciones...');
+});
+
+autoUpdater.on('update-available', (_info) => {
+  mainWindow?.webContents.send('update-status', 'Actualización disponible. Descargando...');
+});
+
+autoUpdater.on('update-not-available', (_info) => {
+  mainWindow?.webContents.send('update-status', 'La aplicación está actualizada.');
+});
+
+autoUpdater.on('error', (err) => {
+  mainWindow?.webContents.send('update-status', 'Error en actualización: ' + err);
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  let log_message = "Descargando: " + Math.round(progressObj.percent) + '%';
+  mainWindow?.webContents.send('update-status', log_message);
+});
+
+autoUpdater.on('update-downloaded', (_info) => {
+  mainWindow?.webContents.send('update-status', 'Actualización descargada. Reiniciando para instalar...');
+  // Automatically quit and install after a short delay
+  setTimeout(() => {
+    autoUpdater.quitAndInstall();
+  }, 3000);
+});
 
 // Templates Server Configuration
 const TEMPLATES_ROOT = 'd:\\Desktop\\miguel\\cgbycaro\\Plantillas';
@@ -193,8 +229,23 @@ function createWindow(): BrowserWindow {
     mainWindow.loadFile(htmlPath);
   }
 
+  // Wait for window to be ready
   mainWindow.once('ready-to-show', () => {
-    mainWindow.show();
+    if (mainWindow) {
+      // Use a small timeout to allow UI to render first
+    setTimeout(() => {
+        mainWindow?.show();
+    }, 100);
+      // Check for updates after window is visible
+      if (!isDev) {
+        // Delay update check to ensure UI is responsive first
+        setTimeout(() => {
+          autoUpdater.checkForUpdatesAndNotify().catch(err => {
+            console.error('Error checking for updates:', err);
+          });
+        }, 3000);
+      }
+    }
   });
 
   return mainWindow;
