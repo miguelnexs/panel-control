@@ -1,6 +1,6 @@
 {
   "name": "assent-dashboard",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Assent Dashboard - Sistema de gestión empresarial",
   "main": "./out/main/index.js",
   "author": "example.com",
@@ -105,35 +105,5 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.9.3",
     "vite": "^6.1.0"
-  },
-  "build": {
-    "appId": "com.assent.dashboard",
-    "productName": "Assent Dashboard",
-    "directories": {
-      "output": "dist-electron-v3"
-    },
-    "files": [
-      "out/**/*",
-      "node_modules/**/*",
-      "package.json"
-    ],
-    "win": {
-      "target": "nsis"
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "Assent Dashboard",
-      "deleteAppDataOnUninstall": true
-    },
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "miguelnexs",
-        "repo": "panel-control"
-      }
-    ]
   }
 }

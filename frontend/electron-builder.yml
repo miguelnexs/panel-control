@@ -2,7 +2,7 @@ appId: com.assent.dashboard
 productName: Assent Dashboard
 copyright: Copyright © 2024 Assent Dashboard
 directories:
-  output: dist-electron-v3
+  output: dist-electron-v4
   buildResources: build
 files:
   - "out/**/*"
@@ -33,6 +33,11 @@ win:
     - target: nsis
       arch:
         - x64
+  publish:
+    provider: github
+    owner: miguelnexs
+    repo: panel-control
+    releaseType: release
   icon: resources/logo.png
   requestedExecutionLevel: asInvoker
   artifactName: "${productName} Setup ${version}.${ext}"
@@ -42,13 +47,11 @@ win:
   signDlls: false
   forceCodeSigning: false
 
+
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
   allowElevation: true
-  installerIcon: resources/logo.png
-  uninstallerIcon: resources/logo.png
-  installerHeaderIcon: resources/logo.png
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: Assent Dashboard
