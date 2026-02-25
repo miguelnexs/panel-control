@@ -129,11 +129,16 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
     // @ts-ignore
     if (window.electron && window.electron.ipcRenderer) {
       // @ts-ignore
-      const removeListener = window.electron.ipcRenderer.on('update-status', (_, message) => {
+      const handleUpdate = (_: any, message: any) => {
         if (setUpdateMsg) setUpdateMsg(message);
-      });
+      };
+      // @ts-ignore
+      window.electron.ipcRenderer.on('update-status', handleUpdate);
       return () => {
-        removeListener();
+        // @ts-ignore
+        if (window.electron && window.electron.ipcRenderer && window.electron.ipcRenderer.removeListener) {
+          window.electron.ipcRenderer.removeListener('update-status', handleUpdate);
+        }
       }
     }
   }, []);
