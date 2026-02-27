@@ -13,6 +13,7 @@ import {
   MapPin,
   Mail,
   CreditCard,
+  Phone,
   Briefcase,
   X,
   Printer
@@ -49,6 +50,7 @@ interface Client {
   id: number;
   full_name: string;
   cedula: string;
+  phone?: string;
 }
 
 interface CompanySettings {
@@ -152,12 +154,18 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     estimated_duration: '',
     image: null as File | null
   });
+  const [catalogErrors, setCatalogErrors] = useState<Record<string, string>>({});
+
+  // Service Form Errors
+  const [serviceErrors, setServiceErrors] = useState<Record<string, string>>({});
+  const [bulkErrors, setBulkErrors] = useState<Record<string, Record<string, string>>>({});
 
   // Client Form State
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [clientFormData, setClientFormData] = useState({
     full_name: '',
     cedula: '',
+    phone: '',
     email: '',
     address: ''
   });
@@ -501,6 +509,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       const fd = new FormData();
       fd.append('full_name', clientFormData.full_name);
       fd.append('cedula', clientFormData.cedula);
+      fd.append('phone', clientFormData.phone);
       fd.append('email', clientFormData.email);
       fd.append('address', clientFormData.address);
 
@@ -517,7 +526,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       await loadClients(); // Reload list
       setFormData(prev => ({ ...prev, clientId: String(data.id) })); // Auto-select new client
       setIsClientModalOpen(false);
-      setClientFormData({ full_name: '', cedula: '', email: '', address: '' });
+      setClientFormData({ full_name: '', cedula: '', phone: '', email: '', address: '' });
       
       showToast('Cliente registrado exitosamente', 'success');
       
@@ -545,6 +554,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       }
 
       showToast('Creando servicios...', 'loading');
+      setBulkErrors({});
 
       try {
         const promises = serviceItems.map(item => {
@@ -565,35 +575,74 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
             body: JSON.stringify(payload),
           }).then(async res => {
             const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || 'Error creando servicio');
-            return data;
-          });
+            return { id: item.id, ok: res.ok, data };
+          }).catch(err => ({ id: item.id, ok: false, data: { detail: err.message } }));
         });
 
         const results = await Promise.all(promises);
         
-        setIsModalOpen(false);
-        setFormData({ name: '', description: '', third_party_provider: '', third_party_cost: '', value: '', clientId: '', worker: '', status: 'recibido' });
-        setEditingId(null);
-        if (onClose) onClose();
-        
-        loadServices();
-        loadStats();
-        
-        if (results.length > 0) {
+        const failures = results.filter(r => !r.ok);
+        const successes = results.filter(r => r.ok);
+
+        // Handle successes
+        if (successes.length > 0) {
            const clientName = clients.find(c => String(c.id) === String(formData.clientId))?.full_name || 'Cliente';
-           const intakeItems = serviceItems.map(it => {
-             const emp = employees.find(e => String(e.id) === String(it.worker));
+           const intakeItems = successes.map(s => {
+             const original = serviceItems.find(it => it.id === s.id);
+             if (!original) return { name: 'Unknown', description: 'Unknown' };
+             
+             const emp = employees.find(e => String(e.id) === String(original.worker));
              const empName = emp ? ((emp.first_name || emp.last_name) ? `${emp.first_name} ${emp.last_name}`.trim() : emp.username) : undefined;
-             return { name: it.name, description: it.description, employee: empName };
+             return { name: original.name, description: original.description, employee: empName };
            });
+           
            setPrintingIntake({ clientName, items: intakeItems });
            
            if (printReceipt) {
              printIntakeReceiptDirectly(clientName, intakeItems);
            }
+           
+           loadServices();
+           loadStats();
         }
-        showToast('Servicios creados correctamente', 'success');
+
+        // Handle failures
+        if (failures.length > 0) {
+            const newBulkErrors: Record<string, Record<string, string>> = {};
+            failures.forEach(f => {
+                const errorMap: Record<string, string> = {};
+                if (f.data && typeof f.data === 'object') {
+                    Object.keys(f.data).forEach(key => {
+                        if (key !== 'detail') {
+                             if (Array.isArray(f.data[key])) {
+                                 errorMap[key] = f.data[key][0];
+                             } else if (typeof f.data[key] === 'string') {
+                                 errorMap[key] = f.data[key];
+                             }
+                        }
+                    });
+                }
+                if (Object.keys(errorMap).length === 0 && f.data.detail) {
+                    errorMap['general'] = f.data.detail;
+                }
+                newBulkErrors[f.id] = errorMap;
+            });
+            setBulkErrors(newBulkErrors);
+            
+            // Remove successful items from the list to avoid duplicate submission
+            const failedIds = new Set(failures.map(f => f.id));
+            setServiceItems(prev => prev.filter(item => failedIds.has(item.id)));
+            
+            showToast(`Algunos servicios no se pudieron crear (${failures.length} fallidos)`, 'error');
+            return; // Don't close modal if there are failures
+        }
+        
+        // If all success
+        setIsModalOpen(false);
+        setFormData({ name: '', description: '', third_party_provider: '', third_party_cost: '', value: '', clientId: '', worker: '', status: 'recibido' });
+        setEditingId(null);
+        if (onClose) onClose();
+        showToast('Todos los servicios creados correctamente', 'success');
         
       } catch (error: any) {
         showToast(error.message || 'Error al crear servicios', 'error');
@@ -627,11 +676,31 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'No se pudo actualizar el servicio');
+
+      if (!res.ok) {
+        if (data && typeof data === 'object') {
+            const newErrors: Record<string, string> = {};
+            Object.keys(data).forEach(key => {
+                if (key !== 'detail') {
+                    if (Array.isArray(data[key])) {
+                        newErrors[key] = data[key][0];
+                    } else if (typeof data[key] === 'string') {
+                        newErrors[key] = data[key];
+                    }
+                }
+            });
+            if (Object.keys(newErrors).length > 0) {
+                setServiceErrors(newErrors);
+                return;
+            }
+        }
+        throw new Error(data.detail || 'No se pudo actualizar el servicio');
+      }
       
       setIsModalOpen(false);
       setFormData({ name: '', description: '', third_party_provider: '', third_party_cost: '', value: '', clientId: '', worker: '', status: 'recibido' });
       setEditingId(null);
+      setServiceErrors({});
       if (onClose) onClose();
       
       // Refresh and Open Print Modal
@@ -650,25 +719,30 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     }
   };
 
-  const toggleStatus = async (id: number, current: 'recibido' | 'entregado') => {
+  const handleDeliver = async (service: Service) => {
     if (!token) return;
+    if (!window.confirm(`¿Confirmar entrega y generar cobro de $${Number(service.value).toLocaleString()}?`)) return;
+
+    showToast('Procesando entrega y cobro...', 'loading');
+
     try {
-      const res = await fetch(`${apiBase}/services/${id}/`, {
-        method: 'PATCH',
+      const res = await fetch(`${apiBase}/services/${service.id}/deliver/`, {
+        method: 'POST',
         headers: authHeaders(token),
-        body: JSON.stringify({ status: current === 'recibido' ? 'entregado' : 'recibido' }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || 'No se pudo actualizar el estado');
-      }
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Error al procesar entrega');
+
       await loadServices();
       await loadStats();
-      showToast('Estado actualizado correctamente', 'success');
+      showToast('Servicio entregado y cobrado exitosamente', 'success');
     } catch (e: any) {
-      showToast(e.message || 'Error al actualizar estado', 'error');
+      showToast(e.message, 'error');
     }
   };
+
+
 
   const handleDelete = async (id: number) => {
     if (!token || !window.confirm('¿Estás seguro de que deseas eliminar este servicio?')) return;
@@ -707,7 +781,8 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
   const handleCatalogSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!token) return;
-    
+    setCatalogErrors({});
+
     if (!catalogFormData.name || !catalogFormData.description || !catalogFormData.price) {
       showToast('Complete los campos obligatorios', 'error');
       return;
@@ -738,7 +813,27 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
         });
       }
 
-      if (!res.ok) throw new Error('Error al guardar servicio en catálogo');
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data && typeof data === 'object') {
+            const newErrors: Record<string, string> = {};
+            Object.keys(data).forEach(key => {
+                if (key !== 'detail') {
+                    if (Array.isArray(data[key])) {
+                        newErrors[key] = data[key][0];
+                    } else if (typeof data[key] === 'string') {
+                        newErrors[key] = data[key];
+                    }
+                }
+            });
+            if (Object.keys(newErrors).length > 0) {
+                setCatalogErrors(newErrors);
+                return;
+            }
+        }
+        throw new Error(data.detail || 'Error al guardar servicio en catálogo');
+      }
       
       showToast('Servicio guardado en catálogo', 'success');
       setIsCatalogModalOpen(false);
@@ -986,11 +1081,17 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                     </td>
                     <td className="px-6 py-4">
                       <button 
-                        onClick={() => toggleStatus(service.id, service.status)}
+                        onClick={() => {
+                          if (service.status === 'recibido') {
+                            handleDeliver(service);
+                          }
+                        }}
+                        disabled={service.status === 'entregado'}
+                        title={service.status === 'recibido' ? "Entregar y cobrar servicio" : "Servicio ya entregado"}
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
                           service.status === 'entregado' 
-                            ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20 hover:bg-emerald-200 dark:hover:bg-emerald-500/20' 
-                            : 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20 hover:bg-amber-200 dark:hover:bg-amber-500/20'
+                            ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20 opacity-80 cursor-default' 
+                            : 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20 hover:bg-blue-200 dark:hover:bg-blue-500/20 cursor-pointer shadow-sm hover:shadow'
                         }`}
                       >
                         {service.status === 'entregado' ? (
@@ -999,7 +1100,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                           </>
                         ) : (
                           <>
-                            <Clock className="w-3 h-3" /> Recibido
+                            <DollarSign className="w-3 h-3" /> Salida / Cobrar
                           </>
                         )}
                       </button>
@@ -1130,7 +1231,11 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                         name="clientId"
                         value={formData.clientId}
                         onChange={handleInputChange}
-                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all"
+                        className={`w-full bg-white dark:bg-gray-800 border ${
+                          (editingId && serviceErrors.client) || (!editingId && Object.values(bulkErrors).some(e => e.client)) 
+                            ? 'border-rose-500' 
+                            : 'border-gray-200 dark:border-gray-700'
+                        } rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all`}
                         required
                       >
                         <option value="">Seleccionar Cliente</option>
@@ -1148,13 +1253,17 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                       <Plus className="w-5 h-5" />
                     </button>
                   </div>
+                  {(editingId && serviceErrors.client) && <p className="mt-1 text-xs text-rose-400">{serviceErrors.client}</p>}
+                  {(!editingId && Object.values(bulkErrors).find(e => e.client)?.client) && (
+                    <p className="mt-1 text-xs text-rose-400">{Object.values(bulkErrors).find(e => e.client)?.client}</p>
+                  )}
               </div>
 
               {!editingId ? (
                 <div className="max-h-[60vh] overflow-y-auto pr-2">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                    {serviceItems.map((item, index) => (
-                      <div key={item.id} className="p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50 relative">
+                      <div key={item.id} className={`p-4 border rounded-xl bg-gray-50 dark:bg-gray-800/50 relative ${bulkErrors[item.id] ? 'border-rose-300 dark:border-rose-700/50' : 'border-gray-200 dark:border-gray-700'}`}>
                          {serviceItems.length > 1 && (
                             <button type="button" onClick={() => removeServiceItem(item.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400">
                                <Trash className="w-4 h-4" />
@@ -1180,34 +1289,78 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                              </div>
                              
                              <div className="col-span-2">
-                               <input type="text" placeholder="Nombre del Servicio" value={item.name} onChange={(e) => updateServiceItem(item.id, 'name', e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white" required />
+                               <input 
+                                 type="text" 
+                                 placeholder="Nombre del Servicio" 
+                                 value={item.name} 
+                                 onChange={(e) => updateServiceItem(item.id, 'name', e.target.value)} 
+                                 className={`w-full bg-white dark:bg-gray-800 border ${bulkErrors[item.id]?.name ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white`} 
+                                 required 
+                               />
+                               {bulkErrors[item.id]?.name && <p className="mt-1 text-xs text-rose-400">{bulkErrors[item.id].name}</p>}
                              </div>
                              
                              <div className="col-span-2">
-                               <textarea placeholder="Descripción" value={item.description} onChange={(e) => updateServiceItem(item.id, 'description', e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white resize-none" rows={2} required />
+                               <textarea 
+                                 placeholder="Descripción" 
+                                 value={item.description} 
+                                 onChange={(e) => updateServiceItem(item.id, 'description', e.target.value)} 
+                                 className={`w-full bg-white dark:bg-gray-800 border ${bulkErrors[item.id]?.description ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white resize-none`} 
+                                 rows={2} 
+                                 required 
+                               />
+                               {bulkErrors[item.id]?.description && <p className="mt-1 text-xs text-rose-400">{bulkErrors[item.id].description}</p>}
                              </div>
                              
                              <div>
-                               <input type="number" placeholder="Valor (Opcional)" value={item.value} onChange={(e) => updateServiceItem(item.id, 'value', e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white" min="0" />
+                               <input 
+                                 type="number" 
+                                 placeholder="Valor (Opcional)" 
+                                 value={item.value} 
+                                 onChange={(e) => updateServiceItem(item.id, 'value', e.target.value)} 
+                                 className={`w-full bg-white dark:bg-gray-800 border ${bulkErrors[item.id]?.value ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white`} 
+                                 min="0" 
+                               />
+                               {bulkErrors[item.id]?.value && <p className="mt-1 text-xs text-rose-400">{bulkErrors[item.id].value}</p>}
                              </div>
 
                              <div>
-                                <select value={item.worker} onChange={(e) => updateServiceItem(item.id, 'worker', e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white">
+                                <select 
+                                  value={item.worker} 
+                                  onChange={(e) => updateServiceItem(item.id, 'worker', e.target.value)} 
+                                  className={`w-full bg-white dark:bg-gray-800 border ${bulkErrors[item.id]?.worker ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white`}
+                                >
                                   <option value="">Asignar Empleado (Opcional)</option>
                                   {employees.map(emp => {
                                     const name = emp.first_name || emp.last_name ? `${emp.first_name} ${emp.last_name}`.trim() : emp.username;
                                     return <option key={emp.id} value={emp.id}>{name}</option>;
                                   })}
                                 </select>
+                                {bulkErrors[item.id]?.worker && <p className="mt-1 text-xs text-rose-400">{bulkErrors[item.id].worker}</p>}
                              </div>
 
                              <div>
-                                <input type="text" placeholder="Proveedor Externo (Opcional)" value={item.third_party_provider} onChange={(e) => updateServiceItem(item.id, 'third_party_provider', e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white" />
+                                <input 
+                                  type="text" 
+                                  placeholder="Proveedor Externo (Opcional)" 
+                                  value={item.third_party_provider} 
+                                  onChange={(e) => updateServiceItem(item.id, 'third_party_provider', e.target.value)} 
+                                  className={`w-full bg-white dark:bg-gray-800 border ${bulkErrors[item.id]?.third_party_provider ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white`} 
+                                />
+                                {bulkErrors[item.id]?.third_party_provider && <p className="mt-1 text-xs text-rose-400">{bulkErrors[item.id].third_party_provider}</p>}
                              </div>
                              
                              {item.third_party_provider && (
                                  <div>
-                                    <input type="number" placeholder="Costo Tercero (Opcional)" value={item.third_party_cost} onChange={(e) => updateServiceItem(item.id, 'third_party_cost', e.target.value)} className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white" min="0" />
+                                    <input 
+                                      type="number" 
+                                      placeholder="Costo Tercero (Opcional)" 
+                                      value={item.third_party_cost} 
+                                      onChange={(e) => updateServiceItem(item.id, 'third_party_cost', e.target.value)} 
+                                      className={`w-full bg-white dark:bg-gray-800 border ${bulkErrors[item.id]?.third_party_cost ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg px-3 py-2 text-sm text-gray-900 dark:text-white`} 
+                                      min="0" 
+                                    />
+                                    {bulkErrors[item.id]?.third_party_cost && <p className="mt-1 text-xs text-rose-400">{bulkErrors[item.id].third_party_cost}</p>}
                                  </div>
                              )}
                          </div>
@@ -1258,10 +1411,11 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                         value={formData.name}
                         onChange={handleInputChange}
                         placeholder="Ej. Reparación de PC"
-                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                        className={`w-full bg-white dark:bg-gray-800 border ${serviceErrors.name ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all`}
                         required
                       />
                     </div>
+                    {serviceErrors.name && <p className="mt-1 text-xs text-rose-400">{serviceErrors.name}</p>}
                   </div>
 
                   <div className="col-span-2">
@@ -1274,10 +1428,11 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                         onChange={handleInputChange}
                         placeholder="Detalles del servicio..."
                         rows={3}
-                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all resize-none"
+                        className={`w-full bg-white dark:bg-gray-800 border ${serviceErrors.description ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all resize-none`}
                         required
                       />
                     </div>
+                    {serviceErrors.description && <p className="mt-1 text-xs text-rose-400">{serviceErrors.description}</p>}
                   </div>
 
                   <div>
@@ -1291,9 +1446,10 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                         onChange={handleInputChange}
                         placeholder="0.00 (Opcional)"
                         min="0"
-                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                        className={`w-full bg-white dark:bg-gray-800 border ${serviceErrors.value ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all`}
                       />
                     </div>
+                    {serviceErrors.value && <p className="mt-1 text-xs text-rose-400">{serviceErrors.value}</p>}
                   </div>
 
                   <div>
@@ -1304,7 +1460,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                         name="worker"
                         value={formData.worker}
                         onChange={handleInputChange}
-                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all"
+                        className={`w-full bg-white dark:bg-gray-800 border ${serviceErrors.worker ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all`}
                       >
                         <option value="">Sin Asignar</option>
                         {employees.map(emp => {
@@ -1315,6 +1471,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                         })}
                       </select>
                     </div>
+                    {serviceErrors.worker && <p className="mt-1 text-xs text-rose-400">{serviceErrors.worker}</p>}
                   </div>
 
                   <div>
@@ -1327,9 +1484,10 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                         value={formData.third_party_provider}
                         onChange={handleInputChange}
                         placeholder="Opcional"
-                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                        className={`w-full bg-white dark:bg-gray-800 border ${serviceErrors.third_party_provider ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all`}
                       />
                     </div>
+                    {serviceErrors.third_party_provider && <p className="mt-1 text-xs text-rose-400">{serviceErrors.third_party_provider}</p>}
                   </div>
 
                   <div>
@@ -1343,9 +1501,10 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                         onChange={handleInputChange}
                         placeholder="0.00"
                         min="0"
-                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                        className={`w-full bg-white dark:bg-gray-800 border ${serviceErrors.third_party_cost ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all`}
                       />
                     </div>
+                    {serviceErrors.third_party_cost && <p className="mt-1 text-xs text-rose-400">{serviceErrors.third_party_cost}</p>}
                   </div>
                   
                    <div>
@@ -1354,7 +1513,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                         name="status"
                         value={formData.status}
                         onChange={handleInputChange}
-                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all"
+                        className={`w-full bg-white dark:bg-gray-800 border ${serviceErrors.status ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all`}
                       >
                         <option value="recibido">Recibido</option>
                         <option value="entregado">Entregado</option>
@@ -1443,6 +1602,21 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
               </div>
 
               <div>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Teléfono</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                  <input 
+                    type="text" 
+                    name="phone"
+                    value={clientFormData.phone}
+                    onChange={handleClientInputChange}
+                    placeholder="Número de teléfono"
+                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Correo Electrónico</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
@@ -1514,10 +1688,11 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                       value={catalogFormData.name}
                       onChange={(e) => setCatalogFormData({...catalogFormData, name: e.target.value})}
                       placeholder="Ej. Formateo Windows"
-                      className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                      className={`w-full bg-white dark:bg-gray-800 border ${catalogErrors.name ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all`}
                       required
                     />
                   </div>
+                  {catalogErrors.name && <p className="mt-1 text-xs text-rose-400">{catalogErrors.name}</p>}
                 </div>
 
                 <div>
@@ -1530,10 +1705,11 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                       onChange={(e) => setCatalogFormData({...catalogFormData, description: e.target.value})}
                       placeholder="Detalles del servicio predefinido..."
                       rows={3}
-                      className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all resize-none"
+                      className={`w-full bg-white dark:bg-gray-800 border ${catalogErrors.description ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all resize-none`}
                       required
                     />
                   </div>
+                  {catalogErrors.description && <p className="mt-1 text-xs text-rose-400">{catalogErrors.description}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -1548,10 +1724,11 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                         onChange={(e) => setCatalogFormData({...catalogFormData, price: e.target.value})}
                         placeholder="0.00"
                         min="0"
-                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                        className={`w-full bg-white dark:bg-gray-800 border ${catalogErrors.price ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all`}
                         required
                       />
                     </div>
+                    {catalogErrors.price && <p className="mt-1 text-xs text-rose-400">{catalogErrors.price}</p>}
                   </div>
 
                   <div>
@@ -1564,9 +1741,10 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                         value={catalogFormData.estimated_duration}
                         onChange={(e) => setCatalogFormData({...catalogFormData, estimated_duration: e.target.value})}
                         placeholder="Ej. 2 horas"
-                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                        className={`w-full bg-white dark:bg-gray-800 border ${catalogErrors.estimated_duration ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all`}
                       />
                     </div>
+                    {catalogErrors.estimated_duration && <p className="mt-1 text-xs text-rose-400">{catalogErrors.estimated_duration}</p>}
                   </div>
                 </div>
 
@@ -1580,8 +1758,9 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                       }
                     }}
                     accept="image/*"
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 dark:file:bg-gray-700 file:text-gray-700 dark:file:text-white hover:file:bg-gray-200 dark:hover:file:bg-gray-600"
+                    className={`w-full bg-white dark:bg-gray-800 border ${catalogErrors.image ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 dark:file:bg-gray-700 file:text-gray-700 dark:file:text-white hover:file:bg-gray-200 dark:hover:file:bg-gray-600`}
                   />
+                  {catalogErrors.image && <p className="mt-1 text-xs text-rose-400">{catalogErrors.image}</p>}
                 </div>
 
               </div>

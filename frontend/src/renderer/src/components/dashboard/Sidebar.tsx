@@ -35,6 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
   const [isInventoryOpen, setIsInventoryOpen] = useState(false)
   const [isVentasOpen, setIsVentasOpen] = useState(false)
   const [isServiciosOpen, setIsServiciosOpen] = useState(false)
+  const [showUpdateModal, setShowUpdateModal] = useState(false)
 
   const toggleConfigMenu = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -560,6 +561,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
           <span className={tooltipClass}>Cerrar sesión</span>
         </button>
       </div>
+      {showUpdateModal && <UpdateModal onClose={() => setShowUpdateModal(false)} />}
     </aside>
   )
 }

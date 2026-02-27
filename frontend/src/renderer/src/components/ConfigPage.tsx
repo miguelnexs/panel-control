@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 
 import AlegraConfig from './AlegraConfig';
+import GoogleConfig from './GoogleConfig';
 
 interface UserProfile {
   username: string;
@@ -424,6 +425,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
           { id: 'empresa', label: 'Empresa', icon: Building },
           { id: 'impresora', label: 'Impresora', icon: Printer },
           { id: 'alegra', label: 'Alegra (Facturación)', icon: Key },
+          { id: 'google', label: 'Google API', icon: Globe },
         ].map((t) => (
           <button
             key={t.id}
@@ -1002,6 +1004,11 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
         {/* Alegra */}
         {tab === 'alegra' && (
           <AlegraConfig token={token} apiBase={apiBase} />
+        )}
+
+        {/* Google */}
+        {tab === 'google' && (
+          <GoogleConfig token={token} apiBase={apiBase} />
         )}
       </div>
       {/* Print Preview Modal */}

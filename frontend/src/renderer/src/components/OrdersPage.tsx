@@ -20,7 +20,8 @@ import {
   CreditCard,
   Printer,
   FileText,
-  CloudLightning
+  CloudLightning,
+  Mail
 } from 'lucide-react';
 
 interface Color {
@@ -388,6 +389,35 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
     }
   };
 
+  const handleSendReceipt = async (order: Order) => {
+    if (!order.client?.email) {
+      showToast('El cliente no tiene email registrado', 'error');
+      return;
+    }
+    
+    showToast('Enviando recibo...', 'loading');
+    
+    try {
+      const res = await fetch(`${apiBase}/sales/receipt/send/${order.id}/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.detail || 'Error al enviar recibo');
+      }
+      
+      showToast('Recibo enviado correctamente', 'success');
+    } catch (error: any) {
+      showToast(error.message, 'error');
+    }
+  };
+
   const getStatusLabel = (status: string = 'pending') => {
     switch(status.toLowerCase()) {
       case 'completed':
@@ -550,6 +580,13 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                         title="Imprimir Recibo"
                       >
                         <Printer className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleSendReceipt(o)}
+                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                        title="Enviar Recibo por Correo"
+                      >
+                        <Mail className="w-4 h-4" />
                       </button>
                       <button 
                         onClick={() => setViewOrder(o)}

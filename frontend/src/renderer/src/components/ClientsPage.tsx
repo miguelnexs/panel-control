@@ -10,6 +10,7 @@ import {
   MapPin, 
   Mail, 
   CreditCard, 
+  Phone,
   X, 
   CheckCircle, 
   AlertTriangle, 
@@ -45,6 +46,7 @@ interface Order {
 interface ClientForm {
   full_name: string;
   cedula: string;
+  phone: string;
   email: string;
   address: string;
 }
@@ -81,7 +83,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
   const [total, setTotal] = useState(0);
   const [ordering, setOrdering] = useState('-created_at');
   const [search, setSearch] = useState('');
-  const [form, setForm] = useState<ClientForm>({ full_name: '', cedula: '', email: '', address: '' });
+  const [form, setForm] = useState<ClientForm>({ full_name: '', cedula: '', phone: '', email: '', address: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [stats, setStats] = useState<ClientStats>({ total: 0, new_this_month: 0, top_cities: [], new_today: 0 });
   const [open, setOpen] = useState(false);
@@ -90,7 +92,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
   const [viewServices, setViewServices] = useState<any[]>([]);
   const [viewLoading, setViewLoading] = useState(false);
   const [editClient, setEditClient] = useState<Client | null>(null);
-  const [editForm, setEditForm] = useState<ClientForm>({ full_name: '', cedula: '', email: '', address: '' });
+  const [editForm, setEditForm] = useState<ClientForm>({ full_name: '', cedula: '', phone: '', email: '', address: '' });
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
 
   const authHeaders = (tkn: string) => ({ ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) });
 
@@ -127,6 +130,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
     const e: Record<string, string> = {};
     if (!form.full_name || form.full_name.trim().length < 3) e.full_name = 'Nombre obligatorio';
     if (!/^[0-9]{6,12}$/.test(form.cedula || '')) e.cedula = 'Cédula 6-12 dígitos';
+    if (form.phone && form.phone.trim().length < 7) e.phone = 'Teléfono inválido';
     if (!/^\S+@\S+\.\S+$/.test(form.email || '')) e.email = 'Correo inválido';
     if (!form.address || form.address.trim().length < 5) e.address = 'Dirección obligatoria';
     setErrors(e);
@@ -141,13 +145,34 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
       const fd = new FormData();
       fd.append('full_name', form.full_name);
       fd.append('cedula', form.cedula);
+      fd.append('phone', form.phone);
       fd.append('email', form.email);
       fd.append('address', form.address);
       const res = await fetch(`${apiBase}/clients/`, { method: 'POST', headers: authHeaders(token), body: fd });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'No se pudo registrar el cliente');
+      
+      if (!res.ok) {
+        if (data && typeof data === 'object') {
+            const newErrors: Record<string, string> = {};
+            Object.keys(data).forEach(key => {
+                if (key !== 'detail') {
+                    if (Array.isArray(data[key])) {
+                        newErrors[key] = data[key][0];
+                    } else if (typeof data[key] === 'string') {
+                        newErrors[key] = data[key];
+                    }
+                }
+            });
+            if (Object.keys(newErrors).length > 0) {
+                setErrors(newErrors);
+                return;
+            }
+        }
+        throw new Error(data.detail || 'No se pudo registrar el cliente');
+      }
+
       setMsg({ type: 'success', text: 'Cliente registrado' });
-      setForm({ full_name: '', cedula: '', email: '', address: '' });
+      setForm({ full_name: '', cedula: '', phone: '', email: '', address: '' });
       setOpen(false);
       loadClients();
       loadStats();
@@ -265,7 +290,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                 <RefreshCw className="w-4 h-4" />
               </button>
               <button 
-                onClick={() => { setForm({ full_name: '', cedula: '', email: '', address: '' }); setErrors({}); setOpen(true); }}
+                onClick={() => { setForm({ full_name: '', cedula: '', phone: '', email: '', address: '' }); setErrors({}); setOpen(true); }}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-900/20"
               >
                 <Plus className="w-4 h-4" />
@@ -304,9 +329,17 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
-                      <Mail className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                      {c.email}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
+                        <Mail className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                        {c.email}
+                      </div>
+                      {c.phone && (
+                        <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
+                          <Phone className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
+                          {c.phone}
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -349,7 +382,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                         <Eye className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={() => { setEditClient(c); setEditForm({ full_name: c.full_name || '', cedula: c.cedula || '', email: c.email || '', address: c.address || '' }); }}
+                        onClick={() => { setEditClient(c); setEditForm({ full_name: c.full_name || '', cedula: c.cedula || '', phone: c.phone || '', email: c.email || '', address: c.address || '' }); }}
                         className="p-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/10 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                         title="Editar"
                       >
@@ -462,6 +495,21 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
               </div>
 
               <div>
+                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Teléfono</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                  <input 
+                    type="text" 
+                    value={form.phone} 
+                    onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} 
+                    className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.phone ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                    placeholder="Ej. 3001234567"
+                  />
+                </div>
+                {errors.phone && <p className="mt-1 text-xs text-rose-400">{errors.phone}</p>}
+              </div>
+
+              <div>
                 <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Correo Electrónico</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
@@ -541,6 +589,12 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                       <CreditCard className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                       <span>{viewClient.cedula}</span>
                     </div>
+                    {viewClient.phone && (
+                      <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <Phone className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                        <span>{viewClient.phone}</span>
+                      </div>
+                    )}
                     <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                       <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5" />
                       <span>{viewClient.address}</span>
@@ -692,10 +746,12 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
             
             <form onSubmit={async (e) => { 
               e.preventDefault(); 
+              setEditErrors({});
               try { 
                 const fd = new FormData();
                 fd.append('full_name', editForm.full_name);
                 fd.append('cedula', editForm.cedula);
+                fd.append('phone', editForm.phone);
                 fd.append('email', editForm.email);
                 fd.append('address', editForm.address);
 
@@ -704,29 +760,66 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                   headers: authHeaders(token), 
                   body: fd 
                 }); 
-                if (res.ok) { 
-                  setEditClient(null); 
-                  loadClients(); 
-                } 
-              } catch(_){} 
+                const data = await res.json();
+
+                if (!res.ok) {
+                    if (data && typeof data === 'object') {
+                        const newErrors: Record<string, string> = {};
+                        Object.keys(data).forEach(key => {
+                            if (key !== 'detail') {
+                                if (Array.isArray(data[key])) {
+                                    newErrors[key] = data[key][0];
+                                } else if (typeof data[key] === 'string') {
+                                    newErrors[key] = data[key];
+                                }
+                            }
+                        });
+                        if (Object.keys(newErrors).length > 0) {
+                            setEditErrors(newErrors);
+                            return;
+                        }
+                    }
+                    throw new Error(data.detail || 'No se pudo actualizar el cliente');
+                }
+
+                setEditClient(null); 
+                loadClients(); 
+              } catch(err: any){
+                  alert(err.message || 'Error al actualizar');
+              } 
             }} className="p-6 space-y-4">
               <div>
                 <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Nombre Completo</label>
                 <input 
                   value={editForm.full_name} 
                   onChange={(e)=>setEditForm((f)=>({...f, full_name: e.target.value}))} 
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all" 
+                  className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${editErrors.full_name ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all`}
                   placeholder="Nombre" 
                 />
+                {editErrors.full_name && <p className="mt-1 text-xs text-rose-400">{editErrors.full_name}</p>}
               </div>
               <div>
                 <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Cédula</label>
                 <input 
                   value={editForm.cedula} 
                   onChange={(e)=>setEditForm((f)=>({...f, cedula: e.target.value}))} 
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all" 
+                  className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${editErrors.cedula ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all`}
                   placeholder="Cédula" 
                 />
+                {editErrors.cedula && <p className="mt-1 text-xs text-rose-400">{editErrors.cedula}</p>}
+              </div>
+              <div>
+                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Teléfono</label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                  <input 
+                    value={editForm.phone} 
+                    onChange={(e)=>setEditForm((f)=>({...f, phone: e.target.value}))} 
+                    className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${editErrors.phone ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all`}
+                    placeholder="Teléfono" 
+                  />
+                </div>
+                {editErrors.phone && <p className="mt-1 text-xs text-rose-400">{editErrors.phone}</p>}
               </div>
               <div>
                 <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Correo</label>
@@ -734,18 +827,20 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                   type="email"
                   value={editForm.email} 
                   onChange={(e)=>setEditForm((f)=>({...f, email: e.target.value}))} 
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all" 
+                  className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${editErrors.email ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all`}
                   placeholder="Correo" 
                 />
+                {editErrors.email && <p className="mt-1 text-xs text-rose-400">{editErrors.email}</p>}
               </div>
               <div>
                 <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Dirección</label>
                 <textarea 
                   value={editForm.address} 
                   onChange={(e)=>setEditForm((f)=>({...f, address: e.target.value}))} 
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all min-h-[100px] resize-none" 
+                  className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${editErrors.address ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all min-h-[100px] resize-none`}
                   placeholder="Dirección" 
                 />
+                {editErrors.address && <p className="mt-1 text-xs text-rose-400">{editErrors.address}</p>}
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">

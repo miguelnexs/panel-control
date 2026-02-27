@@ -11,6 +11,7 @@ from decimal import Decimal
 from django.utils import timezone
 import random
 from django.db.models import Sum, Count
+from django.conf import settings
 from users.models import UserProfile, Tenant
 from clients.models import Client
 from products.models import Product, ProductColor, ProductVariant
@@ -175,7 +176,7 @@ class SaleView(APIView):
             })
         return Response({
             'id': sale.id,
-            'client': {'id': client.id, 'full_name': client.full_name},
+            'client': {'id': client.id, 'full_name': client.full_name, 'email': client.email},
             'total_amount': str(sale.total_amount),
             'created_at': sale.created_at.isoformat(),
             'order_number': sale.order_number,
@@ -262,7 +263,7 @@ class SalesListView(ListAPIView):
                 'order_number': sale.order_number,
                 'status': sale.status,
                 'dian': dian_info,
-                'client': {'id': sale.client.id, 'full_name': sale.client.full_name},
+                'client': {'id': sale.client.id, 'full_name': sale.client.full_name, 'email': sale.client.email},
                 'total_amount': str(sale.total_amount),
                 'created_at': sale.created_at.isoformat(),
                 'items_count': sale.items.count(),

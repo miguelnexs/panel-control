@@ -14,6 +14,7 @@ class Product(models.Model):
     inventory_qty = models.PositiveIntegerField(default=0)
     image = models.ImageField(upload_to='products/', null=True, blank=True)
     active = models.BooleanField(default=True)
+    position = models.PositiveIntegerField(default=0)
     
     # Offer Fields
     is_sale = models.BooleanField(default=False)
@@ -35,6 +36,7 @@ class Category(models.Model):
     description = models.TextField(blank=True)
     image = models.ImageField(upload_to='categories/', null=True, blank=True)
     active = models.BooleanField(default=True)
+    position = models.PositiveIntegerField(default=0)
     tenant = models.ForeignKey(Tenant, null=True, blank=True, on_delete=models.SET_NULL)
     created_at = models.DateTimeField(auto_now_add=True)
 

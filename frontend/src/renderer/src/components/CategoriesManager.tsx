@@ -102,9 +102,39 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
       setItems((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
+        const newItems = arrayMove(items, oldIndex, newIndex);
+        
+        // Save new order
+        const updateOrder = async () => {
+          try {
+            const start = Math.min(oldIndex, newIndex);
+            const end = Math.max(oldIndex, newIndex);
+            const promises: Promise<any>[] = [];
+
+            for (let i = start; i <= end; i++) {
+               const item = newItems[i];
+               const position = (page - 1) * pageSize + i;
+               
+               promises.push(
+                 fetch(`${apiBase}/products/categories/${item.id}/`, {
+                   method: 'PATCH',
+                   headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+                   body: JSON.stringify({ position })
+                 })
+               );
+            }
+            await Promise.all(promises);
+            setMsg({ type: 'success', text: 'Orden actualizado correctamente' });
+            setTimeout(() => setMsg(null), 3000);
+          } catch (e) {
+            console.error("Error saving category order", e);
+            setMsg({ type: 'error', text: 'Error al guardar el orden' });
+          }
+        };
+        updateOrder();
+        
+        return newItems;
       });
-      // Here you would typically save the new order to the backend
     }
   };
 
@@ -319,6 +349,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                   onChange={(e) => setOrdering(e.target.value)}
                   className="appearance-none pl-3 pr-8 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
                 >
+                  <option value="position">Orden Personalizado</option>
                   <option value="-created_at">Más recientes</option>
                   <option value="name">Nombre A-Z</option>
                   <option value="-name">Nombre Z-A</option>

@@ -72,6 +72,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
   const [features, setFeatures] = useState<Feature[]>([]);
   const [initialFeatures, setInitialFeatures] = useState<Feature[]>([]);
   const [featureName, setFeatureName] = useState('');
+  const [colorInputError, setColorInputError] = useState('');
 
   const [activeTab, setActiveTab] = useState('detalles');
   const [loading, setLoading] = useState(false);
@@ -215,23 +216,32 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
   const validateClient = () => {
     const errs: any = {};
-    const nameOk = /^[A-Za-z0-9ÁÉÍÓÚáéíóúÑñ\-\s]{1,100}$/.test(name);
-    if (!nameOk) errs.name = 'Nombre requerido, máx 100 y sin caracteres inválidos.';
+    // Relaxed regex to match backend - allowing almost any printable character
+    const nameOk = name.trim().length > 0 && name.length <= 100;
+    if (!nameOk) errs.name = 'Nombre requerido, máx 100 caracteres.';
+    
     const priceNorm = normalizePrice(price);
     const priceNum = Number(priceNorm);
     if (!priceNorm || Number.isNaN(priceNum) || priceNum <= 0) errs.price = 'Precio debe ser positivo con 2 decimales.';
+    
     if (description.length > 500) errs.description = 'Descripción máximo 500 caracteres.';
     if (!categories.find((c) => String(c.id) === String(categoryId))) errs.category = 'Debe seleccionar una categoría válida.';
-    if (sku && !/^[A-Za-z0-9\-]{1,50}$/.test(sku)) errs.sku = 'SKU inválido (alfanumérico y guiones).';
+    
+    // SKU is optional but if present must be valid (relaxed validation)
+    if (sku && sku.length > 50) errs.sku = 'SKU máximo 50 caracteres.';
+    
     const inv = Number(inventoryQty);
     if (!Number.isInteger(inv) || inv < 0) errs.inventoryQty = 'Cantidad debe ser entero positivo.';
+    
     if (imageFile) {
       const ok = ['image/jpeg','image/png','image/webp'].includes(imageFile.type);
       if (!ok) errs.image = 'Formato de imagen inválido (jpeg, png, webp).';
     }
+    
     if (colors.some((c) => !c.name || !/^#[0-9A-Fa-f]{6}$/.test(c.hex) || Number(c.stock) < 0 || !Number.isInteger(Number(c.stock)))) {
       errs.colors = 'Verifique nombre, HEX (#RRGGBB) y stock entero positivo de los colores.';
     }
+    
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -260,7 +270,29 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
     
     if (!res.ok) {
       const msg = data.detail || (product ? 'No se pudo actualizar el producto' : 'No se pudo crear el producto');
-      setErrors((e2: any) => ({ ...e2, form: msg }));
+      const newErrors: any = { form: msg };
+      
+      if (data && typeof data === 'object') {
+        Object.keys(data).forEach(key => {
+            if (key !== 'detail') {
+                let errorMsg = '';
+                if (Array.isArray(data[key])) {
+                    errorMsg = data[key][0];
+                } else if (typeof data[key] === 'string') {
+                    errorMsg = data[key];
+                }
+                
+                if (errorMsg) {
+                    if (key === 'inventory_qty') {
+                        newErrors.inventoryQty = errorMsg;
+                    } else {
+                        newErrors[key] = errorMsg;
+                    }
+                }
+            }
+        });
+      }
+      setErrors(newErrors);
       return;
     }
     try {
@@ -496,7 +528,10 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                             placeholder="0.00"
                           />
                         </div>
-                        <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">{formatCurrency(price)}</p>
+                        <div className="flex flex-col mt-1">
+                          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">{formatCurrency(price)}</p>
+                          {errors.price && <p className="text-xs text-rose-400">{errors.price}</p>}
+                        </div>
                       </div>
 
                       <div>
@@ -511,6 +546,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                             placeholder="PROD-001"
                           />
                         </div>
+                        {errors.sku && <p className="mt-1 text-xs text-rose-400">{errors.sku}</p>}
                       </div>
                     </div>
 
@@ -523,6 +559,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                         className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.description ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all resize-none`}
                         placeholder="Describe las características principales del producto..."
                       />
+                      {errors.description && <p className="mt-1 text-xs text-rose-400">{errors.description}</p>}
                     </div>
                   </div>
                 </div>
@@ -574,6 +611,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                       >
                         {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
                       </select>
+                      {errors.category && <p className="mt-1 text-xs text-rose-400">{errors.category}</p>}
                     </div>
 
                     <div>
@@ -585,6 +623,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                         min={0}
                         className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.inventoryQty ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
                       />
+                      {errors.inventoryQty && <p className="mt-1 text-xs text-rose-400">{errors.inventoryQty}</p>}
                     </div>
 
                     <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
@@ -621,9 +660,9 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                         <input 
                           type="text" 
                           value={colorName} 
-                          onChange={(e) => setColorName(e.target.value)} 
+                          onChange={(e) => { setColorName(e.target.value); setColorInputError(''); }} 
                           placeholder="Ej. Rojo Pasión" 
-                          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none"
+                          className={`w-full px-3 py-2 bg-white dark:bg-gray-800 border ${colorInputError ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none`}
                         />
                       </div>
                       <div className="w-24">
@@ -649,14 +688,26 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                       </div>
                       <button 
                         type="button" 
-                        onClick={() => { if (!colorName || !/^#[0-9A-Fa-f]{6}$/.test(colorHex)) return; setColors((cols) => [...cols, { name: colorName, hex: colorHex, stock: colorStock }]); setColorName(''); setColorHex('#000000'); setColorStock('0'); }} 
+                        onClick={() => { 
+                            if (!colorName) { setColorInputError('Nombre requerido'); return; }
+                            if (!/^#[0-9A-Fa-f]{6}$/.test(colorHex)) { setColorInputError('Color inválido'); return; }
+                            setColors((cols) => [...cols, { name: colorName, hex: colorHex, stock: colorStock }]); 
+                            setColorName(''); setColorHex('#000000'); setColorStock('0'); setColorInputError('');
+                        }} 
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                       >
                         <Plus className="w-4 h-4" />
                         <span>Agregar</span>
                       </button>
                     </div>
+                    {colorInputError && <p className="mt-2 text-xs text-rose-400">{colorInputError}</p>}
                  </div>
+
+                 {errors.colors && (
+                    <div className="p-3 mb-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-sm text-rose-400">
+                        {errors.colors}
+                    </div>
+                 )}
 
                  {/* Color List */}
                  <div className="space-y-4">

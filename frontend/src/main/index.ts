@@ -547,6 +547,20 @@ ipcMain.handle('print-silent', async (_, { content, printerName }) => {
     }
   });
 
+ipcMain.on('check-for-updates', () => {
+  if (isDev) {
+    mainWindow?.webContents.send('update-status', 'Modo desarrollo: No se buscan actualizaciones.');
+    return;
+  }
+  autoUpdater.checkForUpdates().catch(err => {
+    mainWindow?.webContents.send('update-status', 'Error al buscar actualizaciones: ' + err.message);
+  });
+});
+
+ipcMain.on('quit-and-install', () => {
+  autoUpdater.quitAndInstall();
+});
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();

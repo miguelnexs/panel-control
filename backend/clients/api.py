@@ -15,7 +15,7 @@ from users.models import UserProfile, Tenant
 class ClientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Client
-        fields = ['id', 'full_name', 'cedula', 'email', 'address', 'created_at']
+        fields = ['id', 'full_name', 'cedula', 'phone', 'email', 'address', 'created_at']
 
     def validate_full_name(self, value):
         if not value or len(value) < 3:
@@ -63,7 +63,7 @@ class ClientsListCreateView(ListCreateAPIView):
             qs = qs.filter(tenant=tenant)
         q = self.request.query_params.get('search')
         if q:
-            qs = qs.filter(Q(full_name__icontains=q) | Q(cedula__icontains=q) | Q(email__icontains=q) | Q(address__icontains=q))
+            qs = qs.filter(Q(full_name__icontains=q) | Q(cedula__icontains=q) | Q(phone__icontains=q) | Q(email__icontains=q) | Q(address__icontains=q))
         ordering = self.request.query_params.get('ordering') or '-created_at'
         allowed = {'full_name', 'cedula', 'email', 'created_at'}
         if ordering.lstrip('-') in allowed:

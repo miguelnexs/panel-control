@@ -17,16 +17,13 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'name', 'price', 'description', 'category', 'sku', 'inventory_qty',
-            'image', 'active', 'created_at',
+            'image', 'active', 'position', 'created_at',
             'is_sale', 'sale_price'
         ]
 
     def validate_name(self, value):
         if not value or len(value) > 100:
             raise serializers.ValidationError('Nombre requerido, máximo 100 caracteres.')
-        import re
-        if not re.fullmatch(r"[A-Za-z0-9ÁÉÍÓÚáéíóúÑñ\-\s]+", value):
-            raise serializers.ValidationError('Nombre contiene caracteres no permitidos.')
         return value
 
     def validate_price(self, value):
@@ -160,11 +157,21 @@ class ProductListCreateView(ListCreateAPIView):
     def get_queryset(self):
         tenant = _get_user_tenant(self.request.user)
         if tenant:
-            return Product.objects.filter(tenant=tenant).order_by('-created_at')
-        role = _get_user_role(self.request.user)
-        if role == 'super_admin':
-            return Product.objects.all().order_by('-created_at')
-        return Product.objects.none()
+            qs = Product.objects.filter(tenant=tenant)
+        else:
+            role = _get_user_role(self.request.user)
+            if role == 'super_admin':
+                qs = Product.objects.all()
+            else:
+                return Product.objects.none()
+        
+        ordering = self.request.query_params.get('ordering')
+        if ordering:
+            allowed = {'name', 'created_at', 'price', 'position', 'active'}
+            if ordering.lstrip('-') in allowed:
+                return qs.order_by(ordering)
+        
+        return qs.order_by('-created_at')
 
     def perform_create(self, serializer):
         tenant = _get_user_tenant(self.request.user)
@@ -211,7 +218,7 @@ class ProductDetailView(RetrieveUpdateDestroyAPIView):
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'name', 'description', 'image', 'active', 'created_at']
+        fields = ['id', 'name', 'description', 'image', 'active', 'position', 'created_at']
 
     def validate_name(self, value):
         if not value or len(value) > 100:
@@ -274,7 +281,7 @@ class CategoryListCreateView(ListCreateAPIView):
         if search:
             qs = qs.filter(Q(name__icontains=search) | Q(description__icontains=search))
         ordering = self.request.query_params.get('ordering') or '-created_at'
-        allowed = {'name', 'created_at', 'active'}
+        allowed = {'name', 'created_at', 'active', 'position'}
         if ordering.lstrip('-') in allowed:
             qs = qs.order_by(ordering)
         else:
