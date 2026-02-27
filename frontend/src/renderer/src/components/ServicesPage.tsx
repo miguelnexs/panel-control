@@ -463,11 +463,27 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     try {
       const res = await fetch(`${apiBase}/services/stats/`, { headers: authHeaders(token) });
       const data = await res.json();
+      
+      // Calculate total value for delivered services only
+      let deliveredValue = 0;
+      try {
+        const resServices = await fetch(`${apiBase}/services/?page_size=10000`, { headers: authHeaders(token) });
+        if (resServices.ok) {
+            const dataServices = await resServices.json();
+            const allServices: Service[] = Array.isArray(dataServices.results) ? dataServices.results : Array.isArray(dataServices) ? dataServices : [];
+            deliveredValue = allServices
+                .filter(s => s.status === 'entregado')
+                .reduce((sum, s) => sum + Number(s.value || 0), 0);
+        }
+      } catch (err) {
+        console.error("Error calculating delivered value", err);
+      }
+
       if (res.ok) setStats({ 
         total: Number(data.total || 0), 
         delivered: Number(data.delivered || 0), 
         received: Number(data.received || 0), 
-        total_value: Number(data.total_value || 0) 
+        total_value: deliveredValue
       });
     } catch (e) {}
   };
