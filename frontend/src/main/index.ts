@@ -9,14 +9,16 @@ import { URL } from 'url';
 autoUpdater.logger = require('electron-log');
 // @ts-ignore
 autoUpdater.logger.transports.file.level = 'info';
+autoUpdater.autoDownload = true;
+autoUpdater.allowPrerelease = false;
 
 // Auto-updater events
 autoUpdater.on('checking-for-update', () => {
   mainWindow?.webContents.send('update-status', 'Buscando actualizaciones...');
 });
 
-autoUpdater.on('update-available', (_info) => {
-  mainWindow?.webContents.send('update-status', 'Actualización disponible. Descargando...');
+autoUpdater.on('update-available', (info) => {
+  mainWindow?.webContents.send('update-status', `Actualización disponible: v${info.version}`);
 });
 
 autoUpdater.on('update-not-available', (_info) => {
@@ -24,8 +26,13 @@ autoUpdater.on('update-not-available', (_info) => {
 });
 
 autoUpdater.on('error', (err) => {
-  mainWindow?.webContents.send('update-status', 'Error en actualización: ' + err);
+  mainWindow?.webContents.send('update-status', 'Error en actualización: ' + err.message);
+  // Optional: show dialog in dev mode or if needed
+  if (isDev) {
+    console.error('AutoUpdater error:', err);
+  }
 });
+
 
 autoUpdater.on('download-progress', (progressObj) => {
   let log_message = "Descargando: " + Math.round(progressObj.percent) + '%';
@@ -539,6 +546,20 @@ ipcMain.handle('print-silent', async (_, { content, printerName }) => {
       printWindow.close();
     }
   });
+
+ipcMain.on('check-for-updates', () => {
+  if (isDev) {
+    mainWindow?.webContents.send('update-status', 'Modo desarrollo: No se buscan actualizaciones.');
+    return;
+  }
+  autoUpdater.checkForUpdates().catch(err => {
+    mainWindow?.webContents.send('update-status', 'Error al buscar actualizaciones: ' + err.message);
+  });
+});
+
+ipcMain.on('quit-and-install', () => {
+  autoUpdater.quitAndInstall();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {

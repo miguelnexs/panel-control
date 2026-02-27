@@ -1,5 +1,5 @@
 from django.urls import path
-from .api import WebSettingsView, PaymentMethodListCreateView, PaymentMethodDetailView, BannerListCreateView, BannerDetailView, PolicyView, StatsView, PortalView, PublicPortalView, PublicProductsView, PublicPolicyView, PublicSettingsView, PublicCategoriesView, PublicPaymentsView, PublicCheckoutView, UserURLAvailabilityView, UserURLListCreateView, UserURLDetailView, VisibleCategoriesView, VisibleCategoryUpdateView, VisibleCategoryStatusListView, VisibleProductsView, VisibleProductUpdateView, SiteURLStatusView, SiteURLClaimView, PublicAutoClaimView, PublicBannersView, PublicProductDetailView, TemplateListView, MyTemplateListCreateView, MyTemplateDetailView, TemplateAdminDetailView, TemplateCloneView
+from .api import WebSettingsView, PaymentMethodListCreateView, PaymentMethodDetailView, BannerListCreateView, BannerDetailView, PolicyView, StatsView, PortalView, PublicPortalView, PublicProductsView, PublicPolicyView, PublicSettingsView, PublicCategoriesView, PublicPaymentsView, PublicCheckoutView, UserURLAvailabilityView, UserURLListCreateView, UserURLDetailView, VisibleCategoriesView, VisibleCategoryUpdateView, VisibleCategoryStatusListView, VisibleProductsView, VisibleProductUpdateView, SiteURLStatusView, SiteURLClaimView, PublicAutoClaimView, PublicBannersView, PublicProductDetailView, TemplateListView, MyTemplateListCreateView, MyTemplateDetailView, TemplateAdminDetailView, TemplateCloneView, TestGoogleConfigView
 
 urlpatterns = [
     path('templates/', TemplateListView.as_view(), name='templates_list'),
@@ -8,6 +8,7 @@ urlpatterns = [
     path('templates/my/', MyTemplateListCreateView.as_view(), name='templates_my_list_create'),
     path('templates/my/<int:pk>/', MyTemplateDetailView.as_view(), name='templates_my_detail'),
     path('settings/', WebSettingsView.as_view(), name='web_settings'),
+    path('google/test/', TestGoogleConfigView.as_view(), name='google_test'),
     path('payments/', PaymentMethodListCreateView.as_view(), name='payment_methods'),
     path('payments/<int:pk>/', PaymentMethodDetailView.as_view(), name='payment_method_detail'),
     path('banners/', BannerListCreateView.as_view(), name='banners'),

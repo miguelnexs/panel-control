@@ -103,9 +103,36 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
       setItems((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
+        const newItems = arrayMove(items, oldIndex, newIndex);
+        
+        const updateOrder = async () => {
+          try {
+            const start = Math.min(oldIndex, newIndex);
+            const end = Math.max(oldIndex, newIndex);
+            const promises: Promise<any>[] = [];
+            
+            for (let i = start; i <= end; i++) {
+              promises.push(
+                fetch(`${apiBase}/products/${newItems[i].id}/`, {
+                  method: 'PATCH',
+                  headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ position: i })
+                })
+              );
+            }
+            
+            await Promise.all(promises);
+            setMsg({ type: 'success', text: 'Orden actualizado correctamente' });
+            setTimeout(() => setMsg(null), 3000);
+          } catch (e) { 
+            console.error(e); 
+            setMsg({ type: 'error', text: 'Error al guardar el orden' });
+          }
+        };
+        updateOrder();
+        
+        return newItems;
       });
-      // Here you would typically save the new order to the backend
     }
   };
 
@@ -115,7 +142,7 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
     setMsg(null);
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/products/`, { headers: authHeaders(token) });
+      const res = await fetch(`${apiBase}/products/?ordering=position`, { headers: authHeaders(token) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'No se pudieron cargar productos');
       setItems(data);

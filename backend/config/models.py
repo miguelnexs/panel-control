@@ -37,6 +37,7 @@ class AppSettings(models.Model):
     auto_print = models.BooleanField(default=True)
     receipt_footer = models.TextField(blank=True, default='')
     whatsapp_config = models.JSONField(default=dict, blank=True)
+    google_config = models.JSONField(default=dict, blank=True)
     page_content = models.JSONField(default=dict, blank=True)
     shipping_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     free_shipping_threshold = models.DecimalField(max_digits=12, decimal_places=2, default=0)

@@ -664,7 +664,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
         
         <div className="flex items-center gap-2">
           <a
-            href={`https://softwarebycg.shop/?aid=${adminId}`}
+            href={`${apiBase}/?aid=${adminId}`}
             target="_blank"
             rel="noreferrer"
             className="px-4 py-2.5 rounded-xl bg-white text-gray-800 border border-gray-200 hover:bg-gray-50 hover:text-gray-900 text-sm font-medium transition-all flex items-center gap-2 dark:bg-gray-800 dark:text-white dark:border-gray-700 dark:hover:bg-gray-700"

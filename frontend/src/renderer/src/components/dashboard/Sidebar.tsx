@@ -35,6 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
   const [isInventoryOpen, setIsInventoryOpen] = useState(false)
   const [isVentasOpen, setIsVentasOpen] = useState(false)
   const [isServiciosOpen, setIsServiciosOpen] = useState(false)
+  const [showUpdateModal, setShowUpdateModal] = useState(false)
 
   const toggleConfigMenu = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -128,15 +129,17 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
   useEffect(() => {
     // @ts-ignore
     if (window.electron && window.electron.ipcRenderer) {
-      const handleUpdateStatus = (_, message) => {
+      // @ts-ignore
+      const handleUpdate = (_: any, message: any) => {
         if (setUpdateMsg) setUpdateMsg(message);
       };
-
       // @ts-ignore
-      window.electron.ipcRenderer.on('update-status', handleUpdateStatus);
+      window.electron.ipcRenderer.on('update-status', handleUpdate);
       return () => {
         // @ts-ignore
-        window.electron.ipcRenderer.removeListener('update-status', handleUpdateStatus);
+        if (window.electron && window.electron.ipcRenderer && window.electron.ipcRenderer.removeListener) {
+          window.electron.ipcRenderer.removeListener('update-status', handleUpdate);
+        }
       }
     }
   }, []);
@@ -558,6 +561,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
           <span className={tooltipClass}>Cerrar sesión</span>
         </button>
       </div>
+      {showUpdateModal && <UpdateModal onClose={() => setShowUpdateModal(false)} />}
     </aside>
   )
 }

@@ -1,9 +1,11 @@
 from django.urls import path
 from .api import SaleView, SalesListView, SalesStatsView, SalesNotificationCountView, SalesNotificationMarkReadView, SalesStatusUpdateView
 from .api_payment import PaymentInitView, PublicSalePaymentView
+from .api_receipt import SendReceiptView
 
 urlpatterns = [
     path('', SaleView.as_view(), name='sales_create'),
+    path('receipt/send/<int:pk>/', SendReceiptView.as_view(), name='sales_send_receipt'),
     path('payment/init/', PaymentInitView.as_view(), name='payment_init'),
     path('public/payment/', PublicSalePaymentView.as_view(), name='public_sale_payment'),
     path('list/', SalesListView.as_view(), name='sales_list'),

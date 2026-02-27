@@ -2,8 +2,9 @@
 // Este archivo permite cambiar fácilmente entre desarrollo y producción
 
 // Para desarrollo local
-export const API_BASE_URL: string = 'https://softwarebycg.shop';
+export const API_BASE_URL: string = 'http://localhost:8000';
 // Para producción (descomentar y comentar la de arriba)
+// export const API_BASE_URL: string = 'https://softwarebycg.shop';
 
 // Helper para construir URLs completas
 export const buildApiUrl = (endpoint: string): string => {

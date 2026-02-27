@@ -3,6 +3,7 @@ from django.conf import settings
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 import re
+import requests
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from .models import PaymentMethod, Banner, Policy, VisitStat, VisibleProduct, AccessLog, VisibleCategory, UserURL, Template
@@ -67,7 +68,7 @@ class AppSettingsSerializer(serializers.ModelSerializer):
         model = AppSettings
         fields = ['id', 'primary_color', 'secondary_color', 'font_family', 'logo', 'currencies', 'updated_at',
                   'company_name','company_nit','company_phone','company_whatsapp','company_email','company_address','company_description',
-                  'printer_type','printer_name','paper_width_mm','auto_print','receipt_footer', 'whatsapp_config', 'page_content',
+                  'printer_type','printer_name','paper_width_mm','auto_print','receipt_footer', 'whatsapp_config', 'google_config', 'page_content',
                   'shipping_cost', 'free_shipping_threshold', 'pickup_enabled']
 
     def validate_whatsapp_config(self, value):
@@ -77,6 +78,20 @@ class AppSettingsSerializer(serializers.ModelSerializer):
                 if token and not is_encrypted_text(token):
                     value['access_token'] = encrypt_text(token)
         return value
+
+    def validate_google_config(self, value):
+        try:
+            if isinstance(value, dict):
+                # Encrypt app_password if present
+                if 'app_password' in value:
+                    pwd = value['app_password']
+                    if pwd and not is_encrypted_text(pwd):
+                        value['app_password'] = encrypt_text(str(pwd))
+            return value
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            raise serializers.ValidationError(f"Error procesando configuración de Google: {str(e)}")
 
     def update(self, instance, validated_data):
         if 'whatsapp_config' in validated_data:
@@ -88,6 +103,16 @@ class AppSettingsSerializer(serializers.ModelSerializer):
                 new_config['access_token'] = old_config['access_token']
                 
             validated_data['whatsapp_config'] = new_config
+
+        if 'google_config' in validated_data:
+            new_config = validated_data['google_config']
+            old_config = instance.google_config or {}
+            
+            # Preserve sensitive keys if not provided in update
+            if 'app_password' not in new_config and 'app_password' in old_config:
+                new_config['app_password'] = old_config['app_password']
+                
+            validated_data['google_config'] = new_config
             
         return super().update(instance, validated_data)
 
@@ -270,28 +295,121 @@ class WebSettingsView(views.APIView):
         return Response(data)
 
     def put(self, request):
-        
-        # Actualizar configuración aislada por tenant
         try:
-            user_tenant = getattr(request.user, 'profile', None) and request.user.profile.tenant or None
-        except Exception:
-            user_tenant = None
-        if user_tenant:
-            ws = AppSettings.objects.filter(tenant=user_tenant).first()
-            if not ws:
-                ws = AppSettings.objects.create(tenant=user_tenant)
-        else:
-            ws = AppSettings.objects.first() or AppSettings.objects.create()
-        data = request.data.copy()
-        if 'receipt_footer' in data:
-            import re
-            t = str(data.get('receipt_footer') or '')
-            t = re.sub(r"<\s*script[\s\S]*?>[\s\S]*?<\s*/\s*script\s*>", "", t, flags=re.IGNORECASE)
-            data['receipt_footer'] = t
-        serializer = AppSettingsSerializer(ws, data=data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+            # Actualizar configuración aislada por tenant
+            try:
+                user_tenant = getattr(request.user, 'profile', None) and request.user.profile.tenant or None
+            except Exception:
+                user_tenant = None
+            if user_tenant:
+                ws = AppSettings.objects.filter(tenant=user_tenant).first()
+                if not ws:
+                    ws = AppSettings.objects.create(tenant=user_tenant)
+            else:
+                ws = AppSettings.objects.first() or AppSettings.objects.create()
+            
+            data = request.data.copy()
+            if 'receipt_footer' in data:
+                import re
+                t = str(data.get('receipt_footer') or '')
+                t = re.sub(r"<\s*script[\s\S]*?>[\s\S]*?<\s*/\s*script\s*>", "", t, flags=re.IGNORECASE)
+                data['receipt_footer'] = t
+            
+            serializer = AppSettingsSerializer(ws, data=data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data)
+        except serializers.ValidationError as e:
+            raise e
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({'detail': f'Error guardando configuración: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class TestGoogleConfigView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        email = request.data.get('email')
+        app_password = request.data.get('app_password')
+        api_key = request.data.get('api_key')
+
+        # Mode 1: SMTP Auth (Email + App Password) - Preferred by user
+        if email or app_password:
+            if not email:
+                return Response({'detail': 'Correo electrónico requerido'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Handle masked password
+            if app_password == '********' or not app_password:
+                try:
+                    profile = getattr(request.user, 'profile', None)
+                    user_tenant = profile.tenant if profile else None
+                    if user_tenant:
+                        ws = AppSettings.objects.filter(tenant=user_tenant).first()
+                    else:
+                        ws = AppSettings.objects.first()
+                    
+                    if ws and ws.google_config and 'app_password' in ws.google_config:
+                        from users.utils.crypto import decrypt_text
+                        app_password = decrypt_text(ws.google_config['app_password'])
+                except Exception:
+                    pass
+
+            if not app_password or app_password == '********':
+                 return Response({'detail': 'Contraseña de aplicación requerida'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Test SMTP Connection
+            import smtplib
+            try:
+                server = smtplib.SMTP('smtp.gmail.com', 587, timeout=10)
+                server.starttls()
+                server.login(email, app_password)
+                server.quit()
+                return Response({'detail': 'Conexión SMTP exitosa. Credenciales válidas.'})
+            except smtplib.SMTPAuthenticationError:
+                 return Response({'detail': 'Error de autenticación: Correo o contraseña incorrectos. Asegúrate de usar una Contraseña de Aplicación.'}, status=status.HTTP_401_UNAUTHORIZED)
+            except Exception as e:
+                 return Response({'detail': f'Error de conexión SMTP: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Mode 2: API Key (Legacy/Maps support)
+        if api_key:
+            # If the key is masked (********), try to get the stored key
+            if api_key == '********':
+                try:
+                    profile = getattr(request.user, 'profile', None)
+                    user_tenant = profile.tenant if profile else None
+                    if user_tenant:
+                        ws = AppSettings.objects.filter(tenant=user_tenant).first()
+                    else:
+                        ws = AppSettings.objects.first()
+                    
+                    if ws and ws.google_config and 'api_key' in ws.google_config:
+                        from users.utils.crypto import decrypt_text
+                        api_key = decrypt_text(ws.google_config['api_key'])
+                except Exception:
+                    pass
+
+            if not api_key or api_key == '********':
+                 return Response({'detail': 'API Key inválida o no encontrada'}, status=status.HTTP_400_BAD_REQUEST)
+
+            try:
+                url = f"https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest?key={api_key}"
+                resp = requests.get(url, timeout=10)
+                
+                if resp.status_code == 200:
+                    return Response({'detail': 'Conexión exitosa. La API Key es válida.'})
+                else:
+                    try:
+                        err = resp.json()
+                        msg = err.get('error', {}).get('message', 'Error desconocido de Google')
+                        return Response({'detail': f'Error de validación: {msg}'}, status=status.HTTP_400_BAD_REQUEST)
+                    except:
+                        return Response({'detail': 'La API Key no es válida o no tiene permisos.'}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return Response({'detail': f'Error de conexión: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({'detail': 'Se requieren credenciales (Correo/Contraseña) o API Key'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PaymentMethodListCreateView(generics.ListCreateAPIView):

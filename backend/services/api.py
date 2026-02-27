@@ -1,12 +1,19 @@
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q, Sum, Count
+from django.db import transaction
+from django.utils import timezone
 from django.contrib.auth.models import User
 from .models import Service, ServiceCategory, ServiceDefinition
 from clients.models import Client
 from users.models import UserProfile, Tenant
+from sales.models import Sale, SaleItem
+import random
+from decimal import Decimal
 
 
 class ServiceDefinitionSerializer(serializers.ModelSerializer):
@@ -367,4 +374,65 @@ class ServiceStatsView(APIView):
             'delivered': delivered,
             'received': received,
             'total_value': float(total_value),
+        })
+
+
+class ServiceDeliverView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @transaction.atomic
+    def post(self, request, pk):
+        try:
+            service = Service.objects.select_related('client', 'tenant').get(pk=pk)
+        except Service.DoesNotExist:
+            return Response({'detail': 'Servicio no encontrado'}, status=404)
+
+        tenant = _get_user_tenant(request.user)
+        if tenant and service.tenant != tenant:
+            return Response({'detail': 'No tiene permiso para acceder a este servicio'}, status=403)
+        
+        if service.status == 'entregado':
+            return Response({'detail': 'El servicio ya ha sido entregado'}, status=400)
+
+        # Update service status
+        service.status = 'entregado'
+        service.exit_date = timezone.now().date()
+        service.save()
+
+        # Create Sale
+        total = Decimal(str(service.value))
+        
+        # Generate unique order number
+        base = timezone.now().strftime('%Y%m%d%H%M%S')
+        suffix = f"{random.randint(1000, 9999)}"
+        order_number = f"ORD-{base}-{suffix}"
+        while Sale.objects.filter(order_number=order_number).exists():
+            suffix = f"{random.randint(1000, 9999)}"
+            order_number = f"ORD-{base}-{suffix}"
+
+        sale = Sale.objects.create(
+            client=service.client,
+            tenant=service.tenant,
+            total_amount=total,
+            order_number=order_number,
+            status='delivered'
+        )
+
+        # Create SaleItem
+        SaleItem.objects.create(
+            sale=sale,
+            product=None,
+            color=None,
+            variant=None,
+            quantity=1,
+            unit_price=total,
+            line_total=total,
+            product_name=f"Servicio: {service.name}",
+            product_sku=f"SRV-{service.id}"
+        )
+
+        return Response({
+            'detail': 'Servicio entregado y cobro registrado exitosamente',
+            'sale_id': sale.id,
+            'order_number': sale.order_number
         })
