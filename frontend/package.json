@@ -1,6 +1,6 @@
 {
   "name": "assent-dashboard",
-  "version": "1.0.4",
+  "version": "1.0.9",
   "description": "Assent Dashboard - Sistema de gestión empresarial",
   "main": "./out/main/index.js",
   "author": "example.com",
@@ -20,6 +20,7 @@
     "postinstall": "electron-builder install-app-deps",
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
+    "publish:win": "npm run build && electron-builder --win --publish always",
     "build:mac": "npm run build && electron-builder --mac",
     "build:linux": "npm run build && electron-builder --linux",
     "build:web": "vite build --config vite.config.web.ts",

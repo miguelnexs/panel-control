@@ -1,6 +1,5 @@
 export const candidateApiBases = (): string[] => {
-  return ['http://localhost:8000'];
-  // return ['http://localhost:8000', 'https://softwarebycg.shop'];
+  return ['http://localhost:8000', 'https://softwarebycg.shop'];
 };
 
 const tryHealth = async (base: string): Promise<boolean> => {
@@ -23,5 +22,5 @@ export const detectApiBase = async (): Promise<string> => {
     const ok = await tryHealth(b);
     if (ok) return b.replace(/\/+$/,'');
   }
-  return 'http://localhost:8000';
+  return 'https://softwarebycg.shop';
 };

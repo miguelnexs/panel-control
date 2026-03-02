@@ -2,6 +2,7 @@ node_modules
 dist
 dist-electron
 dist-electron-v*
+dist-temp
 dist-web
 out
 .DS_Store

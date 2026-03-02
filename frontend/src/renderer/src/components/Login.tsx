@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { 
   Briefcase, 
@@ -7,7 +7,9 @@ import {
   BarChart3, 
   ShieldCheck, 
   CheckCircle2,
-  Globe2
+  Globe2,
+  Download,
+  Loader2
 } from 'lucide-react';
 import logo from '../assets/logo.png';
 
@@ -16,11 +18,51 @@ interface LoginProps {
   apiBase: string;
 }
 
+interface UpdateData {
+  status: 'checking' | 'available' | 'not-available' | 'progress' | 'downloaded' | 'error';
+  message: string;
+  percent?: number;
+  version?: string;
+  error?: any;
+}
+
 const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Update state
+  const [updateStatus, setUpdateStatus] = useState<UpdateData['status'] | null>(null);
+  const [updateProgress, setUpdateProgress] = useState(0);
+  const [updateMessage, setUpdateMessage] = useState('');
+
+  useEffect(() => {
+    // @ts-ignore
+    if (window.electron && window.electron.ipcRenderer) {
+      // @ts-ignore
+      const handleUpdateStatus = (_event, data: UpdateData | string) => {
+        console.log('Update status:', data);
+        if (typeof data === 'string') {
+          setUpdateMessage(data);
+        } else {
+          setUpdateStatus(data.status);
+          setUpdateMessage(data.message);
+          if (data.percent) {
+            setUpdateProgress(data.percent);
+          }
+        }
+      };
+
+      // @ts-ignore
+      window.electron.ipcRenderer.on('update-status', handleUpdateStatus);
+
+      return () => {
+        // @ts-ignore
+        window.electron.ipcRenderer.removeListener('update-status', handleUpdateStatus);
+      };
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,6 +213,41 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
             <h2 className="text-3xl font-bold tracking-tight text-white">Bienvenido</h2>
             <p className="text-gray-400">Ingresa a tu panel de control</p>
           </div>
+
+          {/* Update Status UI */}
+          {(updateStatus && updateStatus !== 'not-available') && (
+            <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-200 text-sm animate-in fade-in slide-in-from-top-2 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="p-1 bg-blue-500/20 rounded-full">
+                  {updateStatus === 'checking' || updateStatus === 'progress' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : updateStatus === 'downloaded' ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    <Download className="h-4 w-4" />
+                  )}
+                </div>
+                <div className="flex-1 font-medium">
+                  {updateMessage || 'Comprobando actualizaciones...'}
+                </div>
+              </div>
+              
+              {updateStatus === 'progress' && (
+                <div className="space-y-1">
+                  <div className="h-2 w-full bg-blue-950 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-blue-500 transition-all duration-300 ease-out"
+                      style={{ width: `${updateProgress}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-blue-300/70">
+                    <span>Descargando...</span>
+                    <span>{Math.round(updateProgress)}%</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {error && (
             <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-200 text-sm flex items-center gap-3 animate-in fade-in slide-in-from-top-2">

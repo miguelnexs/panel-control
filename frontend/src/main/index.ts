@@ -14,33 +14,33 @@ autoUpdater.allowPrerelease = false;
 
 // Auto-updater events
 autoUpdater.on('checking-for-update', () => {
-  mainWindow?.webContents.send('update-status', 'Buscando actualizaciones...');
+  mainWindow?.webContents.send('update-status', { status: 'checking', message: 'Buscando actualizaciones...' });
 });
 
 autoUpdater.on('update-available', (info) => {
-  mainWindow?.webContents.send('update-status', `Actualización disponible: v${info.version}`);
+  mainWindow?.webContents.send('update-status', { status: 'available', message: `Actualización disponible: v${info.version}`, version: info.version });
 });
 
 autoUpdater.on('update-not-available', (_info) => {
-  mainWindow?.webContents.send('update-status', 'La aplicación está actualizada.');
+  mainWindow?.webContents.send('update-status', { status: 'not-available', message: 'La aplicación está actualizada.' });
 });
 
 autoUpdater.on('error', (err) => {
-  mainWindow?.webContents.send('update-status', 'Error en actualización: ' + err.message);
-  // Optional: show dialog in dev mode or if needed
-  if (isDev) {
-    console.error('AutoUpdater error:', err);
-  }
+  mainWindow?.webContents.send('update-status', { status: 'error', message: 'Error en actualización: ' + err.message, error: err });
 });
 
-
 autoUpdater.on('download-progress', (progressObj) => {
-  let log_message = "Descargando: " + Math.round(progressObj.percent) + '%';
-  mainWindow?.webContents.send('update-status', log_message);
+  mainWindow?.webContents.send('update-status', { 
+    status: 'progress', 
+    message: `Descargando: ${Math.round(progressObj.percent)}%`, 
+    percent: progressObj.percent,
+    transferred: progressObj.transferred,
+    total: progressObj.total
+  });
 });
 
 autoUpdater.on('update-downloaded', (_info) => {
-  mainWindow?.webContents.send('update-status', 'Actualización descargada. Reiniciando para instalar...');
+  mainWindow?.webContents.send('update-status', { status: 'downloaded', message: 'Actualización descargada. Instalando...' });
   // Automatically quit and install after a short delay
   setTimeout(() => {
     autoUpdater.quitAndInstall();
