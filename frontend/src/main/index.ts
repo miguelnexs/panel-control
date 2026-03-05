@@ -4,6 +4,10 @@ import path from 'path';
 import http from 'http';
 import fs from 'fs';
 import { URL } from 'url';
+import dotenv from 'dotenv';
+
+// Cargar variables de entorno
+dotenv.config();
 
 // Auto-updater logging
 autoUpdater.logger = require('electron-log');
@@ -13,13 +17,15 @@ autoUpdater.autoDownload = true;
 autoUpdater.allowPrerelease = false;
 
 // Configuración para repositorio privado (requiere token)
-// NOTA: Esto expone el token en el código fuente. Para mayor seguridad, usar servidor de actualizaciones.
+// NOTA: Usar variable de entorno para seguridad
+const GH_TOKEN = process.env.GH_TOKEN;
+
 autoUpdater.setFeedURL({
   provider: 'github',
   owner: 'miguelnexs',
   repo: 'panel-control',
   private: true,
-  token: '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'
+  token: GH_TOKEN
 });
 
 // Auto-updater events
