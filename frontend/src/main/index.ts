@@ -20,6 +20,12 @@ autoUpdater.allowPrerelease = false;
 // NOTA: Usar variable de entorno para seguridad
 const GH_TOKEN = process.env.GH_TOKEN;
 
+if (!GH_TOKEN) {
+  autoUpdater.logger.error('GH_TOKEN no encontrado en variables de entorno. Las actualizaciones privadas fallarán.');
+} else {
+  autoUpdater.logger.info('GH_TOKEN cargado correctamente.');
+}
+
 autoUpdater.setFeedURL({
   provider: 'github',
   owner: 'miguelnexs',

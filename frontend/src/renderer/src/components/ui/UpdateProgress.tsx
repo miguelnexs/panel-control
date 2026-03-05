@@ -59,7 +59,7 @@ export const UpdateProgress: React.FC<UpdateProgressProps> = ({
                isComplete ? 'Actualización lista' : 
                'Actualización de sistema'}
             </h4>
-            <p className="text-xs opacity-80 truncate">{message}</p>
+            <p className="text-xs opacity-80 break-words whitespace-pre-wrap">{message}</p>
           </div>
           
           {status === 'progress' && (
