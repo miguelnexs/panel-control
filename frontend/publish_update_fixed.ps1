@@ -9,13 +9,13 @@ $packageJson = Get-Content "package.json" -Raw | ConvertFrom-Json
 $version = $packageJson.version
 
 Write-Host "Iniciando publicación de versión $version..." -ForegroundColor Green
-Write-Host "Se usará el directorio configurado en electron-builder-temp.yml (dist-electron-v9)" -ForegroundColor Yellow
+Write-Host "Se usará el directorio configurado en electron-builder-temp.yml (dist-electron-v15)" -ForegroundColor Yellow
 
 # Intentar limpiar directorio de salida si existe para evitar problemas
 # Pero si falla, seguimos igual (electron-builder intentará sobreescribir)
-if (Test-Path "dist-electron-v9") {
-    Write-Host "Limpiando directorio dist-electron-v9 anterior..." -ForegroundColor Cyan
-    Remove-Item -Path "dist-electron-v9" -Recurse -Force -ErrorAction SilentlyContinue
+if (Test-Path "dist-electron-v15") {
+    Write-Host "Limpiando directorio dist-electron-v15 anterior..." -ForegroundColor Cyan
+    Remove-Item -Path "dist-electron-v15" -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 # Ejecutar compilación (npm run build)
@@ -37,7 +37,7 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "Verifica si hay archivos bloqueados o problemas de red." -ForegroundColor Red
 } else {
     Write-Host "¡Publicación exitosa de la versión $version!" -ForegroundColor Green
-    Write-Host "El instalador está en: dist-electron-v9" -ForegroundColor Green
+    Write-Host "El instalador está en: dist-electron-v15" -ForegroundColor Green
     Write-Host "Las aplicaciones instaladas detectarán la actualización automáticamente." -ForegroundColor Green
 }
 

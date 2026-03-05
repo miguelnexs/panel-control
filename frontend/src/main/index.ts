@@ -12,6 +12,16 @@ autoUpdater.logger.transports.file.level = 'info';
 autoUpdater.autoDownload = true;
 autoUpdater.allowPrerelease = false;
 
+// Configuración para repositorio privado (requiere token)
+// NOTA: Esto expone el token en el código fuente. Para mayor seguridad, usar servidor de actualizaciones.
+autoUpdater.setFeedURL({
+  provider: 'github',
+  owner: 'miguelnexs',
+  repo: 'panel-control',
+  private: true,
+  token: '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'
+});
+
 // Auto-updater events
 autoUpdater.on('checking-for-update', () => {
   mainWindow?.webContents.send('update-status', { status: 'checking', message: 'Buscando actualizaciones...' });

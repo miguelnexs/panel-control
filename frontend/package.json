@@ -1,6 +1,6 @@
 {
   "name": "assent-dashboard",
-  "version": "1.0.9",
+  "version": "1.0.15",
   "description": "Assent Dashboard - Sistema de gestión empresarial",
   "main": "./out/main/index.js",
   "author": "example.com",

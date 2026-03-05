@@ -2,7 +2,7 @@ appId: com.assent.dashboard
 productName: Assent Dashboard
 copyright: Copyright © 2024 Assent Dashboard
 directories:
-  output: dist-electron-v9
+  output: dist-electron-v15
   buildResources: build
 files:
   - "out/**/*"
