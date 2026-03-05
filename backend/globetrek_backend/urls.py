@@ -15,6 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path, include
+from rest_framework.documentation import include_docs_urls
 from users.admin import role_admin_site
 from django.views.generic import RedirectView
 from django.conf import settings
@@ -22,6 +23,7 @@ from django.conf.urls.static import static
 from globetrek_backend.health import health
 
 urlpatterns = [
+    path('docs/', include_docs_urls(title='Assenting API')),
     path('admin/', role_admin_site.urls),
     path('users/', include('users.urls')),
     path('products/', include('products.urls')),

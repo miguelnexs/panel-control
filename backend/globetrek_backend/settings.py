@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    'coreapi',
     
     # Local apps
     'users',
@@ -266,3 +267,8 @@ MERCADOPAGO_PUBLIC_KEY = os.getenv('MERCADOPAGO_PUBLIC_KEY')
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
 
 # Debug DB config
+
+# Autoschema for documentation
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
+}
