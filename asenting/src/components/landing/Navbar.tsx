@@ -48,7 +48,6 @@ const Navbar = () => {
 
   const navLinks = [
     { label: "Funcionalidades", href: isHome ? "#features" : "/funcionalidades", isAnchor: isHome },
-    { label: "Plantillas", href: "/plantillas", isAnchor: false },
     { label: "Descargar", href: "/download", isAnchor: false },
     { label: "Precios", href: "/precios", isAnchor: false },
     { label: "Nosotros", href: "/nosotros", isAnchor: false },

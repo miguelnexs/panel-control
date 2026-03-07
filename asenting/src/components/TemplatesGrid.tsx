@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Download, Layout, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { buildApiUrl } from "@/lib/api";
 
 interface Template {
   id: number;
@@ -18,7 +19,6 @@ interface Template {
 const TemplatesGrid = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
-  const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
   useEffect(() => {
     fetchTemplates();
@@ -26,7 +26,7 @@ const TemplatesGrid = () => {
 
   const fetchTemplates = async () => {
     try {
-      const res = await fetch(`${API_BASE}/webconfig/templates/`);
+      const res = await fetch(buildApiUrl('webconfig/templates/'));
       if (!res.ok) throw new Error("Error al cargar las plantillas");
       const data = await res.json();
       setTemplates(data);
@@ -67,7 +67,7 @@ const TemplatesGrid = () => {
           <div className="relative aspect-video overflow-hidden bg-muted">
             {template.image ? (
               <img 
-                src={template.image.startsWith('http') ? template.image : `${API_BASE}${template.image}`} 
+                src={template.image.startsWith('http') ? template.image : buildApiUrl(template.image)} 
                 alt={template.name}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />

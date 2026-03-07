@@ -19,8 +19,6 @@ import {
   MapPin,
   CreditCard,
   Printer,
-  FileText,
-  CloudLightning,
   Mail
 } from 'lucide-react';
 
@@ -247,40 +245,6 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
     const footer = `<div class="hr"></div><div class="${alignCls} small">${settings.receipt_footer || ''}</div>${qr}`;
     
     return `<!doctype html><html><head><meta charset="utf-8"><title>Recibo ${order.order_number}</title><style>${css}</style></head><body>${header}${table}${footer}</body></html>`;
-  };
-
-  const emitInvoice = async (order: Order) => {
-    if (!confirm('¿Estás seguro de emitir la factura electrónica para este pedido? Esta acción enviará los datos a Alegra.')) return;
-    
-    showToast('Conectando con Alegra...', 'loading');
-    try {
-      const res = await fetch(`${apiBase}/einvoicing/alegra/emit/${order.id}/`, {
-        method: 'POST',
-        headers: authHeaders(token)
-      });
-      const data = await res.json();
-      
-      if (!res.ok) throw new Error(data.detail || 'Error al emitir factura');
-      
-      showToast('Factura emitida exitosamente', 'success');
-      loadOrders(); // Refresh list
-      
-      // Update local viewOrder if it matches
-      if (viewOrder && viewOrder.id === order.id && data.invoice) {
-        setViewOrder({
-            ...viewOrder,
-            dian: {
-                status: data.invoice.status,
-                cufe: data.invoice.cufe,
-                created_at: data.invoice.created_at,
-                xml_url: data.invoice.xml_file, 
-                pdf_url: data.invoice.pdf_file
-            }
-        });
-      }
-    } catch (e: any) {
-      showToast(e.message, 'error');
-    }
   };
 
   const handleSilentPrint = async (order: Order) => {
@@ -793,46 +757,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
             {/* Footer */}
             <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 rounded-b-2xl flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-3 w-full md:w-auto">
-                 {viewOrder.dian ? (
-                    <div className="flex items-center gap-3 flex-wrap">
-                        <div className={`px-3 py-1.5 rounded-lg border text-xs font-bold uppercase tracking-wider ${
-                            viewOrder.dian.status === 'accepted' ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' :
-                            viewOrder.dian.status === 'error' ? 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20' :
-                            'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20'
-                        }`}>
-                            {viewOrder.dian.status === 'accepted' ? 'Factura Aceptada' : 
-                             viewOrder.dian.status === 'error' ? 'Error Emisión' : 
-                             viewOrder.dian.status}
-                        </div>
-                        {viewOrder.dian.pdf_url && (
-                            <a 
-                                href={viewOrder.dian.pdf_url} 
-                                target="_blank" 
-                                rel="noreferrer"
-                                className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg transition-colors text-xs font-medium border border-gray-200 dark:border-gray-700"
-                                title="Ver PDF"
-                            >
-                                <FileText className="w-3.5 h-3.5" /> PDF
-                            </a>
-                        )}
-                        {viewOrder.dian.status === 'error' && (
-                            <button 
-                                onClick={() => emitInvoice(viewOrder)}
-                                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-lg transition-colors flex items-center gap-2"
-                            >
-                                <RefreshCw className="w-3 h-3" /> Reintentar
-                            </button>
-                        )}
-                    </div>
-                 ) : (
-                    <button 
-                        onClick={() => emitInvoice(viewOrder)}
-                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-medium transition-colors shadow-lg shadow-indigo-900/20 text-sm"
-                    >
-                        <CloudLightning className="w-4 h-4" />
-                        <span>Emitir Factura Electrónica</span>
-                    </button>
-                 )}
+
               </div>
 
               <div className="flex gap-2 w-full md:w-auto justify-end">

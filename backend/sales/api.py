@@ -289,6 +289,35 @@ class SalesStatsView(APIView):
         total_amount = qs.aggregate(s=Sum('total_amount')).get('s') or Decimal('0.00')
         today_sales = qs.filter(created_at__gte=day_start).count()
         month_sales = qs.filter(created_at__gte=month_start).count()
+        
+        # Daily sales for chart (last 7 days)
+        daily_sales = []
+        daily_amounts = []
+        daily_labels = []
+        days_map = {'Mon': 'Lun', 'Tue': 'Mar', 'Wed': 'Mié', 'Thu': 'Jue', 'Fri': 'Vie', 'Sat': 'Sáb', 'Sun': 'Dom'}
+        for i in range(6, -1, -1):
+            d = now - timezone.timedelta(days=i)
+            start = d.replace(hour=0, minute=0, second=0, microsecond=0)
+            end = d.replace(hour=23, minute=59, second=59, microsecond=999999)
+            sub_qs = qs.filter(created_at__range=(start, end))
+            count = sub_qs.count()
+            daily_sales.append(count)
+            amount = sub_qs.aggregate(s=Sum('total_amount')).get('s') or 0
+            daily_amounts.append(float(amount))
+            en_day = d.strftime('%a')
+            daily_labels.append(days_map.get(en_day, en_day))
+
+        # Top products
+        top_products = []
+        top_qs = SaleItem.objects.filter(sale__tenant=tenant) if tenant else SaleItem.objects.all()
+        top_qs = top_qs.values('product_name').annotate(qty=Sum('quantity'), amount=Sum('line_total')).order_by('-qty')[:5]
+        for tp in top_qs:
+            top_products.append({
+                'name': tp['product_name'] or 'Producto desconocido',
+                'qty': tp['qty'],
+                'amount': str(tp['amount'])
+            })
+
         status_counts = {
             'pending': qs.filter(status='pending').count(),
             'shipped': qs.filter(status='shipped').count(),
@@ -301,6 +330,10 @@ class SalesStatsView(APIView):
             'today_sales': today_sales,
             'month_sales': month_sales,
             'status_counts': status_counts,
+            'chart_data': daily_sales,
+            'chart_amounts': daily_amounts,
+            'chart_labels': daily_labels,
+            'top_products': top_products,
         })
 
 

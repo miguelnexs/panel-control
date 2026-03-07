@@ -19,13 +19,13 @@ interface Plan {
     icon: any;
 }
 
+import { API_BASE_URL, buildApiUrl } from "@/lib/api";
+
 const Pricing = () => {
   const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const API_BASE = "https://softwarebycg.shop";
 
   useEffect(() => {
       const token = localStorage.getItem("token");
@@ -33,11 +33,21 @@ const Pricing = () => {
       fetchPlans();
   }, []);
 
+  const formatCurrency = (value: number | string) => {
+    return new Intl.NumberFormat('es-CO', { 
+      style: 'currency', 
+      currency: 'COP', 
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(Number(value));
+  };
+
   const fetchPlans = async () => {
       try {
-          const res = await fetch(`${API_BASE}/users/api/subscriptions/plans/`);
+          const res = await fetch(buildApiUrl('users/api/subscriptions/plans/'));
           if (!res.ok) throw new Error("Error fetching plans");
-          const data = await res.json();
+          const responseData = await res.json();
+          const data = Array.isArray(responseData) ? responseData : (responseData.results || []);
           
           const formattedPlans = data.map((plan: any) => {
               const features = [];
@@ -53,25 +63,28 @@ const Pricing = () => {
               if (plan.max_transactions_per_month === -1) features.push("Transacciones ilimitadas");
               else features.push(`Hasta ${plan.max_transactions_per_month} transacciones/mes`);
 
-              if (plan.enable_basic_stats) features.push("Métricas básicas");
-              if (plan.enable_user_management) features.push("Gestión de usuarios");
+              if (plan.enable_basic_dashboard) features.push("Panel Básico");
+              if (plan.enable_basic_sales) features.push("Ventas Básicas");
+              if (plan.enable_basic_stats) features.push("Métricas Básicas");
+              if (plan.enable_user_management) features.push("Gestión de Usuarios");
               
-              if (plan.enable_advanced_sales_analysis) features.push("Métricas avanzadas");
-              if (plan.enable_inventory_management) features.push("Gestión de inventario");
-              if (plan.enable_detailed_reports) features.push("Reportes detallados");
-              if (plan.enable_supplier_management) features.push("Gestión de proveedores");
-              if (plan.enable_daily_backups) features.push("Copias de seguridad diarias");
+              if (plan.enable_advanced_sales_analysis) features.push("Análisis Avanzado");
+              if (plan.enable_inventory_management) features.push("Inventario Avanzado");
+              if (plan.enable_detailed_reports) features.push("Reportes Detallados");
+              if (plan.enable_third_party_integrations) features.push("Integraciones de Terceros");
+              if (plan.enable_supplier_management) features.push("Gestión de Proveedores");
+              if (plan.enable_daily_backups) features.push("Copias de Seguridad");
               
-              if (plan.enable_priority_support) features.push("Soporte prioritario");
-              else features.push("Soporte por email");
-
-              if (plan.enable_api_access) features.push("API acceso completo");
-              if (plan.enable_web_store) features.push("Tienda Web");
-              if (plan.enable_custom_domain) features.push("Dominio personalizado");
+              if (plan.enable_web_store) features.push("Tienda Virtual");
+              if (plan.enable_custom_domain) features.push("Dominio Personalizado");
               if (plan.enable_marketing_tools) features.push("Herramientas de Marketing");
+              if (plan.enable_api_access) features.push("Acceso a API");
+              
+              if (plan.enable_priority_support) features.push("Soporte Prioritario");
+              else features.push("Soporte por Email");
+
               if (plan.enable_whatsapp_notifications) features.push("Notificaciones WhatsApp");
               if (plan.enable_electronic_invoicing) features.push("Facturación Electrónica");
-              if (plan.enable_third_party_integrations) features.push("Integraciones de terceros");
 
               let icon = Zap;
               if (plan.code === 'medium') icon = Crown;
@@ -83,7 +96,7 @@ const Pricing = () => {
                   id: plan.id,
                   name: plan.name,
                   slug: plan.code,
-                  price: isFree ? "Gratis" : `$${parseInt(plan.price).toLocaleString('es-CO')}`,
+                  price: isFree ? "Gratis" : formatCurrency(plan.price),
                   period: isFree ? "" : "/mes",
                   description: plan.description,
                   features: features,

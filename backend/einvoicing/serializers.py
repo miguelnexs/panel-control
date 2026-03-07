@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import DianCompanyConfig, DianResolution, ElectronicInvoice, DianClientInfo, AlegraCompanyConfig
+from .models import DianCompanyConfig, DianResolution, ElectronicInvoice, DianClientInfo
 
 class DianCompanyConfigSerializer(serializers.ModelSerializer):
     class Meta:
@@ -27,11 +27,3 @@ class ElectronicInvoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = ElectronicInvoice
         fields = ['id', 'cufe', 'status', 'provider', 'external_status_message', 'created_at', 'xml_file', 'pdf_file']
-
-class AlegraCompanyConfigSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = AlegraCompanyConfig
-        fields = ['user_email', 'api_key']
-        extra_kwargs = {
-            'api_key': {'write_only': True} # Don't expose key
-        }

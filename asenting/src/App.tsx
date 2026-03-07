@@ -14,7 +14,6 @@ import Cookies from "./pages/Cookies";
 import Auth from "./pages/Auth";
 import DownloadPage from "./pages/Download";
 import PaymentPage from "./pages/Payment";
-import Templates from "./pages/Templates";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -28,7 +27,6 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/plantillas" element={<Templates />} />
           <Route path="/configuracion" element={<Settings />} />
           <Route path="/funcionalidades" element={<Features />} />
           <Route path="/precios" element={<Pricing />} />

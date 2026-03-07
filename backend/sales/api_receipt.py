@@ -79,8 +79,69 @@ class SendReceiptView(APIView):
             company_phone = app_settings.company_phone if app_settings and app_settings.company_phone else ""
             company_email = app_settings.company_email if app_settings and app_settings.company_email else ""
             primary_color = app_settings.primary_color if app_settings and app_settings.primary_color else "#4F46E5"
-            receipt_footer = app_settings.receipt_footer if app_settings and app_settings.receipt_footer else "¡Gracias por su compra!"
             
+            receipt_footer_raw = app_settings.receipt_footer if app_settings and app_settings.receipt_footer else "¡Gracias por su compra!"
+            receipt_footer = receipt_footer_raw
+            
+            # AGGRESSIVE JSON CLEANUP
+            # Fix: The footer might be stored as a JSON string containing configuration
+            # We must extract only the 'message' field to avoid showing raw JSON in emails
+            
+            # Clean/Normalize first
+            receipt_footer_clean = receipt_footer_raw.strip() if receipt_footer_raw else ""
+            try:
+                from html import unescape
+                receipt_footer_clean = unescape(receipt_footer_clean)
+            except:
+                pass
+
+            # Check if it looks like config (contains "show_logo": or starts with {)
+            # Use lower case for check to be case insensitive
+            clean_lower = receipt_footer_clean.lower()
+            if receipt_footer_clean and ('"show_logo":' in clean_lower or '"message":' in clean_lower or receipt_footer_clean.startswith('{')):
+                # It looks like config! Assume it is config and we want to extract message.
+                # PREEMPTIVE STRIKE: Default to empty string to be safe (hide raw config).
+                receipt_footer = ""
+                
+                try:
+                    import json
+                    import re
+                    
+                    extracted_msg = ""
+                    
+                    # 1. Try direct parse first
+                    try:
+                        footer_data = json.loads(receipt_footer_clean)
+                        if isinstance(footer_data, dict):
+                            extracted_msg = footer_data.get('message', '')
+                    except json.JSONDecodeError:
+                        # 2. Try to find JSON object in string (handle extra chars)
+                        json_match = re.search(r'(\{.*\})', receipt_footer_clean, re.DOTALL)
+                        if json_match:
+                            try:
+                                footer_data = json.loads(json_match.group(1))
+                                if isinstance(footer_data, dict):
+                                    extracted_msg = footer_data.get('message', '')
+                            except:
+                                pass
+                                
+                    # 3. Last resort: Regex extraction
+                    if not extracted_msg:
+                         if '"message":' in clean_lower:
+                             match = re.search(r'"message"\s*:\s*"((?:[^"\\]|\\.)*)"', receipt_footer_clean)
+                             if match:
+                                 extracted_msg = match.group(1).replace('\\n', '\n').replace('\\"', '"').replace('\\\\', '\\')
+
+                    # Final Safety Check: If extracted message STILL looks like code, kill it
+                    if extracted_msg and ('"show_logo":' in extracted_msg or extracted_msg.strip().startswith('{')):
+                        receipt_footer = ""
+                    else:
+                        receipt_footer = extracted_msg
+                            
+                except Exception:
+                    # If any error occurs during extraction, keep it empty
+                    receipt_footer = ""
+
             # Logo Logic (needs absolute URL if hosted, or CID if attached - keeping simple for now)
             # For this context, we'll just use text if no public URL logic is set up
             # If you have a way to serve media files publicly, you could use request.build_absolute_uri(app_settings.logo.url)

@@ -5,6 +5,7 @@ import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import { toast } from 'sonner';
 import { Check, ShieldCheck, Lock, CreditCard } from "lucide-react";
+import { buildApiUrl } from "@/lib/api";
 
 const PaymentPage = () => {
   const [searchParams] = useSearchParams();
@@ -70,7 +71,6 @@ const PaymentPage = () => {
 
   const onSubmit = async ({ selectedPaymentMethod, formData }: any) => {
     return new Promise((resolve, reject) => {
-      const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
       const token = localStorage.getItem("token");
 
       if (!token) {
@@ -80,7 +80,7 @@ const PaymentPage = () => {
         return;
       }
 
-      fetch(`${API_BASE}/users/api/payments/process-payment/`, {
+      fetch(buildApiUrl('users/api/payments/process-payment/'), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

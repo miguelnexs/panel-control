@@ -6,6 +6,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, ArrowRight, User, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { useGoogleLogin } from '@react-oauth/google';
+import { buildApiUrl } from "@/lib/api";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -35,11 +36,9 @@ const Auth = () => {
     setFormData({ ...formData, [e.target.id]: e.target.value });
   };
 
-  const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
-
   const checkSubscriptionAndRedirect = async (token: string) => {
       try {
-          const res = await fetch(`${API_BASE}/users/api/me/`, {
+          const res = await fetch(buildApiUrl('users/api/me/'), {
               headers: { 'Authorization': `Bearer ${token}` }
           });
           if (res.ok) {
@@ -65,7 +64,7 @@ const Auth = () => {
     onSuccess: async (tokenResponse) => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/users/api/auth/google/`, {
+            const res = await fetch(buildApiUrl('users/api/auth/google/'), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
@@ -109,7 +108,7 @@ const Auth = () => {
 
     setLoading(true);
     try {
-        const res = await fetch(`${API_BASE}/users/api/auth/google/`, {
+        const res = await fetch(buildApiUrl('users/api/auth/google/'), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
@@ -144,7 +143,7 @@ const Auth = () => {
 
     try {
       if (isLogin) {
-        const res = await fetch(`${API_BASE}/users/api/auth/login/`, {
+        const res = await fetch(buildApiUrl('users/api/auth/login/'), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -192,7 +191,7 @@ const Auth = () => {
             }
         }
 
-        const res = await fetch(`${API_BASE}/users/api/auth/register-tenant/`, {
+        const res = await fetch(buildApiUrl('users/api/auth/register-tenant/'), {
            method: "POST",
            headers: { "Content-Type": "application/json" },
            body: JSON.stringify({
@@ -217,7 +216,7 @@ const Auth = () => {
         toast.success("Registro exitoso.");
         
         // Auto Login para proceder al pago o dashboard
-        const loginRes = await fetch(`${API_BASE}/users/api/auth/login/`, {
+        const loginRes = await fetch(buildApiUrl('users/api/auth/login/'), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -241,7 +240,7 @@ const Auth = () => {
         const createPreference = async () => {
              try {
                  toast.info("Generando enlace de pago...");
-                 const checkoutRes = await fetch(`${API_BASE}/users/api/payments/create-preference/`, {
+                 const checkoutRes = await fetch(buildApiUrl('users/api/payments/create-preference/'), {
                      method: "POST",
                      headers: { 
                          "Content-Type": "application/json",

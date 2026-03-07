@@ -98,43 +98,11 @@ class ElectronicInvoice(models.Model):
     xml_file = models.FileField(upload_to='dian/xmls/', blank=True, null=True)
     pdf_file = models.FileField(upload_to='dian/pdfs/', blank=True, null=True)
     
-    # Fields for Provider Integration (Alegra, etc)
-    provider = models.CharField(max_length=20, default='dian', help_text="dian or alegra")
+    # Fields for Provider Integration
+    provider = models.CharField(max_length=20, default='dian')
     external_id = models.CharField(max_length=100, blank=True, null=True, help_text="ID en el sistema externo")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     external_status_message = models.TextField(blank=True, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-# --- ALEGRA MODELS ---
-
-class AlegraCompanyConfig(models.Model):
-    tenant = models.OneToOneField(Tenant, on_delete=models.CASCADE, related_name='alegra_config')
-    user_email = models.EmailField(help_text="Correo de acceso a Alegra")
-    api_key = models.CharField(max_length=255, help_text="Token de API de Alegra")
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"Alegra Config for {self.tenant}"
-
-class AlegraMapping(models.Model):
-    TYPE_CHOICES = (
-        ('client', 'Cliente'),
-        ('product', 'Producto'),
-    )
-    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
-    type = models.CharField(max_length=20, choices=TYPE_CHOICES)
-    internal_id = models.PositiveIntegerField()
-    alegra_id = models.CharField(max_length=100)
-    
-    class Meta:
-        unique_together = ('tenant', 'type', 'internal_id')
-        indexes = [
-            models.Index(fields=['tenant', 'type', 'internal_id']),
-        ]
-
-    def __str__(self):
-        return f"{self.type} {self.internal_id} -> {self.alegra_id}"

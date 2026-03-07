@@ -44,6 +44,7 @@ interface DashboardViewProps {
   seriesB: number[]; // Used for performance
   recentOrders: any[];
   topProducts: TopProduct[];
+  chartLabels: string[];
 }
 
 const StatCardV2: React.FC<{ 
@@ -94,7 +95,7 @@ const SystemHealthCard: React.FC<{ label: string; status: 'healthy' | 'warning' 
   </div>
 );
 
-const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, topProducts }) => {
+const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, topProducts, chartLabels }) => {
   // Mock data calculations for "Estadísticas clave de uso"
   const activeSessions = Math.floor(stats.usersCount * 0.8) + 2; 
   const avgSessionTime = "24m";
@@ -113,19 +114,20 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, 
           color="text-blue-400"
         />
         <StatCardV2 
-          title="Sesiones Activas" 
-          value={activeSessions}
-          trend="up"
+          title="Pedidos Pendientes" 
+          value={stats.statusCounts.pending}
+          subValue="Por despachar"
+          trend="neutral"
           icon={MonitorCheck}
-          color="text-emerald-400"
+          color="text-amber-400"
         />
         <StatCardV2 
-          title="Tiempo Promedio" 
-          value={avgSessionTime}
-          subValue="Por sesión"
-          trend="down"
+          title="Envíos Realizados" 
+          value={stats.statusCounts.shipped}
+          subValue="En tránsito"
+          trend="up"
           icon={Clock}
-          color="text-amber-400"
+          color="text-emerald-400"
         />
         <StatCardV2 
           title="Ventas Totales" 
@@ -141,29 +143,26 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, 
         {/* Main Chart */}
         <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 shadow-sm dark:shadow-none">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Actividad de la Plataforma</h3>
-            <select className="bg-gray-100 dark:bg-gray-800 border-none text-xs text-gray-600 dark:text-gray-400 rounded-lg focus:ring-0 cursor-pointer">
-              <option>Últimos 7 días</option>
-              <option>Último mes</option>
-            </select>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Actividad de Ventas (Últimos 7 días)</h3>
           </div>
           <div className="h-64">
-            <ActivityChart data={seriesA} labels={['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']} />
+            <ActivityChart data={seriesA} labels={chartLabels} />
           </div>
         </div>
 
-        {/* System Health & Performance */}
+        {/* Sales Status Breakdown */}
         <div className="space-y-4">
           <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 h-full flex flex-col shadow-sm dark:shadow-none">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Estado del Sistema</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Estado de Pedidos</h3>
             <div className="space-y-3 flex-1">
-              <SystemHealthCard label="API Latency" status="healthy" value="45ms" icon={Globe} />
-              <SystemHealthCard label="Database Load" status="healthy" value="12%" icon={Database} />
-              <SystemHealthCard label="Server CPU" status="warning" value="68%" icon={Server} />
+              <SystemHealthCard label="Pendientes" status="warning" value={stats.statusCounts.pending.toString()} icon={Clock} />
+              <SystemHealthCard label="Enviados" status="healthy" value={stats.statusCounts.shipped.toString()} icon={Globe} />
+              <SystemHealthCard label="Entregados" status="healthy" value={stats.statusCounts.delivered.toString()} icon={MonitorCheck} />
+              <SystemHealthCard label="Cancelados" status="error" value={stats.statusCounts.canceled.toString()} icon={Server} />
             </div>
             
             <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
-              <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Rendimiento de Consultas</h4>
+              <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Ventas Diarias ($)</h4>
               <div className="h-32">
                  <PerformanceChart data={seriesB} />
               </div>

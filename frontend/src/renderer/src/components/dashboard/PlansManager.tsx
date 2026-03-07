@@ -16,13 +16,21 @@ interface Plan {
   max_products: number;
   max_categories: number;
   max_transactions_per_month: number;
+  enable_basic_dashboard: boolean;
+  enable_basic_sales: boolean;
+  enable_basic_stats: boolean;
   enable_user_management: boolean;
-  enable_web_store: boolean;
-  enable_inventory_management: boolean;
-  enable_marketing_tools: boolean;
   enable_advanced_sales_analysis: boolean;
+  enable_inventory_management: boolean;
+  enable_detailed_reports: boolean;
+  enable_third_party_integrations: boolean;
   enable_supplier_management: boolean;
   enable_daily_backups: boolean;
+  enable_web_store: boolean;
+  enable_custom_domain: boolean;
+  enable_marketing_tools: boolean;
+  enable_api_access: boolean;
+  enable_priority_support: boolean;
   enable_whatsapp_notifications: boolean;
   enable_electronic_invoicing: boolean;
 }
@@ -208,13 +216,21 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
                 {/* Features List */}
                 <div className="space-y-3 pt-2">
                     {[
+                      { key: 'enable_basic_dashboard', label: 'Panel Básico' },
+                      { key: 'enable_basic_sales', label: 'Ventas Básicas' },
+                      { key: 'enable_basic_stats', label: 'Métricas Básicas' },
                       { key: 'enable_user_management', label: 'Gestión de Usuarios' },
-                      { key: 'enable_web_store', label: 'Tienda Virtual' },
-                      { key: 'enable_inventory_management', label: 'Inventario Avanzado' },
-                      { key: 'enable_marketing_tools', label: 'Herramientas de Marketing' },
                       { key: 'enable_advanced_sales_analysis', label: 'Análisis Avanzado' },
+                      { key: 'enable_inventory_management', label: 'Inventario Avanzado' },
+                      { key: 'enable_detailed_reports', label: 'Reportes Detallados' },
+                      { key: 'enable_third_party_integrations', label: 'Integraciones de Terceros' },
                       { key: 'enable_supplier_management', label: 'Gestión de Proveedores' },
                       { key: 'enable_daily_backups', label: 'Copias de Seguridad' },
+                      { key: 'enable_web_store', label: 'Tienda Virtual' },
+                      { key: 'enable_custom_domain', label: 'Dominio Personalizado' },
+                      { key: 'enable_marketing_tools', label: 'Herramientas de Marketing' },
+                      { key: 'enable_api_access', label: 'Acceso a API' },
+                      { key: 'enable_priority_support', label: 'Soporte Prioritario' },
                       { key: 'enable_whatsapp_notifications', label: 'Notif. WhatsApp' },
                       { key: 'enable_electronic_invoicing', label: 'Facturación Electrónica' },
                     ].map((feature) => (
@@ -393,95 +409,37 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
               <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <h4 className="font-medium text-gray-900 dark:text-white">Funcionalidades</h4>
                 
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={editingPlan.enable_user_management} 
-                    onChange={(e) => handleEditChange('enable_user_management', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">Habilitar Gestión de Usuarios</span>
-                </label>
-                
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={editingPlan.enable_web_store} 
-                    onChange={(e) => handleEditChange('enable_web_store', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">Habilitar Tienda Virtual</span>
-                </label>
-                
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={editingPlan.enable_inventory_management} 
-                    onChange={(e) => handleEditChange('enable_inventory_management', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">Habilitar Inventario Avanzado</span>
-                </label>
-                
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={editingPlan.enable_marketing_tools} 
-                    onChange={(e) => handleEditChange('enable_marketing_tools', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">Habilitar Herramientas de Marketing</span>
-                </label>
-                
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={editingPlan.enable_advanced_sales_analysis} 
-                    onChange={(e) => handleEditChange('enable_advanced_sales_analysis', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">Habilitar Análisis Avanzado</span>
-                </label>
-
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={editingPlan.enable_supplier_management} 
-                    onChange={(e) => handleEditChange('enable_supplier_management', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">Habilitar Gestión de Proveedores</span>
-                </label>
-
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={editingPlan.enable_daily_backups} 
-                    onChange={(e) => handleEditChange('enable_daily_backups', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">Habilitar Copias de Seguridad</span>
-                </label>
-
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={editingPlan.enable_whatsapp_notifications} 
-                    onChange={(e) => handleEditChange('enable_whatsapp_notifications', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">Habilitar Notificaciones WhatsApp</span>
-                </label>
-
-                <label className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={editingPlan.enable_electronic_invoicing} 
-                    onChange={(e) => handleEditChange('enable_electronic_invoicing', e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
-                  />
-                  <span className="text-gray-700 dark:text-gray-300">Habilitar Facturación Electrónica</span>
-                </label>
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { key: 'enable_basic_dashboard', label: 'Panel Básico' },
+                    { key: 'enable_basic_sales', label: 'Ventas Básicas' },
+                    { key: 'enable_basic_stats', label: 'Métricas Básicas' },
+                    { key: 'enable_user_management', label: 'Gestión de Usuarios' },
+                    { key: 'enable_advanced_sales_analysis', label: 'Análisis Avanzado' },
+                    { key: 'enable_inventory_management', label: 'Inventario Avanzado' },
+                    { key: 'enable_detailed_reports', label: 'Reportes Detallados' },
+                    { key: 'enable_third_party_integrations', label: 'Integraciones de Terceros' },
+                    { key: 'enable_supplier_management', label: 'Gestión de Proveedores' },
+                    { key: 'enable_daily_backups', label: 'Copias de Seguridad' },
+                    { key: 'enable_web_store', label: 'Tienda Virtual' },
+                    { key: 'enable_custom_domain', label: 'Dominio Personalizado' },
+                    { key: 'enable_marketing_tools', label: 'Herramientas de Marketing' },
+                    { key: 'enable_api_access', label: 'Acceso a API' },
+                    { key: 'enable_priority_support', label: 'Soporte Prioritario' },
+                    { key: 'enable_whatsapp_notifications', label: 'Notif. WhatsApp' },
+                    { key: 'enable_electronic_invoicing', label: 'Facturación Electrónica' },
+                  ].map((feature) => (
+                    <label key={feature.key} className="flex items-center gap-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={editingPlan[feature.key as keyof Plan] as boolean} 
+                        onChange={(e) => handleEditChange(feature.key as keyof Plan, e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 bg-white dark:bg-gray-700 dark:border-gray-600"
+                      />
+                      <span className="text-gray-700 dark:text-gray-300">{feature.label}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 mt-2">

@@ -33,6 +33,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
   const [productEditing, setProductEditing] = useState<any>(null);
   const [stats, setStats] = useState({ usersCount: 0, productsCount: 0, productsActive: 0, categoriesCount: 0, clientsTotal: 0, ordersTotal: 0, clientsNewMonth: 0, salesToday: 0, salesTotal: 0, salesAmount: 0, statusCounts: { pending: 0, shipped: 0, delivered: 0, canceled: 0 } });
   const [seriesA, setSeriesA] = useState<number[]>([0,0,0,0,0,0,0]);
+  const [chartLabels, setChartLabels] = useState<string[]>(['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']);
   const [seriesB, setSeriesB] = useState<number[]>([0,0,0,0,0,0]);
   const [recentOrders, setRecentOrders] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
@@ -66,13 +67,28 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
       const salesAmount = salesStats.ok ? Number(salesStats.d.total_amount || 0) : 0;
       
       setRecentOrders(ordersRes.ok && Array.isArray(ordersRes.d.results) ? ordersRes.d.results : []);
-      // Placeholder for topProducts if not available
-      setTopProducts([]); 
+      
+      if (salesStats.ok && salesStats.d.top_products) {
+        setTopProducts(salesStats.d.top_products);
+      } else {
+        setTopProducts([]);
+      }
+
+      const statusCounts = (salesStats.ok && salesStats.d.status_counts) ? salesStats.d.status_counts : { pending: 0, shipped: 0, delivered: 0, canceled: 0 };
+      if (salesStats.ok && salesStats.d.chart_data) {
+        setSeriesA(salesStats.d.chart_data);
+      }
+      if (salesStats.ok && salesStats.d.chart_amounts) {
+        setSeriesB(salesStats.d.chart_amounts);
+      }
+      if (salesStats.ok && salesStats.d.chart_labels) {
+        setChartLabels(salesStats.d.chart_labels);
+      }
 
       setStats({ 
         usersCount, productsCount, productsActive, categoriesCount, clientsTotal, ordersTotal, 
         clientsNewMonth, salesToday, salesTotal, salesAmount,
-        statusCounts: { pending: 0, shipped: 0, delivered: 0, canceled: 0 } // Default values as we don't have this data yet
+        statusCounts: statusCounts
       });
     }).catch(() => {});
   }, [token]);
@@ -142,7 +158,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
             <div className="text-sm text-gray-500 dark:text-gray-400 font-medium px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">Rol: <span className="text-gray-900 dark:text-white ml-1">{role}</span></div>
           </div>
           {view === 'dashboard' && (
-            <DashboardView stats={stats} seriesA={seriesA} seriesB={seriesB} recentOrders={recentOrders} topProducts={topProducts} />
+            <DashboardView stats={stats} seriesA={seriesA} seriesB={seriesB} recentOrders={recentOrders} topProducts={topProducts} chartLabels={chartLabels} />
           )}
         <React.Suspense fallback={<div className="text-gray-500 dark:text-gray-400 text-sm flex items-center gap-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"/> Cargando módulo...</div>}>
           {view === 'users' && (

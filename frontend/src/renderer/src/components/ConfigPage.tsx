@@ -7,7 +7,6 @@ import {
   Minimize, QrCode, CheckCircle2, AlertCircle, X, Key
 } from 'lucide-react';
 
-import AlegraConfig from './AlegraConfig';
 import GoogleConfig from './GoogleConfig';
 
 interface UserProfile {
@@ -184,7 +183,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
             logo_url: obj.logo_url || '',
             logo_width_mm: Number(obj.logo_width_mm || 45),
           });
-          setSettings((s) => ({ ...s, receipt_footer: obj.message || s.receipt_footer || '' }));
+          setSettings((s) => ({ ...s, receipt_footer: obj.message ?? '' }));
         } else {
           setPrinterOpts((p) => ({ ...p }));
         }
@@ -424,7 +423,6 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
           { id: 'datos', label: 'Datos Personales', icon: User },
           { id: 'empresa', label: 'Empresa', icon: Building },
           { id: 'impresora', label: 'Impresora', icon: Printer },
-          { id: 'alegra', label: 'Alegra (Facturación)', icon: Key },
           { id: 'google', label: 'Google API', icon: Globe },
         ].map((t) => (
           <button
@@ -999,11 +997,6 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
               </div>
             </form>
           </div>
-        )}
-
-        {/* Alegra */}
-        {tab === 'alegra' && (
-          <AlegraConfig token={token} apiBase={apiBase} />
         )}
 
         {/* Google */}
