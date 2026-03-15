@@ -172,6 +172,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
 }
 
 SIMPLE_JWT = {
@@ -269,6 +270,4 @@ GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '')
 # Debug DB config
 
 # Autoschema for documentation
-REST_FRAMEWORK = {
-    "DEFAULT_SCHEMA_CLASS": "rest_framework.schemas.coreapi.AutoSchema",
-}
+# Moved to main REST_FRAMEWORK config above

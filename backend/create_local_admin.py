@@ -10,7 +10,7 @@ from users.models import UserProfile, Tenant
 
 def create_admin_user():
     username = 'admin'
-    password = 'password123'
+    password = 'pass123'
     email = 'admin@localhost.com'
     
     if User.objects.filter(username=username).exists():
@@ -25,7 +25,7 @@ def create_admin_user():
 
     # Create or update profile
     profile, created = UserProfile.objects.get_or_create(user=user)
-    profile.role = 'admin'
+    profile.role = 'super_admin'
     profile.save()
     print(f"UserProfile for '{username}' set to 'admin'.")
     
