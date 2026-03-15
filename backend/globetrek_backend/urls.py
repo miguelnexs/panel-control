@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.urls import path, include
 from rest_framework.documentation import include_docs_urls
+from rest_framework.permissions import AllowAny
 from users.admin import role_admin_site
 from django.views.generic import RedirectView
 from django.conf import settings
@@ -23,7 +24,7 @@ from django.conf.urls.static import static
 from globetrek_backend.health import health
 
 urlpatterns = [
-    path('docs/', include_docs_urls(title='Assenting API')),
+    path('docs/', include_docs_urls(title='Assenting API', permission_classes=[AllowAny])),
     path('admin/', role_admin_site.urls),
     path('users/', include('users.urls')),
     path('products/', include('products.urls')),
