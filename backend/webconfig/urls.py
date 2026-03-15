@@ -1,5 +1,26 @@
 from django.urls import path
-from .api import WebSettingsView, PaymentMethodListCreateView, PaymentMethodDetailView, BannerListCreateView, BannerDetailView, PolicyView, StatsView, PortalView, PublicPortalView, PublicProductsView, PublicPolicyView, PublicSettingsView, PublicCategoriesView, PublicPaymentsView, PublicCheckoutView, UserURLAvailabilityView, UserURLListCreateView, UserURLDetailView, VisibleCategoriesView, VisibleCategoryUpdateView, VisibleCategoryStatusListView, VisibleProductsView, VisibleProductUpdateView, SiteURLStatusView, SiteURLClaimView, PublicAutoClaimView, PublicBannersView, PublicProductDetailView, TemplateListView, MyTemplateListCreateView, MyTemplateDetailView, TemplateAdminDetailView, TemplateCloneView, TestGoogleConfigView
+from .api_classes.policies import PolicyView, PublicPolicyView
+from .api_classes.stats import StatsView
+from .api_classes.portal import PortalView, PublicPortalView
+from .api_classes.products import PublicProductsView, PublicProductDetailView
+from .api_classes.categories import PublicCategoriesView
+from .api_classes.settings import PublicSettingsView, WebSettingsView
+from .api_classes.payments import PublicPaymentsView, PaymentMethodListCreateView, PaymentMethodDetailView
+from .api_classes.checkout import PublicCheckoutView
+from .api_classes.user_urls import (
+    UserURLAvailabilityView, UserURLListCreateView, UserURLDetailView,
+    SiteURLStatusView, SiteURLClaimView, PublicAutoClaimView
+)
+from .api_classes.visible_categories import (
+    VisibleCategoriesView, VisibleCategoryUpdateView, VisibleCategoryStatusListView
+)
+from .api_classes.visible_products import VisibleProductsView, VisibleProductUpdateView
+from .api_classes.templates import (
+    TemplateListView, MyTemplateListCreateView, MyTemplateDetailView,
+    TemplateAdminDetailView, TemplateCloneView
+)
+from .api_classes.google_config import TestGoogleConfigView
+from .api_classes.banners import PublicBannersView, BannerListCreateView, BannerDetailView
 
 urlpatterns = [
     path('templates/', TemplateListView.as_view(), name='templates_list'),
