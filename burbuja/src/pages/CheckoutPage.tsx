@@ -14,7 +14,7 @@ import Footer from "@/components/Footer";
 const CheckoutPage = () => {
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [deliveryMethod, setDeliveryMethod] = useState('home');
-  const [mpPublicKey, setMpPublicKey] = useState('TEST-5256646b-e09e-4b4b-81aa-861357c6453f'); // Same as asenting
+  const [mpPublicKey, setMpPublicKey] = useState(''); // Fetch from backend
   const [shippingCostVal, setShippingCostVal] = useState(15000);
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(300000);
   const [pickupEnabled, setPickupEnabled] = useState(true);
