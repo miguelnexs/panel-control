@@ -898,7 +898,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 h-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
+    <div className="space-y-6 animate-in fade-in duration-500 h-full flex flex-col text-gray-900 dark:text-white">
       {/* Header & Actions */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
@@ -1148,7 +1148,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                 ))
               ) : (
               <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={7} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center justify-center text-gray-500">
                       <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-full mb-3">
                         <Briefcase className="w-8 h-8 opacity-50" />
