@@ -27,14 +27,18 @@ if (!GH_TOKEN || GH_TOKEN === '') {
 }
 
 // Configurar encabezados de solicitud para autenticación en repo privado
+// GitHub API acepta tanto 'token <token>' como 'Bearer <token>'
 autoUpdater.requestHeaders = {
-  'Authorization': `token ${GH_TOKEN}`
+  'Authorization': `Bearer ${GH_TOKEN}`,
+  'Accept': 'application/vnd.github.v3+json'
 };
 
 autoUpdater.setFeedURL({
   provider: 'github',
   owner: 'miguelnexs',
-  repo: 'panel-control'
+  repo: 'panel-control',
+  private: true,
+  token: GH_TOKEN
 });
 
 // Auto-updater events

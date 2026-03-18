@@ -9,7 +9,7 @@ if (-not $env:GH_TOKEN) {
         $envContent = Get-Content ".env"
         foreach ($line in $envContent) {
             if ($line -match "^GH_TOKEN=(.*)$") {
-                $env:GH_TOKEN = $matches[1]
+                $env:GH_TOKEN = $matches[1].Trim()
                 break
             }
         }
