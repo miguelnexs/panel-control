@@ -18,7 +18,7 @@ autoUpdater.allowPrerelease = false;
 
 // Configuración para repositorio privado (requiere token)
 // Priorizar token de entorno, pero tener un fallback para producción si es necesario
-const GH_TOKEN = process.env.GH_TOKEN || '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';
+const GH_TOKEN = process.env.GH_TOKEN || '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';
 
 if (!GH_TOKEN || GH_TOKEN === '') {
   autoUpdater.logger.error('GH_TOKEN no encontrado. Las actualizaciones privadas fallarán.');
