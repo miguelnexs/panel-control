@@ -1,11 +1,13 @@
 export const candidateApiBases = (): string[] => {
-  return ['http://localhost:8000', 'https://softwarebycg.shop'];
+  // En modo desarrollo, solo usamos local
+  return ['http://localhost:8000'];
+  // return ['http://localhost:8000', 'https://softwarebycg.shop'];
 };
 
 const tryHealth = async (base: string): Promise<boolean> => {
   try {
     const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 7000);
+    const id = setTimeout(() => controller.abort(), 3000); // Reducir timeout para desarrollo
     const res = await fetch(`${base.replace(/\/+$/,'')}/health/`, { signal: controller.signal });
     clearTimeout(id);
     if (!res.ok) return false;
@@ -22,5 +24,7 @@ export const detectApiBase = async (): Promise<string> => {
     const ok = await tryHealth(b);
     if (ok) return b.replace(/\/+$/,'');
   }
-  return 'https://softwarebycg.shop';
+  // Forzar local incluso si falla el health check durante el desarrollo
+  return 'http://localhost:8000';
+  // return 'https://softwarebycg.shop';
 };

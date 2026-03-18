@@ -3,6 +3,8 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
+    networks:
+      - backend_network
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
@@ -20,6 +22,8 @@ services:
 
   backend:
     build: .
+    networks:
+      - backend_network
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app
@@ -40,3 +44,7 @@ services:
 
 volumes:
   postgres_data:
+
+networks:
+  backend_network:
+    driver: bridge

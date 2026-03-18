@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -53,7 +53,7 @@ class ClientsPagination(PageNumberPagination):
 class ClientsListCreateView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ClientSerializer
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     pagination_class = ClientsPagination
 
     def get_queryset(self):
@@ -80,7 +80,7 @@ class ClientsListCreateView(ListCreateAPIView):
 class ClientsDetailView(RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ClientSerializer
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_queryset(self):
         tenant = _get_user_tenant(self.request.user)

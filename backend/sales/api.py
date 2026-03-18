@@ -176,7 +176,14 @@ class SaleView(APIView):
             })
         return Response({
             'id': sale.id,
-            'client': {'id': client.id, 'full_name': client.full_name, 'email': client.email},
+            'client': {
+                'id': client.id, 
+                'full_name': client.full_name, 
+                'email': client.email,
+                'phone': client.phone,
+                'address': client.address,
+                'cedula': client.cedula
+            },
             'total_amount': str(sale.total_amount),
             'created_at': sale.created_at.isoformat(),
             'order_number': sale.order_number,
@@ -263,7 +270,14 @@ class SalesListView(ListAPIView):
                 'order_number': sale.order_number,
                 'status': sale.status,
                 'dian': dian_info,
-                'client': {'id': sale.client.id, 'full_name': sale.client.full_name, 'email': sale.client.email},
+                'client': {
+                    'id': sale.client.id, 
+                    'full_name': sale.client.full_name, 
+                    'email': sale.client.email,
+                    'phone': sale.client.phone,
+                    'address': sale.client.address,
+                    'cedula': sale.client.cedula
+                },
                 'total_amount': str(sale.total_amount),
                 'created_at': sale.created_at.isoformat(),
                 'items_count': sale.items.count(),
@@ -358,6 +372,21 @@ class SalesStatusUpdateView(APIView):
         sale.status = new_status
         sale.save(update_fields=['status'])
         return Response({'id': sale.id, 'status': sale.status})
+
+    def delete(self, request, pk):
+        sale = Sale.objects.filter(id=pk).first()
+        if not sale:
+            from rest_framework.exceptions import NotFound
+            raise NotFound('Pedido no encontrado')
+        tenant = _get_user_tenant(request.user)
+        if tenant and sale.tenant != tenant:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('No puede eliminar pedidos de otro tenant.')
+        
+        # Opcional: Podríamos querer restaurar el stock si el pedido se elimina y no fue cancelado antes?
+        # Por ahora solo eliminamos el pedido. SaleItem tiene on_delete=CASCADE usualmente.
+        sale.delete()
+        return Response({'ok': True}, status=204)
 
 
 class SalesNotificationCountView(APIView):

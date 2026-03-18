@@ -27,7 +27,14 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-me-locally')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
+ALLOWED_HOSTS = ['*']
+
+# CSRF Trusted Origins for IP access
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://192.168.101.35:8000",
+]
 
 # Application definition
 
@@ -95,8 +102,8 @@ DATABASES = {
         'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
         'NAME': os.getenv('DB_NAME', 'globetrek'),
         'USER': os.getenv('DB_USER', 'localix'),
-        'PASSWORD': os.getenv('DB_PASSWORD', os.getenv('PGPASSWORD', '')),
-        'HOST': os.getenv('DB_HOST', '127.0.0.1'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'localix_password'),
+        'HOST': os.getenv('DB_HOST', 'db'),
         'PORT': os.getenv('DB_PORT', '5432'),
         'OPTIONS': {
             'options': '-c client_encoding=UTF8 -c lc_messages=C'

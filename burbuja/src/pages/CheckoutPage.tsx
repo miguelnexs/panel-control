@@ -22,6 +22,7 @@ const CheckoutPage = () => {
     fullName: '',
     cedula: '',
     email: '',
+    phone: '',
     address: '',
     deliveryNotes: '',
     cardNumber: '',
@@ -31,8 +32,10 @@ const CheckoutPage = () => {
   });
   const [errors, setErrors] = useState<any>({});
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [orderInfo, setOrderInfo] = useState<any>(null);
   
-  const { items, totalPrice } = useCart();
+  const { items, totalPrice, clearCart } = useCart();
   
   const subtotal = totalPrice;
   const deliveryCost = deliveryMethod === 'home' ? ((freeShippingThreshold > 0 && subtotal >= freeShippingThreshold) ? 0 : shippingCostVal) : 0;
@@ -124,6 +127,52 @@ const CheckoutPage = () => {
     }).format(price);
   };
 
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Header />
+        <main className="flex-1 container mx-auto px-4 pb-8 pt-24 md:pt-32 flex items-center justify-center">
+          <Card className="max-w-md w-full border-green-100 shadow-lg">
+            <CardContent className="pt-10 pb-10 text-center space-y-6">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="w-10 h-10 text-green-600" />
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900">¡Pago Exitoso!</h1>
+              <p className="text-gray-600">
+                Tu pedido ha sido procesado correctamente y pronto estaremos en contacto contigo.
+              </p>
+              
+              <div className="bg-gray-50 p-4 rounded-lg text-left space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">ID de Pago:</span>
+                  <span className="font-medium text-gray-900">{orderInfo?.id}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Número de Orden:</span>
+                  <span className="font-medium text-gray-900">{orderInfo?.orderNumber}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Estado:</span>
+                  <span className="font-medium text-green-600">
+                    {orderInfo?.status === 'approved' ? 'Aprobado' : 'En proceso'}
+                  </span>
+                </div>
+              </div>
+
+              <Button 
+                onClick={() => window.location.href = '/'}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                Volver a la tienda
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header />
@@ -173,16 +222,27 @@ const CheckoutPage = () => {
                     </div>
                   </div>
                   
-                  <div className="space-y-2">
-                    <Input 
-                      placeholder="juan@ejemplo.com" 
-                      type="email" 
-                      value={formData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      className={errors.email ? 'border-red-500' : ''}
-                      required 
-                    />
-                    {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Input 
+                        placeholder="juan@ejemplo.com" 
+                        type="email" 
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        className={errors.email ? 'border-red-500' : ''}
+                        required 
+                      />
+                      {errors.email && <p className="text-red-500 text-xs">{errors.email}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Input 
+                        placeholder="Teléfono / WhatsApp" 
+                        type="tel" 
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange('phone', e.target.value)}
+                        required 
+                      />
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -239,8 +299,6 @@ const CheckoutPage = () => {
                     </div>
                     )}
                   </RadioGroup>
-
-                  {/* Address fields moved to Contact Info */}
                 </CardContent>
               </Card>
 
@@ -256,31 +314,28 @@ const CheckoutPage = () => {
                       <Payment
                         initialization={{ amount: total }}
                         onSubmit={async (param) => {
-                          // Validar que los datos de contacto estén completos antes de procesar
-                          const requiredFields = ['fullName', 'cedula', 'email', 'address'];
-                          
+                          // Validar campos requeridos
+                          const requiredFields = ['fullName', 'cedula', 'email', 'address', 'phone'];
                           const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData]);
-                          
                           if (missingFields.length > 0) {
-                             // Scroll to contact form
                              const contactForm = document.getElementById('contact-info');
                              if (contactForm) contactForm.scrollIntoView({ behavior: 'smooth' });
-                             
                              alert('Por favor completa tu información de contacto y entrega antes de realizar el pago.');
-                             return Promise.reject(); // Detener proceso de pago
+                             return Promise.reject();
                           }
 
                           try {
                             setIsProcessing(true);
-                            // Construir URL con parámetros públicos (site/aid)
-                            const queryParams = getPublicParams().replace('?', '&');
-                            const url = buildApiUrl('sales/public/payment/') + '?' + queryParams;
+                            const url = buildApiUrl('sales/public/payment/') + getPublicParams();
                             
                             const payload = {
                                 items: items.map(i => ({
+                                    id: i.id,
                                     name: i.name,
                                     quantity: i.quantity,
-                                    price: i.price
+                                    price: i.price,
+                                    color_id: i.color,
+                                    variant_id: i.variant
                                 })),
                                 total_amount: total,
                                 customer: {
@@ -288,7 +343,8 @@ const CheckoutPage = () => {
                                     full_name: formData.fullName
                                 },
                                 payment_data: param,
-                                site: getPublicParams().includes('site=') ? getPublicParams().split('site=')[1].split('&')[0] : undefined
+                                site: getPublicParams().includes('site=') ? decodeURIComponent(getPublicParams().split('site=')[1].split('&')[0]) : undefined,
+                                aid: getPublicParams().includes('aid=') ? getPublicParams().split('aid=')[1].split('&')[0] : undefined
                             };
                             
                             const response = await fetch(url, {
@@ -301,9 +357,15 @@ const CheckoutPage = () => {
                             
                             const data = await response.json();
                             
-                            if (response.ok && (data.status === 'approved' || data.status === 'in_process')) {
-                                alert(`¡Pago ${data.status === 'approved' ? 'aprobado' : 'en proceso'}! ID: ${data.id}`);
-                                // Aquí se podría redirigir a una página de éxito
+                            if (response.ok && (data.status === 'approved' || data.status === 'in_process' || data.status === 'pending')) {
+                                setOrderInfo({
+                                    id: data.id,
+                                    status: data.status,
+                                    orderNumber: data.order_number || 'Pendiente'
+                                });
+                                setIsSuccess(true);
+                                clearCart();
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
                             } else {
                                 alert('Error en el pago: ' + (data.detail || data.error || 'Desconocido'));
                                 console.error('Payment Error:', data);

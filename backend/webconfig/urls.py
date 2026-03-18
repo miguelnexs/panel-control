@@ -1,5 +1,5 @@
 from django.urls import path
-from .api import WebSettingsView, PaymentMethodListCreateView, PaymentMethodDetailView, BannerListCreateView, BannerDetailView, PolicyView, StatsView, PortalView, PublicPortalView, PublicProductsView, PublicPolicyView, PublicSettingsView, PublicCategoriesView, PublicPaymentsView, PublicCheckoutView, UserURLAvailabilityView, UserURLListCreateView, UserURLDetailView, VisibleCategoriesView, VisibleCategoryUpdateView, VisibleCategoryStatusListView, VisibleProductsView, VisibleProductUpdateView, SiteURLStatusView, SiteURLClaimView, PublicAutoClaimView, PublicBannersView, PublicProductDetailView, TemplateListView, MyTemplateListCreateView, MyTemplateDetailView, TemplateAdminDetailView, TemplateCloneView, TestGoogleConfigView
+from .api import WebSettingsView, PaymentMethodListCreateView, PaymentMethodDetailView, BannerListCreateView, BannerDetailView, PolicyView, StatsView, PortalView, PublicPortalView, PublicProductsView, PublicPolicyView, PublicSettingsView, PublicCategoriesView, PublicPaymentsView, PublicCheckoutView, UserURLAvailabilityView, UserURLListCreateView, UserURLDetailView, VisibleCategoriesView, VisibleCategoryUpdateView, VisibleCategoryStatusListView, VisibleProductsView, VisibleProductUpdateView, SiteURLStatusView, SiteURLClaimView, PublicAutoClaimView, PublicBannersView, PublicProductDetailView, TemplateListView, MyTemplateListCreateView, MyTemplateDetailView, TemplateAdminDetailView, TemplateCloneView, TestGoogleConfigView, TestMercadoPagoConfigView
 
 urlpatterns = [
     path('templates/', TemplateListView.as_view(), name='templates_list'),
@@ -25,6 +25,7 @@ urlpatterns = [
     path('public/settings/', PublicSettingsView.as_view(), name='web_public_settings'),
     path('public/payments/', PublicPaymentsView.as_view(), name='web_public_payments'),
     path('public/checkout/', PublicCheckoutView.as_view(), name='web_public_checkout'),
+    path('payments/test/', TestMercadoPagoConfigView.as_view(), name='mercadopago_test'),
     path('user-urls/availability/', UserURLAvailabilityView.as_view(), name='user_url_availability'),
     path('user-urls/', UserURLListCreateView.as_view(), name='user_url_list_create'),
     path('user-urls/<int:pk>/', UserURLDetailView.as_view(), name='user_url_detail'),

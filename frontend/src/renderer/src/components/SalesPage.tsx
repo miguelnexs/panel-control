@@ -11,6 +11,7 @@ import {
   User,
   MapPin,
   Mail,
+  Phone,
   CheckCircle2,
   DollarSign,
   TrendingUp,
@@ -78,8 +79,9 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
   const [msg, setMsg] = useState<Msg | null>(null);
   const [search, setSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
-  const [clientForm, setClientForm] = useState({ full_name: '', cedula: '', email: '', address: '' });
+  const [clientForm, setClientForm] = useState({ full_name: '', cedula: '', email: '', address: '', phone: '' });
   const [openClientModal, setOpenClientModal] = useState(false);
+  const [isCreatingClient, setIsCreatingClient] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   
   const [colorOptions, setColorOptions] = useState<Record<number, Color[]>>({});
@@ -282,11 +284,47 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
       setMsg({ type: 'success', text: 'Venta registrada exitosamente' });
       setCart([]);
       setOpenCart(false);
-      setClientForm({ full_name: '', cedula: '', email: '', address: '' });
+      setClientForm({ full_name: '', cedula: '', email: '', address: '', phone: '' });
       setSelectedClientId('');
       if (onSaleCreated) onSaleCreated();
     } catch (e: any) {
       setMsg({ type: 'error', text: e.message });
+    }
+  };
+
+  const createPermanentClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMsg(null);
+    setIsCreatingClient(true);
+
+    try {
+      const res = await fetch(`${apiBase}/clients/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders(token)
+        },
+        body: JSON.stringify(clientForm)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.detail || 'Error al crear cliente');
+      }
+
+      // Añadir el nuevo cliente a la lista y seleccionarlo
+      const newClient = data;
+      setClients(prev => [newClient, ...prev]);
+      setSelectedClientId(String(newClient.id));
+      setOpenClientModal(false);
+      setMsg({ type: 'success', text: 'Cliente creado y seleccionado correctamente' });
+      
+      // Limpiar el formulario
+      setClientForm({ full_name: '', cedula: '', email: '', address: '', phone: '' });
+    } catch (e: any) {
+      setMsg({ type: 'error', text: e.message });
+    } finally {
+      setIsCreatingClient(false);
     }
   };
 
@@ -644,7 +682,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
               </button>
             </div>
             
-            <form onSubmit={(e) => { e.preventDefault(); setOpenClientModal(false); setSelectedClientId(''); }} className="p-6 space-y-4">
+            <form onSubmit={createPermanentClient} className="p-6 space-y-4">
               <div>
                 <label className="block text-gray-600 dark:text-gray-400 text-sm font-medium mb-1.5">Nombre Completo</label>
                 <div className="relative">
@@ -719,6 +757,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button 
                   type="button" 
+                  disabled={isCreatingClient}
                   onClick={() => setOpenClientModal(false)} 
                   className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-medium transition-colors"
                 >
@@ -726,9 +765,15 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                 </button>
                 <button 
                   type="submit" 
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all shadow-lg shadow-blue-900/20"
+                  disabled={isCreatingClient}
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2"
                 >
-                  Usar Cliente Temporal
+                  {isCreatingClient ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Guardando...
+                    </>
+                  ) : 'Guardar y Seleccionar'}
                 </button>
               </div>
             </form>

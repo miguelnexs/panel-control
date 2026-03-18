@@ -196,6 +196,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
   const [freeShippingThreshold, setFreeShippingThreshold] = useState<number>(300000);
   const [pickupEnabled, setPickupEnabled] = useState<boolean>(true);
   const [savingShipping, setSavingShipping] = useState(false);
+  const [testingMP, setTestingMP] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -532,6 +533,37 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
       setMsg({ type: 'error', text: e.message });
     } finally {
       setSavingPayment(false);
+    }
+  };
+
+  const testMercadoPago = async () => {
+    const mp = paymentMethods.find(p => p.provider === 'mercadopago');
+    if (!mp || !mp.extra_config?.private_key) {
+      setMsg({ type: 'error', text: 'Configura primero el Access Token de Mercado Pago' });
+      return;
+    }
+
+    setTestingMP(true);
+    setMsg(null);
+    try {
+      const res = await fetch(`${apiBase}/webconfig/payments/test/`, {
+        method: 'POST',
+        headers: headers(token),
+        body: JSON.stringify({
+          private_key: mp.extra_config.private_key
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setMsg({ type: 'success', text: data.detail || 'Conexión exitosa con Mercado Pago' });
+      } else {
+        throw new Error(data.detail || 'Error al validar credenciales');
+      }
+    } catch (e: any) {
+      setMsg({ type: 'error', text: e.message });
+    } finally {
+      setTestingMP(false);
     }
   };
 
@@ -1163,8 +1195,16 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                     </div>
                   </div>
 
-                  <div className="flex justify-end pt-4">
-                     <button 
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button 
+                      onClick={testMercadoPago}
+                      disabled={testingMP || savingPayment}
+                      className="px-6 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-all flex items-center gap-2 disabled:opacity-50"
+                    >
+                      {testingMP ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                      Probar Conexión
+                    </button>
+                    <button 
                       onClick={() => {
                         const mp = paymentMethods.find(p => p.provider === 'mercadopago');
                         if (mp) saveMercadoPago(mp);

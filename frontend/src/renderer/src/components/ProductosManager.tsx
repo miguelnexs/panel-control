@@ -84,6 +84,7 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
   const [activeFilter, setActiveFilter] = useState('all');
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [lowStockThreshold, setLowStockThreshold] = useState(5);
+  const [deletingProduct, setDeletingProduct] = useState<any>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -192,15 +193,21 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
   const statsInactive = items.filter((p) => !p.active).length;
 
   const removeProduct = async (id: number) => {
-    if (!confirm('¿Estás seguro de eliminar este producto?')) return;
+    const product = items.find(p => p.id === id);
+    if (product) setDeletingProduct(product);
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!deletingProduct) return;
     setMsg(null);
     try {
-      const res = await fetch(`${apiBase}/products/${id}/`, { method: 'DELETE', headers: authHeaders(token) });
+      const res = await fetch(`${apiBase}/products/${deletingProduct.id}/`, { method: 'DELETE', headers: authHeaders(token) });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.detail || 'No se pudo eliminar');
       }
       setMsg({ type: 'success', text: 'Producto eliminado correctamente' });
+      setDeletingProduct(null);
       loadProducts();
     } catch (e: any) {
       setMsg({ type: 'error', text: e.message });
@@ -568,6 +575,39 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
               >
                 Cerrar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingProduct && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-md shadow-2xl scale-100 animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-rose-100 dark:bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-rose-600 dark:text-rose-500" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Eliminar producto?</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
+                Estás a punto de eliminar <span className="font-bold text-gray-900 dark:text-white">{deletingProduct.name}</span>. 
+                Esta acción no se puede deshacer y el producto dejará de estar disponible en la tienda.
+              </p>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setDeletingProduct(null)}
+                  className="flex-1 px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={confirmDeleteProduct}
+                  className="flex-1 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium shadow-lg shadow-rose-900/20 transition-all transform hover:scale-[1.02]"
+                >
+                  Eliminar ahora
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import {
   Search, 
   RefreshCw, 
   Eye, 
+  Trash2,
   Calendar, 
   DollarSign, 
   Package, 
@@ -146,6 +147,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
+  const [deletingOrder, setDeletingOrder] = useState<Order | null>(null);
 
   const authHeaders = (tkn: string) => ({ ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) });
 
@@ -382,6 +384,37 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
     }
   };
 
+  const handleDeleteOrder = async (order: Order) => {
+    setDeletingOrder(order);
+  };
+
+  const confirmDeleteOrder = async () => {
+    if (!deletingOrder) return;
+
+    showToast('Eliminando pedido...', 'loading');
+
+    try {
+      const res = await fetch(`${apiBase}/sales/status/${deletingOrder.id}/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || 'Error al eliminar pedido');
+      }
+
+      showToast('Pedido eliminado correctamente', 'success');
+      setDeletingOrder(null);
+      loadOrders(); // Recargar la lista
+    } catch (error: any) {
+      showToast(error.message, 'error');
+    }
+  };
+
   const getStatusLabel = (status: string = 'pending') => {
     switch(status.toLowerCase()) {
       case 'completed':
@@ -559,6 +592,13 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
+                      <button 
+                        onClick={() => handleDeleteOrder(o)}
+                        className="p-2 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/20 text-gray-400 hover:text-rose-600 transition-colors"
+                        title="Eliminar pedido"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -660,6 +700,12 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                         <div>
                            <div className="text-xs text-gray-500 uppercase tracking-wider">Documento</div>
                            <div className="text-gray-700 dark:text-gray-300 text-sm">{viewOrder.client.cedula}</div>
+                        </div>
+                      )}
+                      {viewOrder.client?.phone && (
+                        <div>
+                           <div className="text-xs text-gray-500 uppercase tracking-wider">Teléfono</div>
+                           <div className="text-gray-700 dark:text-gray-300 text-sm font-medium">{viewOrder.client.phone}</div>
                         </div>
                       )}
                       {viewOrder.client?.address && (
@@ -812,6 +858,39 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                    Cerrar
                 </button>
              </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deletingOrder && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-md shadow-2xl scale-100 animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-rose-100 dark:bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-rose-600 dark:text-rose-500" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Eliminar pedido?</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
+                Estás a punto de eliminar el pedido <span className="font-mono font-bold text-gray-900 dark:text-white">#{deletingOrder.order_number}</span>. 
+                Esta acción no se puede deshacer y se borrarán todos los datos asociados.
+              </p>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setDeletingOrder(null)}
+                  className="flex-1 px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={confirmDeleteOrder}
+                  className="flex-1 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium shadow-lg shadow-rose-900/20 transition-all transform hover:scale-[1.02]"
+                >
+                  Eliminar ahora
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

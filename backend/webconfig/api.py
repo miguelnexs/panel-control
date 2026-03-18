@@ -71,10 +71,28 @@ class AppSettingsSerializer(serializers.ModelSerializer):
                   'printer_type','printer_name','paper_width_mm','auto_print','receipt_footer', 'whatsapp_config', 'google_config', 'page_content',
                   'shipping_cost', 'free_shipping_threshold', 'pickup_enabled']
 
+    def to_representation(self, instance):
+        """Mask sensitive keys in config fields when sending to frontend."""
+        data = super().to_representation(instance)
+        
+        # Mask WhatsApp token
+        if 'whatsapp_config' in data and isinstance(data['whatsapp_config'], dict):
+            if data['whatsapp_config'].get('access_token'):
+                data['whatsapp_config']['access_token'] = '********'
+        
+        # Mask Google app password
+        if 'google_config' in data and isinstance(data['google_config'], dict):
+            if data['google_config'].get('app_password'):
+                data['google_config']['app_password'] = '********'
+                
+        return data
+
     def validate_whatsapp_config(self, value):
         if isinstance(value, dict):
             if 'access_token' in value:
                 token = value['access_token']
+                if token == '********':
+                    return value
                 if token and not is_encrypted_text(token):
                     value['access_token'] = encrypt_text(token)
         return value
@@ -85,6 +103,8 @@ class AppSettingsSerializer(serializers.ModelSerializer):
                 # Encrypt app_password if present
                 if 'app_password' in value:
                     pwd = value['app_password']
+                    if pwd == '********':
+                        return value
                     if pwd and not is_encrypted_text(pwd):
                         value['app_password'] = encrypt_text(str(pwd))
             return value
@@ -98,8 +118,11 @@ class AppSettingsSerializer(serializers.ModelSerializer):
             new_config = validated_data['whatsapp_config']
             old_config = instance.whatsapp_config or {}
             
-            # Preserve sensitive keys if not provided in update
-            if 'access_token' not in new_config and 'access_token' in old_config:
+            # If token is masked or missing, preserve the old one
+            if 'access_token' in new_config and new_config['access_token'] == '********':
+                if 'access_token' in old_config:
+                    new_config['access_token'] = old_config['access_token']
+            elif 'access_token' not in new_config and 'access_token' in old_config:
                 new_config['access_token'] = old_config['access_token']
                 
             validated_data['whatsapp_config'] = new_config
@@ -108,8 +131,11 @@ class AppSettingsSerializer(serializers.ModelSerializer):
             new_config = validated_data['google_config']
             old_config = instance.google_config or {}
             
-            # Preserve sensitive keys if not provided in update
-            if 'app_password' not in new_config and 'app_password' in old_config:
+            # If password is masked or missing, preserve the old one
+            if 'app_password' in new_config and new_config['app_password'] == '********':
+                if 'app_password' in old_config:
+                    new_config['app_password'] = old_config['app_password']
+            elif 'app_password' not in new_config and 'app_password' in old_config:
                 new_config['app_password'] = old_config['app_password']
                 
             validated_data['google_config'] = new_config
@@ -122,10 +148,23 @@ class PaymentMethodSerializer(serializers.ModelSerializer):
         model = PaymentMethod
         fields = ['id', 'name', 'provider', 'fee_percent', 'active', 'currencies', 'extra_config', 'created_at']
 
+    def to_representation(self, instance):
+        """Mask sensitive keys in extra_config when sending to frontend."""
+        data = super().to_representation(instance)
+        if 'extra_config' in data and isinstance(data['extra_config'], dict):
+            config = data['extra_config']
+            # Mask private_key if it exists and is not empty
+            if 'private_key' in config and config['private_key']:
+                config['private_key'] = '********'
+        return data
+
     def validate_extra_config(self, value):
         if isinstance(value, dict):
             if 'private_key' in value:
                 pk = value['private_key']
+                # If the value is the mask, we don't encrypt it (it will be handled in update)
+                if pk == '********':
+                    return value
                 if pk and not is_encrypted_text(pk):
                     value['private_key'] = encrypt_text(pk)
         return value
@@ -135,8 +174,11 @@ class PaymentMethodSerializer(serializers.ModelSerializer):
             new_config = validated_data['extra_config']
             old_config = instance.extra_config or {}
             
-            # Preserve sensitive keys if not provided in update
-            if 'private_key' not in new_config and 'private_key' in old_config:
+            # If private_key is masked or missing in new_config, preserve the old one
+            if 'private_key' in new_config and new_config['private_key'] == '********':
+                if 'private_key' in old_config:
+                    new_config['private_key'] = old_config['private_key']
+            elif 'private_key' not in new_config and 'private_key' in old_config:
                 new_config['private_key'] = old_config['private_key']
                 
             validated_data['extra_config'] = new_config
@@ -410,6 +452,84 @@ class TestGoogleConfigView(views.APIView):
                 return Response({'detail': f'Error de conexión: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({'detail': 'Se requieren credenciales (Correo/Contraseña) o API Key'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TestMercadoPagoConfigView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        try:
+            # Check if request and request.data are valid
+            if request is None:
+                return Response({'detail': 'Request is None'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            data = getattr(request, 'data', {})
+            if data is None:
+                data = {}
+                
+            access_token = data.get('private_key') if isinstance(data, dict) else None
+            
+            # Handle masked token
+            if access_token == '********' or not access_token:
+                try:
+                    profile = getattr(request.user, 'profile', None)
+                    user_tenant = profile.tenant if profile else None
+                    if user_tenant:
+                        pm = PaymentMethod.objects.filter(tenant=user_tenant, provider='mercadopago').first()
+                        if pm and pm.extra_config and isinstance(pm.extra_config, dict):
+                            from users.utils.crypto import decrypt_text
+                            enc_key = pm.extra_config.get('private_key')
+                            if enc_key:
+                                access_token = decrypt_text(enc_key)
+                except Exception as e:
+                    logger.warning(f"Error retrieving saved token: {str(e)}")
+
+            if not access_token:
+                return Response({'detail': 'Access Token requerido'}, status=status.HTTP_400_BAD_REQUEST)
+
+            import mercadopago
+            sdk = mercadopago.SDK(access_token)
+            
+            # Intentar obtener la información del usuario autenticado (me)
+            # Esta es la forma más ligera de validar si el token es válido
+            res = None
+            try:
+                # Ensure sdk and payment_methods exist
+                pm_client = sdk.payment_methods()
+                if pm_client:
+                    res = pm_client.list_all()
+            except Exception as inner_e:
+                logger.error(f"Error calling MP SDK: {str(inner_e)}")
+                return Response({'detail': f'Error del SDK de Mercado Pago: {str(inner_e)}'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Robust verification of response
+            status_code = None
+            response_data = None
+            
+            if isinstance(res, dict):
+                status_code = res.get('status')
+                response_data = res.get('response')
+            elif res is not None and hasattr(res, 'status'):
+                status_code = getattr(res, 'status', None)
+                response_data = getattr(res, 'response', None)
+            
+            if status_code in (200, 201):
+                return Response({'detail': 'Conexión exitosa. El Access Token es válido.'})
+            else:
+                msg = 'Token inválido o error de respuesta'
+                if isinstance(response_data, dict):
+                    msg = response_data.get('message', msg)
+                elif isinstance(response_data, str):
+                    msg = response_data
+                return Response({'detail': f'Error de validación: {msg}'}, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            import traceback
+            logger.error(f"MP Connection Unexpected Error: {str(e)}\n{traceback.format_exc()}")
+            return Response({'detail': f'Error de conexión: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class PaymentMethodListCreateView(generics.ListCreateAPIView):
@@ -925,8 +1045,13 @@ class PublicCheckoutView(views.APIView):
                                 cancel_url = f"{base_url}/checkout?order={sale.order_number}&status=cancel"
                                 
                                 result = processor.create_payment_intent(sale, return_url, cancel_url)
-                                if result and 'payment_url' in result:
-                                    payment_url = result['payment_url']
+                                if result:
+                                    # Handle different result keys from processor
+                                    payment_url = result.get('checkout_url') or result.get('payment_url')
+                                    payment_id = result.get('payment_id')
+                                    if payment_id:
+                                        sale.payment_id = payment_id
+                                        sale.save(update_fields=['payment_id'])
                     except Exception as e:
                         # Log error but don't fail the order creation? 
                         # Or should we fail? Usually better to fail if payment init fails.
