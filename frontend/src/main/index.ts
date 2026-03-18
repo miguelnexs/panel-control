@@ -26,12 +26,15 @@ if (!GH_TOKEN || GH_TOKEN === '') {
   autoUpdater.logger.info('GH_TOKEN configurado para auto-updates.');
 }
 
+// Configurar encabezados de solicitud para autenticación en repo privado
+autoUpdater.requestHeaders = {
+  'Authorization': `token ${GH_TOKEN}`
+};
+
 autoUpdater.setFeedURL({
   provider: 'github',
   owner: 'miguelnexs',
-  repo: 'panel-control',
-  private: true,
-  token: GH_TOKEN
+  repo: 'panel-control'
 });
 
 // Auto-updater events

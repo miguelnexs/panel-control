@@ -38,6 +38,7 @@ win:
     owner: miguelnexs
     repo: panel-control
     releaseType: release
+    private: true
   icon: resources/logo.png
   requestedExecutionLevel: asInvoker
   artifactName: "${productName} Setup ${version}.${ext}"
