@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   DollarSign,
   TrendingUp,
-  Calendar
+  Calendar,
+  Phone
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
@@ -54,6 +55,14 @@ interface Client {
   phone?: string;
 }
 
+interface ClientForm {
+  full_name: string;
+  cedula: string;
+  email: string;
+  address: string;
+  phone?: string;
+}
+
 interface CartItem {
   product: Product;
   colorId: string | null;
@@ -78,7 +87,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
   const [msg, setMsg] = useState<Msg | null>(null);
   const [search, setSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
-  const [clientForm, setClientForm] = useState({ full_name: '', cedula: '', email: '', address: '' });
+  const [clientForm, setClientForm] = useState<ClientForm>({ full_name: '', cedula: '', email: '', address: '', phone: '' });
   const [openClientModal, setOpenClientModal] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   
@@ -282,7 +291,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
       setMsg({ type: 'success', text: 'Venta registrada exitosamente' });
       setCart([]);
       setOpenCart(false);
-      setClientForm({ full_name: '', cedula: '', email: '', address: '' });
+      setClientForm({ full_name: '', cedula: '', email: '', address: '', phone: '' });
       setSelectedClientId('');
       if (onSaleCreated) onSaleCreated();
     } catch (e: any) {
@@ -598,7 +607,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                 </select>
                             </div>
                             <button 
-                                onClick={() => { setClientForm({ full_name: '', cedula: '', email: '', address: '', phone: '' }); setOpenClientModal(true); }} 
+                                onClick={() => { setClientForm({ full_name: '', cedula: '', email: '', address: '', phone: '',}); setOpenClientModal(true); }} 
                                 className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-blue-500 dark:text-blue-400 hover:text-white hover:bg-blue-600 hover:border-blue-600 transition-all"
                                 title="Nuevo Cliente"
                             >
