@@ -29,6 +29,10 @@ if (GH_TOKEN) {
   feed.token = GH_TOKEN;
 } else {
   feed.private = false;
+  try {
+    // Evitar que electron-updater use GH_TOKEN si existe en entorno del sistema
+    delete (process.env as any).GH_TOKEN;
+  } catch {}
 }
 autoUpdater.setFeedURL(feed);
 
