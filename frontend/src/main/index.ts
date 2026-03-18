@@ -16,23 +16,21 @@ autoUpdater.logger.transports.file.level = 'info';
 autoUpdater.autoDownload = true;
 autoUpdater.allowPrerelease = false;
 
-// Configuración para repositorio privado (requiere token)
-// NOTA: Usar variable de entorno para seguridad
+// Configuración de feed de actualizaciones para GitHub
+// Si existe GH_TOKEN usamos repositorio privado, si no, usamos público
 const GH_TOKEN = process.env.GH_TOKEN;
-
-if (!GH_TOKEN) {
-  autoUpdater.logger.error('GH_TOKEN no encontrado en variables de entorno. Las actualizaciones privadas fallarán.');
-} else {
-  autoUpdater.logger.info('GH_TOKEN cargado correctamente.');
-}
-
-autoUpdater.setFeedURL({
+const feed: any = {
   provider: 'github',
   owner: 'miguelnexs',
-  repo: 'panel-control',
-  private: true,
-  token: GH_TOKEN
-});
+  repo: 'panel-control'
+};
+if (GH_TOKEN) {
+  feed.private = true;
+  feed.token = GH_TOKEN;
+} else {
+  feed.private = false;
+}
+autoUpdater.setFeedURL(feed);
 
 // Auto-updater events
 autoUpdater.on('checking-for-update', () => {
