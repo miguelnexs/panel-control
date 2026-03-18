@@ -16,25 +16,23 @@ autoUpdater.logger.transports.file.level = 'info';
 autoUpdater.autoDownload = true;
 autoUpdater.allowPrerelease = false;
 
-// Configuración de feed de actualizaciones para GitHub
-// Si existe GH_TOKEN usamos repositorio privado, si no, usamos público
-const GH_TOKEN = process.env.GH_TOKEN;
-const feed: any = {
+// Configuración para repositorio privado (requiere token)
+// Priorizar token de entorno, pero tener un fallback para producción si es necesario
+const GH_TOKEN = process.env.GH_TOKEN || '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';
+
+if (!GH_TOKEN || GH_TOKEN === '') {
+  autoUpdater.logger.error('GH_TOKEN no encontrado. Las actualizaciones privadas fallarán.');
+} else {
+  autoUpdater.logger.info('GH_TOKEN configurado para auto-updates.');
+}
+
+autoUpdater.setFeedURL({
   provider: 'github',
   owner: 'miguelnexs',
-  repo: 'panel-control'
-};
-if (GH_TOKEN) {
-  feed.private = true;
-  feed.token = GH_TOKEN;
-} else {
-  feed.private = false;
-  try {
-    // Evitar que electron-updater use GH_TOKEN si existe en entorno del sistema
-    delete (process.env as any).GH_TOKEN;
-  } catch {}
-}
-autoUpdater.setFeedURL(feed);
+  repo: 'panel-control',
+  private: true,
+  token: GH_TOKEN
+});
 
 // Auto-updater events
 autoUpdater.on('checking-for-update', () => {
