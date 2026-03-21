@@ -462,9 +462,10 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
             <span className={tooltipClass}>Usuarios</span>
           </button>
         )}
+
         {(role === 'admin' || role === 'super_admin') && (
           <div className="relative">
-            <button className={`${itemBase} ${['web', 'planes', 'configuracion'].includes(view) ? activeClass : ''}`} onClick={toggleConfigMenu} title="Configuración">
+            <button className={`${itemBase} ${['configuracion', 'web', 'planes'].includes(view) ? activeClass : ''}`} onClick={toggleConfigMenu} title="Configuración">
               {(['web', 'planes', 'configuracion'].includes(view)) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
               <span className={`w-10 h-10 rounded-md flex items-center justify-center ${toneClasses('web')} ${['web', 'planes', 'configuracion'].includes(view) ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
                 <Icon name="settings" className="w-5 h-5" />

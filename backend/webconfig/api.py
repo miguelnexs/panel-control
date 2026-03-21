@@ -84,7 +84,7 @@ class AppSettingsSerializer(serializers.ModelSerializer):
         if 'google_config' in data and isinstance(data['google_config'], dict):
             if data['google_config'].get('app_password'):
                 data['google_config']['app_password'] = '********'
-                
+
         return data
 
     def validate_whatsapp_config(self, value):
@@ -156,17 +156,28 @@ class PaymentMethodSerializer(serializers.ModelSerializer):
             # Mask private_key if it exists and is not empty
             if 'private_key' in config and config['private_key']:
                 config['private_key'] = '********'
+            # Mask sandbox_private_key if it exists and is not empty
+            if 'sandbox_private_key' in config and config['sandbox_private_key']:
+                config['sandbox_private_key'] = '********'
         return data
 
     def validate_extra_config(self, value):
         if isinstance(value, dict):
+            # Normal private key
             if 'private_key' in value:
                 pk = value['private_key']
-                # If the value is the mask, we don't encrypt it (it will be handled in update)
                 if pk == '********':
-                    return value
-                if pk and not is_encrypted_text(pk):
+                    pass # Handled in update
+                elif pk and not is_encrypted_text(pk):
                     value['private_key'] = encrypt_text(pk)
+            
+            # Sandbox private key
+            if 'sandbox_private_key' in value:
+                spk = value['sandbox_private_key']
+                if spk == '********':
+                    pass # Handled in update
+                elif spk and not is_encrypted_text(spk):
+                    value['sandbox_private_key'] = encrypt_text(spk)
         return value
 
     def update(self, instance, validated_data):
@@ -174,12 +185,19 @@ class PaymentMethodSerializer(serializers.ModelSerializer):
             new_config = validated_data['extra_config']
             old_config = instance.extra_config or {}
             
-            # If private_key is masked or missing in new_config, preserve the old one
+            # Handle normal private key
             if 'private_key' in new_config and new_config['private_key'] == '********':
                 if 'private_key' in old_config:
                     new_config['private_key'] = old_config['private_key']
             elif 'private_key' not in new_config and 'private_key' in old_config:
                 new_config['private_key'] = old_config['private_key']
+            
+            # Handle sandbox private key
+            if 'sandbox_private_key' in new_config and new_config['sandbox_private_key'] == '********':
+                if 'sandbox_private_key' in old_config:
+                    new_config['sandbox_private_key'] = old_config['sandbox_private_key']
+            elif 'sandbox_private_key' not in new_config and 'sandbox_private_key' in old_config:
+                new_config['sandbox_private_key'] = old_config['sandbox_private_key']
                 
             validated_data['extra_config'] = new_config
             
@@ -470,7 +488,12 @@ class TestMercadoPagoConfigView(views.APIView):
             if data is None:
                 data = {}
                 
-            access_token = data.get('private_key') if isinstance(data, dict) else None
+            # Check if testing sandbox or production
+            is_sandbox = data.get('sandbox', False)
+            if is_sandbox:
+                access_token = data.get('sandbox_private_key')
+            else:
+                access_token = data.get('private_key')
             
             # Handle masked token
             if access_token == '********' or not access_token:
@@ -481,14 +504,15 @@ class TestMercadoPagoConfigView(views.APIView):
                         pm = PaymentMethod.objects.filter(tenant=user_tenant, provider='mercadopago').first()
                         if pm and pm.extra_config and isinstance(pm.extra_config, dict):
                             from users.utils.crypto import decrypt_text
-                            enc_key = pm.extra_config.get('private_key')
+                            field_name = 'sandbox_private_key' if is_sandbox else 'private_key'
+                            enc_key = pm.extra_config.get(field_name)
                             if enc_key:
                                 access_token = decrypt_text(enc_key)
                 except Exception as e:
                     logger.warning(f"Error retrieving saved token: {str(e)}")
 
             if not access_token:
-                return Response({'detail': 'Access Token requerido'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'detail': f'Access Token {"de prueba" if is_sandbox else "de producción"} requerido'}, status=status.HTTP_400_BAD_REQUEST)
 
             import mercadopago
             sdk = mercadopago.SDK(access_token)
@@ -517,7 +541,7 @@ class TestMercadoPagoConfigView(views.APIView):
                 response_data = getattr(res, 'response', None)
             
             if status_code in (200, 201):
-                return Response({'detail': 'Conexión exitosa. El Access Token es válido.'})
+                return Response({'detail': f'Conexión exitosa. El Access Token {"de prueba" if is_sandbox else "de producción"} es válido.'})
             else:
                 msg = 'Token inválido o error de respuesta'
                 if isinstance(response_data, dict):

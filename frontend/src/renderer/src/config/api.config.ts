@@ -2,9 +2,10 @@
 // Este archivo centraliza la configuración de la API
 
 // ===== CONFIGURACIÓN DE API =====
+// Para desarrollo local (backend Django en http://localhost:8000)
+export const API_BASE_URL: string = 'http://localhost:8000';
 // Para producción (descomentar la siguiente línea y comentar la de arriba)
-export const API_BASE_URL: string = 'https://softwarebycg.shop';
-// export const API_BASE_URL: string = 'http://localhost:8000';
+// export const API_BASE_URL: string = 'https://softwarebycg.shop';
 // ===== FIN CONFIGURACIÓN =====
 
 // Helper para construir URLs completas

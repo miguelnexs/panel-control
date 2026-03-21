@@ -1,5 +1,3 @@
-import { Instagram, Facebook, Twitter } from "lucide-react";
-
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
@@ -23,12 +21,6 @@ const Footer = () => {
     ],
   };
 
-  const socialLinks = [
-    { icon: Instagram, href: "https://instagram.com/urbancarry.co", label: "Instagram" },
-    { icon: Facebook, href: "https://facebook.com/urbancarry", label: "Facebook" },
-    { icon: Twitter, href: "https://twitter.com/urbancarry", label: "Twitter" },
-  ];
-
   return (
     <footer className="bg-card border-t border-border">
       <div className="container mx-auto px-4 lg:px-8 py-12 lg:py-16">
@@ -44,22 +36,6 @@ const Footer = () => {
               Bolsos urbanos premium diseñados para el hombre moderno. 
               Calidad, estilo y funcionalidad en cada producto.
             </p>
-            
-            {/* Social Links */}
-            <div className="flex gap-4">
-              {socialLinks.map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-10 h-10 bg-muted rounded-full flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
-                  aria-label={social.label}
-                >
-                  <social.icon className="w-5 h-5" />
-                </a>
-              ))}
-            </div>
           </div>
 
           {/* Products Column */}

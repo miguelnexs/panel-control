@@ -9,12 +9,21 @@ class PaymentProcessor:
     def __init__(self, payment_method: PaymentMethod):
         self.method = payment_method
         self.config = payment_method.extra_config or {}
-        self.public_key = self.config.get('public_key')
-        encrypted_private = self.config.get('private_key')
+        
+        # Check if sandbox mode is active
+        self.use_sandbox = self.config.get('use_sandbox', False)
+        
+        if self.use_sandbox:
+            self.public_key = self.config.get('sandbox_public_key')
+            encrypted_private = self.config.get('sandbox_private_key')
+        else:
+            self.public_key = self.config.get('public_key')
+            encrypted_private = self.config.get('private_key')
+            
         self.private_key = decrypt_text(encrypted_private) if encrypted_private else None
         
         if not self.private_key:
-            raise ValueError(f"Private key not configured for {payment_method.provider}")
+            raise ValueError(f"Private key not configured for {payment_method.provider} ({'Sandbox' if self.use_sandbox else 'Live'})")
 
     def create_payment_intent(self, sale, return_url=None, cancel_url=None):
         """
@@ -114,8 +123,11 @@ class PaymentProcessor:
         preference_response = sdk.preference().create(preference_data)
         preference = preference_response["response"]
         
+        # Select correct checkout URL based on mode
+        checkout_url = preference["sandbox_init_point"] if self.use_sandbox else preference["init_point"]
+        
         return {
-            'checkout_url': preference["init_point"], # or sandbox_init_point
+            'checkout_url': checkout_url,
             'payment_id': preference["id"],
             'provider': 'mercadopago'
         }

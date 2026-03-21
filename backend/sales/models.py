@@ -7,6 +7,7 @@ from products.models import Product, ProductColor, ProductVariant
 class Sale(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pendiente'),
+        ('processing', 'Procesando'),
         ('shipped', 'Enviado'),
         ('delivered', 'Entregado'),
         ('canceled', 'Cancelado'),

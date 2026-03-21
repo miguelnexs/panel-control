@@ -15,26 +15,35 @@ from users.models import UserProfile, Tenant
 class ClientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Client
-        fields = ['id', 'full_name', 'cedula', 'phone', 'email', 'address', 'created_at']
+        fields = ['id', 'client_type', 'full_name', 'cedula', 'phone', 'email', 'address', 'created_at']
 
     def validate_full_name(self, value):
         if not value or len(value) < 3:
-            raise serializers.ValidationError('Nombre completo es obligatorio.')
+            raise serializers.ValidationError('Nombre o Razón Social es obligatorio.')
         return value
 
     def validate_cedula(self, value):
         import re
-        if not re.fullmatch(r"\d{6,12}", value or ''):
-            raise serializers.ValidationError('Cédula debe ser numérica de 6 a 12 dígitos.')
+        client_type = self.initial_data.get('client_type', 'person')
+        
+        if client_type == 'person':
+            if not re.fullmatch(r"\d{6,15}", value or ''):
+                raise serializers.ValidationError('Cédula debe ser numérica de 6 a 15 dígitos.')
+        else:
+            # Para empresas (NIT), permitimos números, guiones y el dígito de verificación
+            if not re.fullmatch(r"[\d-]{6,20}", value or ''):
+                raise serializers.ValidationError('NIT inválido. Debe contener números y opcionalmente guiones.')
         return value
 
     def validate_email(self, value):
+        if value == '':
+            return None
         return value
 
     def validate_address(self, value):
-        if not value or len(value) < 5:
-            raise serializers.ValidationError('Dirección es obligatoria.')
-        return value
+        if value and len(value) < 5:
+            raise serializers.ValidationError('La dirección debe tener al menos 5 caracteres.')
+        return value or ''
 
 
 def _get_user_tenant(user):

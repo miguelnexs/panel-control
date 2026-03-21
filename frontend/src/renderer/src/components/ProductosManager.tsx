@@ -17,7 +17,8 @@ import {
   Layers,
   Palette,
   X,
-  GripVertical
+  GripVertical,
+  FileText
 } from 'lucide-react';
 import {
   DndContext,
@@ -191,6 +192,7 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
   const statsLow = items.filter((p) => totalStockOf(p) < Number(lowStockThreshold || 0)).length;
   const statsActive = items.filter((p) => !!p.active).length;
   const statsInactive = items.filter((p) => !p.active).length;
+  const statsDrafts = items.filter((p) => !!p.is_draft).length;
 
   const removeProduct = async (id: number) => {
     const product = items.find(p => p.id === id);
@@ -234,6 +236,13 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
     </div>
   );
 
+  const DraftBadge = () => (
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-500/10 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 uppercase tracking-wider">
+      <FileText className="w-3 h-3" />
+      Borrador
+    </span>
+  );
+
   return (
     <div className="space-y-6 relative animate-in fade-in duration-500">
       {loading && (
@@ -266,10 +275,10 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
           color={{ bg: 'bg-emerald-100 dark:bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-200' }} 
         />
         <StatCard 
-          label="Inactivos" 
-          value={statsInactive} 
-          icon={XCircle} 
-          color={{ bg: 'bg-rose-100 dark:bg-rose-500', text: 'text-rose-600 dark:text-rose-200' }} 
+          label="Borradores" 
+          value={statsDrafts} 
+          icon={FileText} 
+          color={{ bg: 'bg-amber-100 dark:bg-amber-500', text: 'text-amber-600 dark:text-amber-200' }} 
         />
       </div>
 
@@ -398,7 +407,10 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
                             )}
                           </div>
                           <div>
-                            <div className="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{p.name}</div>
+                            <div className="flex items-center gap-2">
+                              <div className="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{p.name}</div>
+                              {p.is_draft && <DraftBadge />}
+                            </div>
                             {p.sku && <div className="text-xs text-gray-500">SKU: {p.sku}</div>}
                           </div>
                         </div>
@@ -407,9 +419,15 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
                         <span className="font-medium text-gray-700 dark:text-gray-200">{formatCurrency(p.price)}</span>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-xs text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
-                          {p.category_name || 'Sin categoría'}
-                        </span>
+                        {p.category_name ? (
+                          <span className="px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-bold uppercase tracking-wider border border-blue-100 dark:border-blue-500/20">
+                            {p.category_name}
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-[10px] font-bold uppercase tracking-wider border border-gray-200 dark:border-gray-700">
+                            General
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <div className={`font-medium ${totalStockOf(p) < lowStockThreshold ? 'text-amber-600 dark:text-amber-500' : 'text-emerald-600 dark:text-emerald-500'}`}>

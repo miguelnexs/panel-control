@@ -2,24 +2,71 @@ from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from .models import Product
+from .models import Product, ProductImage
 from users.models import UserProfile, Tenant
 from .models import Category
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q, Sum
-from .models import ProductColor, ProductColorImage, ProductVariant, ProductFeature
+from .models import ProductColor, ProductColorImage, ProductVariant, ProductFeature, ProductSKU
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+
+class CheckSKUView(APIView):
+    permission_classes = [IsAuthenticated]
+    def get(self, request):
+        sku = request.query_params.get('sku')
+        if not sku:
+            return Response({'available': True})
+        
+        tenant = _get_user_tenant(request.user)
+        exists = Product.objects.filter(sku=sku, tenant=tenant).exists()
+        
+        # Si estamos editando, excluir el producto actual
+        exclude_id = request.query_params.get('exclude_id')
+        if exclude_id:
+            exists = Product.objects.filter(sku=sku, tenant=tenant).exclude(id=exclude_id).exists()
+            
+        return Response({'available': not exists})
+
+class ProductSKUSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductSKU
+        fields = ['id', 'color', 'variant', 'sku', 'stock', 'price_override', 'active']
 
 
 class ProductSerializer(serializers.ModelSerializer):
     category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), required=True)
+    gallery = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'price', 'description', 'category', 'sku', 'inventory_qty',
-            'image', 'active', 'position', 'created_at',
-            'is_sale', 'sale_price'
+            'id', 'name', 'price', 'cost_price', 'description', 'category', 'sku', 'inventory_qty',
+            'image', 'active', 'is_draft', 'position', 'created_at',
+            'is_sale', 'sale_price', 'gallery'
         ]
+        read_only_fields = ['gallery']
+
+    def get_gallery(self, instance):
+        request = self.context.get('request')
+        try:
+            gallery = []
+            # Usamos filter y order_by con manejo de excepciones por si la tabla no existe aún
+            for img in ProductImage.objects.filter(product=instance).order_by('position', 'id'):
+                url = getattr(img.image, 'url', None)
+                if request and url and isinstance(url, str) and url.startswith('/'):
+                    url = request.build_absolute_uri(url)
+                gallery.append({
+                    'id': img.id,
+                    'image': url,
+                    'position': img.position
+                })
+            return gallery
+        except Exception:
+            # Si la tabla no existe o hay error de DB, devolvemos lista vacía
+            return []
 
     def validate_name(self, value):
         if not value or len(value) > 100:
@@ -109,9 +156,33 @@ class ProductSerializer(serializers.ModelSerializer):
         except Exception:
             features_data = []
         data['features'] = features_data
+        try:
+            skus_data = []
+            for sku_obj in ProductSKU.objects.filter(product=instance):
+                skus_data.append({
+                    'id': sku_obj.id,
+                    'color': sku_obj.color_id,
+                    'variant': sku_obj.variant_id,
+                    'sku': sku_obj.sku,
+                    'stock': sku_obj.stock,
+                    'price_override': str(sku_obj.price_override) if sku_obj.price_override else None,
+                    'active': sku_obj.active,
+                })
+        except Exception:
+            skus_data = []
+        data['skus'] = skus_data
         return data
 
     def validate(self, attrs):
+        is_draft = attrs.get('is_draft', False) or (self.instance and self.instance.is_draft)
+        
+        # Si es borrador, relajamos validaciones
+        if is_draft:
+            # Solo requerimos el nombre mínimo
+            if not attrs.get('name') and not (self.instance and self.instance.name):
+                raise serializers.ValidationError({'name': 'El nombre es requerido incluso para borradores.'})
+            return attrs
+
         request = self.context.get('request')
         if request and attrs.get('category'):
             tenant = _get_user_tenant(request.user)
@@ -286,6 +357,95 @@ class CategoryListCreateView(ListCreateAPIView):
             qs = qs.order_by(ordering)
         else:
             qs = qs.order_by('-created_at')
+        return qs
+
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'image', 'position', 'created_at']
+        read_only_fields = ['created_at']
+
+    def validate_image(self, value):
+        if value is None:
+            return value
+        ct = getattr(value, 'content_type', None)
+        if ct and ct not in ('image/jpeg', 'image/png', 'image/webp'):
+            raise serializers.ValidationError('Formato de imagen inválido (jpeg, png, webp).')
+        size = getattr(value, 'size', 0)
+        if size and size > 5 * 1024 * 1024:
+            raise serializers.ValidationError('La imagen supera 5MB.')
+        return value
+
+
+class ProductSKUListCreateView(ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProductSKUSerializer
+
+    def get_queryset(self):
+        product_id = self.kwargs.get('product_id')
+        return ProductSKU.objects.filter(product_id=product_id)
+
+    def perform_create(self, serializer):
+        product_id = self.kwargs.get('product_id')
+        product = Product.objects.get(id=product_id)
+        serializer.save(product=product)
+
+
+class ProductSKUDetailView(RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProductSKUSerializer
+
+    def get_queryset(self):
+        return ProductSKU.objects.all()
+
+
+class ProductImageListCreateView(ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProductImageSerializer
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get_queryset(self):
+        product_id = self.kwargs.get('product_id')
+        qs = ProductImage.objects.filter(product_id=product_id).order_by('position', 'id')
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            return ProductImage.objects.none()
+        tenant = _get_user_tenant(self.request.user)
+        if tenant and product.tenant != tenant:
+            return ProductImage.objects.none()
+        if not tenant and _get_user_role(self.request.user) != 'super_admin':
+            return ProductImage.objects.none()
+        return qs
+
+    def perform_create(self, serializer):
+        product_id = self.kwargs.get('product_id')
+        try:
+            product = Product.objects.get(id=product_id)
+        except Product.DoesNotExist:
+            from rest_framework.exceptions import NotFound
+            raise NotFound('Producto no encontrado')
+        tenant = _get_user_tenant(self.request.user)
+        if tenant and product.tenant != tenant:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('No puede modificar la galería de otro tenant.')
+        serializer.save(product=product)
+
+
+class ProductImageDetailView(RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProductImageSerializer
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get_queryset(self):
+        qs = ProductImage.objects.all()
+        tenant = _get_user_tenant(self.request.user)
+        if tenant:
+            qs = qs.filter(product__tenant=tenant)
+        else:
+            if _get_user_role(self.request.user) != 'super_admin':
+                qs = ProductImage.objects.none()
         return qs
 
     def perform_create(self, serializer):

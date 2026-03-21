@@ -8,12 +8,14 @@ from users.models import Tenant
 class Product(models.Model):
     name = models.CharField(max_length=100)
     price = models.DecimalField(max_digits=10, decimal_places=2)
+    cost_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Precio de compra/costo del producto")
     description = models.TextField()
     category = models.ForeignKey('Category', null=True, blank=True, on_delete=models.SET_NULL)
     sku = models.CharField(max_length=50, unique=True)
     inventory_qty = models.PositiveIntegerField(default=0)
     image = models.ImageField(upload_to='products/', null=True, blank=True)
     active = models.BooleanField(default=True)
+    is_draft = models.BooleanField(default=False, help_text="Si es borrador, se permiten campos incompletos")
     position = models.PositiveIntegerField(default=0)
     
     # Offer Fields
@@ -92,3 +94,30 @@ class ProductFeature(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ProductSKU(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='skus')
+    color = models.ForeignKey(ProductColor, on_delete=models.CASCADE, null=True, blank=True)
+    variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE, null=True, blank=True)
+    sku = models.CharField(max_length=50, blank=True)
+    stock = models.PositiveIntegerField(default=0)
+    price_override = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Precio especial para esta combinación")
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('product', 'color', 'variant')
+
+    def __str__(self):
+        return f"{self.product.name} - {self.color.name if self.color else ''} {self.variant.name if self.variant else ''} ({self.sku})"
+
+
+class ProductImage(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='gallery_images')
+    image = models.ImageField(upload_to='products/gallery/')
+    position = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Imagen {self.id} de {self.product.name}"

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import HamburgerMenu from "@/components/HamburgerMenu";
 import HeroCarousel from "@/components/HeroCarousel";
 import CartDropdown from "@/components/CartDropdown";
-import SocialLinks from "@/components/SocialLinks";
+import Footer from "@/components/Footer";
 import LocationInfo from "@/components/LocationInfo";
 import { Link } from "react-router-dom";
 import logoImage from "@/assets/cg-logo.png";
@@ -296,7 +296,8 @@ const Index = () => {
               <p className="text-xs leading-relaxed mb-4">
                 Elegancia minimalista para el mundo moderno
               </p>
-              <SocialLinks variant="footer" />
+              <div className="flex gap-4">
+              </div>
             </div>
             <div>
               <h4 className="text-neutral-200 font-medium mb-4 text-sm tracking-wide">

@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import JSONParser
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.generics import ListAPIView
@@ -155,6 +154,12 @@ class SaleView(APIView):
         sale.total_amount = total
         sale.save(update_fields=['total_amount'])
 
+        # Create OrderNotification for the dashboard
+        try:
+            OrderNotification.objects.create(sale=sale, tenant=tenant, read=False)
+        except Exception as e:
+            print(f"Error creating notification: {e}")
+
         # Send WhatsApp confirmation if configured
         try:
             from .whatsapp_service import WhatsAppService
@@ -202,7 +207,7 @@ class SalesListView(ListAPIView):
 
     def get_queryset(self):
         tenant = _get_user_tenant(self.request.user)
-        qs = Sale.objects.all().select_related('client')
+        qs = Sale.objects.all().select_related('client').prefetch_related('items')
         if tenant:
             qs = qs.filter(tenant=tenant)
         status = self.request.query_params.get('status')
@@ -368,7 +373,7 @@ class SalesStatusUpdateView(APIView):
         valid = dict(Sale.STATUS_CHOICES)
         if new_status not in valid:
             from rest_framework.exceptions import ValidationError
-            raise ValidationError({'status': 'Estado inválido. Use pending, shipped, delivered, canceled.'})
+            raise ValidationError({'status': f'Estado inválido. Opciones válidas: {", ".join(valid.keys())}'})
         sale.status = new_status
         sale.save(update_fields=['status'])
         return Response({'id': sale.id, 'status': sale.status})

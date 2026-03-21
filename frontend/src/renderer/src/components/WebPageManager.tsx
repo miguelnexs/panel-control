@@ -508,7 +508,10 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
         currencies: 'COP',
         extra_config: {
           public_key: mp.extra_config?.public_key,
-          private_key: mp.extra_config?.private_key
+          private_key: mp.extra_config?.private_key,
+          sandbox_public_key: mp.extra_config?.sandbox_public_key,
+          sandbox_private_key: mp.extra_config?.sandbox_private_key,
+          use_sandbox: mp.extra_config?.use_sandbox || false
         }
       };
 
@@ -536,10 +539,12 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
     }
   };
 
-  const testMercadoPago = async () => {
+  const testMercadoPago = async (isSandbox = false) => {
     const mp = paymentMethods.find(p => p.provider === 'mercadopago');
-    if (!mp || !mp.extra_config?.private_key) {
-      setMsg({ type: 'error', text: 'Configura primero el Access Token de Mercado Pago' });
+    const tokenToTest = isSandbox ? mp?.extra_config?.sandbox_private_key : mp?.extra_config?.private_key;
+
+    if (!mp || !tokenToTest) {
+      setMsg({ type: 'error', text: `Configura primero el Access Token de Mercado Pago (${isSandbox ? 'Prueba' : 'Producción'})` });
       return;
     }
 
@@ -550,7 +555,9 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
         method: 'POST',
         headers: headers(token),
         body: JSON.stringify({
-          private_key: mp.extra_config.private_key
+          private_key: mp.extra_config.private_key,
+          sandbox_private_key: mp.extra_config.sandbox_private_key,
+          sandbox: isSandbox
         })
       });
 
@@ -660,6 +667,13 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
     </button>
   );
 
+  const previewUrl = useMemo(() => {
+    if (urlStatus && urlStatus.ok && urlStatus.site_url) {
+      return `https://${urlStatus.site_url}`;
+    }
+    return `https://softwarebycg.shop/?aid=${adminId}`;
+  }, [urlStatus, adminId]);
+
   if (showEditor) {
     return (
       <SiteEditor 
@@ -687,8 +701,8 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white/80 dark:bg-gray-900 p-2 rounded-2xl border border-gray-200 dark:border-gray-800">
         <div className="flex items-center gap-2">
           <TabButton id="productos" label="Productos" icon={ShoppingBag} />
-          <TabButton id="ofertas" label="Ofertas" icon={Tag} />
           <TabButton id="categorias" label="Categorías" icon={Layers} />
+          <TabButton id="ofertas" label="Ofertas" icon={Tag} />
           <TabButton id="urls" label="URLs de Usuario" icon={Globe} />
           <TabButton id="pagos" label="Métodos de Pago" icon={CreditCard} />
           <TabButton id="envios" label="Envíos" icon={Truck} />
@@ -696,7 +710,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
         
         <div className="flex items-center gap-2">
           <a
-            href={`https://softwarebycg.shop/?aid=${adminId}`}
+            href={previewUrl}
             target="_blank"
             rel="noreferrer"
             className="px-4 py-2.5 rounded-xl bg-white text-gray-800 border border-gray-200 hover:bg-gray-50 hover:text-gray-900 text-sm font-medium transition-all flex items-center gap-2 dark:bg-gray-800 dark:text-white dark:border-gray-700 dark:hover:bg-gray-700"
@@ -788,7 +802,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                   </div>
                   
                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-3">
-                    <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-700 dark:text-gray-300">{p.category?.name || 'Sin cat.'}</span>
+                    <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-700 dark:text-gray-300">{p.category?.name || 'General'}</span>
                     <span>•</span>
                     <span>Stock: {Number(p.total_stock ?? p.inventory_qty ?? 0)}</span>
                   </div>
@@ -1124,55 +1138,188 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
               </div>
 
               {paymentMethods.find(p => p.provider === 'mercadopago')?.active && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Public Key</label>
-                      <input 
-                        type="text" 
-                        value={paymentMethods.find(p => p.provider === 'mercadopago')?.extra_config?.public_key || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setPaymentMethods(prev => {
-                            const idx = prev.findIndex(p => p.provider === 'mercadopago');
-                            if (idx === -1) return prev;
-                            const updated = [...prev];
-                            updated[idx] = { 
-                              ...updated[idx], 
-                              extra_config: { ...updated[idx].extra_config, public_key: val } 
-                            };
-                            return updated;
-                          });
-                        }}
-                        className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                      />
+                <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-300">
+                  {/* Modo de Operación Selector */}
+                  <div className="flex items-center justify-between p-4 bg-blue-50/50 dark:bg-blue-500/5 rounded-2xl border border-blue-100 dark:border-blue-500/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
+                        <RefreshCw className={`w-5 h-5 text-blue-600 ${paymentMethods.find(p => p.provider === 'mercadopago')?.extra_config?.use_sandbox ? 'rotate-180' : ''} transition-transform duration-500`} />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Modo de Operación</h4>
+                        <p className="text-xs text-gray-500">Selecciona si deseas usar el entorno de pruebas o producción.</p>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Access Token</label>
-                      <input 
-                        type="password" 
-                        value={paymentMethods.find(p => p.provider === 'mercadopago')?.extra_config?.private_key || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
+                    <div className="flex items-center gap-2 bg-white dark:bg-gray-900 p-1 rounded-xl border border-gray-200 dark:border-gray-700">
+                      <button 
+                        onClick={() => {
                           setPaymentMethods(prev => {
                             const idx = prev.findIndex(p => p.provider === 'mercadopago');
                             if (idx === -1) return prev;
                             const updated = [...prev];
                             updated[idx] = { 
                               ...updated[idx], 
-                              extra_config: { ...updated[idx].extra_config, private_key: val } 
+                              extra_config: { ...updated[idx].extra_config, use_sandbox: true } 
                             };
                             return updated;
                           });
                         }}
-                        placeholder="••••••••••••••••"
-                        className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-                      />
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${paymentMethods.find(p => p.provider === 'mercadopago')?.extra_config?.use_sandbox ? 'bg-amber-500 text-white shadow-lg shadow-amber-900/20' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                      >
+                        Prueba
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setPaymentMethods(prev => {
+                            const idx = prev.findIndex(p => p.provider === 'mercadopago');
+                            if (idx === -1) return prev;
+                            const updated = [...prev];
+                            updated[idx] = { 
+                              ...updated[idx], 
+                              extra_config: { ...updated[idx].extra_config, use_sandbox: false } 
+                            };
+                            return updated;
+                          });
+                        }}
+                        className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${!paymentMethods.find(p => p.provider === 'mercadopago')?.extra_config?.use_sandbox ? 'bg-green-500 text-white shadow-lg shadow-green-900/20' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                      >
+                        Producción
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Producción */}
+                  <div className="space-y-4 p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Credenciales de Producción</h4>
+                      <span className="text-[10px] bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full font-bold">LIVE</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Public Key</label>
+                        <input 
+                          type="text" 
+                          value={paymentMethods.find(p => p.provider === 'mercadopago')?.extra_config?.public_key || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setPaymentMethods(prev => {
+                              const idx = prev.findIndex(p => p.provider === 'mercadopago');
+                              if (idx === -1) return prev;
+                              const updated = [...prev];
+                              updated[idx] = { 
+                                ...updated[idx], 
+                                extra_config: { ...updated[idx].extra_config, public_key: val } 
+                              };
+                              return updated;
+                            });
+                          }}
+                          className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Access Token</label>
+                        <input 
+                          type="password" 
+                          value={paymentMethods.find(p => p.provider === 'mercadopago')?.extra_config?.private_key || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setPaymentMethods(prev => {
+                              const idx = prev.findIndex(p => p.provider === 'mercadopago');
+                              if (idx === -1) return prev;
+                              const updated = [...prev];
+                              updated[idx] = { 
+                                ...updated[idx], 
+                                extra_config: { ...updated[idx].extra_config, private_key: val } 
+                              };
+                              return updated;
+                            });
+                          }}
+                          placeholder="••••••••••••••••"
+                          className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <button 
+                        onClick={() => testMercadoPago(false)}
+                        disabled={testingMP || savingPayment}
+                        className="text-sm px-4 py-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg font-medium transition-all flex items-center gap-2 disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${testingMP ? 'animate-spin' : ''}`} />
+                        Probar Producción
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Sandbox / Prueba */}
+                  <div className="space-y-4 p-4 bg-amber-50/50 dark:bg-amber-500/5 rounded-2xl border border-amber-100 dark:border-amber-500/10">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-bold text-amber-900 dark:text-amber-400 uppercase tracking-wider">Credenciales de Prueba (Sandbox)</h4>
+                      <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full font-bold">TEST MODE</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Public Key (Prueba)</label>
+                        <input 
+                          type="text" 
+                          value={paymentMethods.find(p => p.provider === 'mercadopago')?.extra_config?.sandbox_public_key || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setPaymentMethods(prev => {
+                              const idx = prev.findIndex(p => p.provider === 'mercadopago');
+                              if (idx === -1) return prev;
+                              const updated = [...prev];
+                              updated[idx] = { 
+                                ...updated[idx], 
+                                extra_config: { ...updated[idx].extra_config, sandbox_public_key: val } 
+                              };
+                              return updated;
+                            });
+                          }}
+                          className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                          placeholder="TEST-..."
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Access Token (Prueba)</label>
+                        <input 
+                          type="password" 
+                          value={paymentMethods.find(p => p.provider === 'mercadopago')?.extra_config?.sandbox_private_key || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setPaymentMethods(prev => {
+                              const idx = prev.findIndex(p => p.provider === 'mercadopago');
+                              if (idx === -1) return prev;
+                              const updated = [...prev];
+                              updated[idx] = { 
+                                ...updated[idx], 
+                                extra_config: { ...updated[idx].extra_config, sandbox_private_key: val } 
+                              };
+                              return updated;
+                            });
+                          }}
+                          placeholder="••••••••••••••••"
+                          className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <button 
+                        onClick={() => testMercadoPago(true)}
+                        disabled={testingMP || savingPayment}
+                        className="text-sm px-4 py-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg font-medium transition-all flex items-center gap-2 disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${testingMP ? 'animate-spin' : ''}`} />
+                        Probar Prueba
+                      </button>
                     </div>
                   </div>
                   
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Comisión (%)</label>
+                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Comisión de Pasarela (%)</label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Porcentaje que retiene Mercado Pago por cada venta.</p>
+                    </div>
                     <div className="flex items-center gap-2">
                       <input 
                         type="number" 
@@ -1189,30 +1336,23 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                             return updated;
                           });
                         }}
-                        className="w-32 px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                        className="w-24 px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                       />
-                      <span className="text-gray-500 dark:text-gray-400 text-sm">Lo que cobra la pasarela</span>
+                      <span className="text-gray-500 font-bold">%</span>
                     </div>
                   </div>
 
                   <div className="flex justify-end gap-3 pt-4">
-                    <button 
-                      onClick={testMercadoPago}
-                      disabled={testingMP || savingPayment}
-                      className="px-6 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-all flex items-center gap-2 disabled:opacity-50"
-                    >
-                      {testingMP ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                      Probar Conexión
-                    </button>
                     <button 
                       onClick={() => {
                         const mp = paymentMethods.find(p => p.provider === 'mercadopago');
                         if (mp) saveMercadoPago(mp);
                       }}
                       disabled={savingPayment}
-                      className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50"
+                      className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50 flex items-center gap-2"
                     >
-                      Guardar Configuración
+                      {savingPayment ? <RefreshCw className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                      Guardar Todas las Credenciales
                     </button>
                   </div>
                 </div>

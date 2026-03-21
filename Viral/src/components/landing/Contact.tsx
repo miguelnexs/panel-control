@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Send, MessageCircle, Instagram, Mail, Phone } from "lucide-react";
+import { Send, MessageCircle, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,13 +29,6 @@ const Contact = () => {
       value: "+57 301 864 5967",
       href: "https://wa.me/573018645967",
       color: "hover:text-green-500",
-    },
-    {
-      icon: Instagram,
-      label: "Instagram",
-      value: "@urbancarry.co",
-      href: "https://instagram.com/urbancarry.co",
-      color: "hover:text-pink-500",
     },
     {
       icon: Mail,

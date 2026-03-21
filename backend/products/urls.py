@@ -2,6 +2,7 @@ from django.urls import path
 from . import api as api_views
 
 urlpatterns = [
+    path('check-sku/', api_views.CheckSKUView.as_view(), name='check_sku'),
     path('', api_views.ProductListCreateView.as_view(), name='products_list_create'),
     path('<int:pk>/', api_views.ProductDetailView.as_view(), name='products_detail'),
     path('categories/', api_views.CategoryListCreateView.as_view(), name='categories_list_create'),
@@ -14,4 +15,8 @@ urlpatterns = [
     path('variants/<int:pk>/', api_views.ProductVariantDetailView.as_view(), name='product_variants_detail'),
     path('<int:product_id>/features/', api_views.ProductFeatureListCreateView.as_view(), name='product_features_list_create'),
     path('features/<int:pk>/', api_views.ProductFeatureDetailView.as_view(), name='product_features_detail'),
+    path('<int:product_id>/gallery/', api_views.ProductImageListCreateView.as_view(), name='product_gallery_list_create'),
+    path('gallery/<int:pk>/', api_views.ProductImageDetailView.as_view(), name='product_gallery_detail'),
+    path('<int:product_id>/skus/', api_views.ProductSKUListCreateView.as_view(), name='product_skus_list_create'),
+    path('skus/<int:pk>/', api_views.ProductSKUDetailView.as_view(), name='product_skus_detail'),
 ]

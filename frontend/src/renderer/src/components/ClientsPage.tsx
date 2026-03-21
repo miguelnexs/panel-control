@@ -24,6 +24,7 @@ import {
 
 interface Client {
   id: number;
+  client_type: 'person' | 'company';
   full_name: string;
   cedula: string;
   email: string;
@@ -45,6 +46,7 @@ interface Order {
 }
 
 interface ClientForm {
+  client_type: 'person' | 'company';
   full_name: string;
   cedula: string;
   email: string;
@@ -84,7 +86,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
   const [total, setTotal] = useState(0);
   const [ordering, setOrdering] = useState('-created_at');
   const [search, setSearch] = useState('');
-  const [form, setForm] = useState<ClientForm>({ full_name: '', cedula: '', email: '', phone: '', address: '' });
+  const [form, setForm] = useState<ClientForm>({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [stats, setStats] = useState<ClientStats>({ total: 0, new_this_month: 0, top_cities: [], new_today: 0 });
   const [open, setOpen] = useState(false);
@@ -93,7 +95,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
   const [viewServices, setViewServices] = useState<any[]>([]);
   const [viewLoading, setViewLoading] = useState(false);
   const [editClient, setEditClient] = useState<Client | null>(null);
-  const [editForm, setEditForm] = useState<ClientForm>({ full_name: '', cedula: '', email: '', phone: '', address: '' });
+  const [editForm, setEditForm] = useState<ClientForm>({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '' });
+  const [deletingClient, setDeletingClient] = useState<Client | null>(null);
 
   const authHeaders = (tkn: string) => ({ ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) });
 
@@ -158,6 +161,27 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
       loadStats();
     } catch (e2: any) {
       setMsg({ type: 'error', text: e2.message });
+    }
+  };
+
+  const confirmDeleteClient = async () => {
+    if (!deletingClient) return;
+    try {
+      const res = await fetch(`${apiBase}/clients/${deletingClient.id}/`, {
+        method: 'DELETE',
+        headers: authHeaders(token)
+      });
+      if (res.ok) {
+        setMsg({ type: 'success', text: 'Cliente eliminado' });
+        loadClients();
+        loadStats();
+      } else {
+        setMsg({ type: 'error', text: 'No se pudo eliminar el cliente' });
+      }
+    } catch (e) {
+      setMsg({ type: 'error', text: 'Error de red' });
+    } finally {
+      setDeletingClient(null);
     }
   };
 
@@ -270,7 +294,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                 <RefreshCw className="w-4 h-4" />
               </button>
               <button 
-                onClick={() => { setForm({ full_name: '', cedula: '', email: '', address: '' }); setErrors({}); setOpen(true); }}
+                onClick={() => { setForm({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '' }); setErrors({}); setOpen(true); }}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-900/20"
               >
                 <Plus className="w-4 h-4" />
@@ -362,14 +386,24 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                         <Eye className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={() => { setEditClient(c); setEditForm({ full_name: c.full_name || '', cedula: c.cedula || '', email: c.email || '', phone: c.phone || '', address: c.address || '' }); }}
-                        className="p-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/10 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        onClick={() => { 
+                          setEditClient(c); 
+                          setEditForm({ 
+                            client_type: (c.client_type as 'person' | 'company') || 'person', 
+                            full_name: c.full_name || '', 
+                            cedula: c.cedula || '', 
+                            email: c.email || '', 
+                            phone: c.phone || '', 
+                            address: c.address || '' 
+                          }); 
+                        }}
+                        className="p-2 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-500/10 text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
                         title="Editar"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={async () => { if (!confirm('Eliminar cliente?')) return; try { const res = await fetch(`${apiBase}/clients/${c.id}/`, { method: 'DELETE', headers: authHeaders(token) }); if (res.ok) { loadClients(); loadStats(); } } catch(_){} }}
+                        onClick={() => { setDeletingClient(c); }}
                         className="p-2 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/10 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
                         title="Eliminar"
                       >
@@ -443,9 +477,29 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={async (e) => { e.preventDefault(); setLoading(true); setErrors({}); try { const res = await fetch(`${apiBase}/clients/`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders(token) }, body: JSON.stringify(form) }); const data = await res.json(); if (res.ok) { setMsg({ type: 'success', text: 'Cliente registrado' }); setForm({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '' }); setOpen(false); loadClients(); loadStats(); } else { setErrors(data); } } catch(_) { setMsg({ type: 'error', text: 'Error de red' }); } finally { setLoading(false); } }} className="p-6 space-y-4">
+              {/* Client Type Selector */}
+              <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, client_type: 'person' }))}
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${form.client_type === 'person' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                >
+                  Persona Natural
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, client_type: 'company' }))}
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${form.client_type === 'company' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                >
+                  Empresa (NIT)
+                </button>
+              </div>
+
               <div>
-                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Nombre Completo</label>
+                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">
+                  {form.client_type === 'person' ? 'Nombre Completo' : 'Razón Social'}
+                </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                   <input 
@@ -453,22 +507,32 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                     value={form.full_name} 
                     onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))} 
                     className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.full_name ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
-                    placeholder="Ej. Juan Pérez"
+                    placeholder={form.client_type === 'person' ? "Ej. Juan Pérez" : "Ej. Mi Empresa S.A.S"}
                   />
                 </div>
                 {errors.full_name && <p className="mt-1 text-xs text-rose-400">{errors.full_name}</p>}
               </div>
 
               <div>
-                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Cédula / Identificación</label>
+                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">
+                  {form.client_type === 'person' ? 'Cédula' : 'NIT'}
+                </label>
                 <div className="relative">
                   <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                   <input 
                     type="text" 
                     value={form.cedula} 
-                    onChange={(e) => setForm((f) => ({ ...f, cedula: e.target.value }))} 
+                    onChange={(e) => {
+                      let val = e.target.value;
+                      if (form.client_type === 'company') {
+                        val = val.replace(/[^\d-]/g, '');
+                      } else {
+                        val = val.replace(/[^\d]/g, '');
+                      }
+                      setForm((f) => ({ ...f, cedula: val }));
+                    }} 
                     className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.cedula ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
-                    placeholder="Ej. 12345678"
+                    placeholder={form.client_type === 'person' ? "Ej. 12345678" : "Ej. 900123456-1"}
                   />
                 </div>
                 {errors.cedula && <p className="mt-1 text-xs text-rose-400">{errors.cedula}</p>}
@@ -728,6 +792,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
               e.preventDefault(); 
               try { 
                 const fd = new FormData();
+                fd.append('client_type', editForm.client_type);
                 fd.append('full_name', editForm.full_name);
                 fd.append('cedula', editForm.cedula);
                 fd.append('email', editForm.email);
@@ -742,25 +807,56 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                 if (res.ok) { 
                   setEditClient(null); 
                   loadClients(); 
+                  setMsg({ type: 'success', text: 'Cliente actualizado' });
                 } 
               } catch(_){} 
             }} className="p-6 space-y-4">
+              {/* Client Type Selector */}
+              <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setEditForm(f => ({ ...f, client_type: 'person' }))}
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${editForm.client_type === 'person' ? 'bg-white dark:bg-gray-700 text-amber-600 shadow-sm' : 'text-gray-500'}`}
+                >
+                  Persona Natural
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditForm(f => ({ ...f, client_type: 'company' }))}
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${editForm.client_type === 'company' ? 'bg-white dark:bg-gray-700 text-amber-600 shadow-sm' : 'text-gray-500'}`}
+                >
+                  Empresa (NIT)
+                </button>
+              </div>
+
               <div>
-                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Nombre Completo</label>
+                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5 uppercase tracking-wide">
+                  {editForm.client_type === 'person' ? 'Nombre Completo' : 'Razón Social'}
+                </label>
                 <input 
                   value={editForm.full_name} 
                   onChange={(e)=>setEditForm((f)=>({...f, full_name: e.target.value}))} 
                   className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all" 
-                  placeholder="Nombre" 
+                  placeholder={editForm.client_type === 'person' ? "Nombre del cliente" : "Nombre de la empresa"} 
                 />
               </div>
               <div>
-                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Cédula</label>
+                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5 uppercase tracking-wide">
+                  {editForm.client_type === 'person' ? 'Cédula' : 'NIT'}
+                </label>
                 <input 
                   value={editForm.cedula} 
-                  onChange={(e)=>setEditForm((f)=>({...f, cedula: e.target.value}))} 
+                  onChange={(e)=>{
+                    let val = e.target.value;
+                    if (editForm.client_type === 'company') {
+                      val = val.replace(/[^\d-]/g, '');
+                    } else {
+                      val = val.replace(/[^\d]/g, '');
+                    }
+                    setEditForm((f)=>({...f, cedula: val}));
+                  }} 
                   className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all" 
-                  placeholder="Cédula" 
+                  placeholder={editForm.client_type === 'person' ? "Cédula" : "900123456-1"} 
                 />
               </div>
               <div>
@@ -809,6 +905,37 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Modal Eliminar Cliente */}
+      {deletingClient && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-100 dark:border-gray-800 animate-in zoom-in-95 duration-300">
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-rose-100 dark:bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Trash className="w-10 h-10 text-rose-600 dark:text-rose-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">¿Eliminar Cliente?</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
+                Estás a punto de eliminar a <span className="font-semibold text-gray-900 dark:text-white">{deletingClient.full_name}</span>. 
+                Esta acción no se puede deshacer y el cliente será removido permanentemente.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setDeletingClient(null)}
+                  className="flex-1 px-6 py-3.5 rounded-2xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDeleteClient}
+                  className="flex-1 px-6 py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-semibold transition-all shadow-lg shadow-rose-600/20 active:scale-95"
+                >
+                  Sí, eliminar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

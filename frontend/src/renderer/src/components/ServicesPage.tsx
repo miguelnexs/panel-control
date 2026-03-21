@@ -163,6 +163,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
   // Client Form State
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [clientFormData, setClientFormData] = useState({
+    client_type: 'person' as 'person' | 'company',
     full_name: '',
     cedula: '',
     phone: '',
@@ -243,10 +244,17 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     const addr = (settings.company_address || 'Dirección Principal');
     const phone = (settings.company_phone || '300 000 0000');
     const logo = settings.logo || '';
-    
-    const absUrlFn = (path: string | null) => { try { if (!path) return ''; if (String(path).startsWith('http://') || String(path).startsWith('https://')) return path; if (String(path).startsWith('/')) return `${apiBase}${path}`; return `${apiBase}/${path}`; } catch { return path; } };
+    const absUrlFn = (path: string | null) => { 
+      try { 
+        if (!path) return ''; 
+        if (String(path).startsWith('http://') || String(path).startsWith('https://')) return path; 
+        const base = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
+        const p = String(path).startsWith('/') ? path : `/${path}`;
+        return `${base}${p}`; 
+      } catch { return path || ''; } 
+    };
     const logoSrc = printerOpts.logo_mode === 'custom' && printerOpts.logo_url ? printerOpts.logo_url : logo;
-    const logoTag = printerOpts.show_logo && logoSrc ? `<div class="c"><img src="${logoSrc.startsWith('http') ? logoSrc : absUrlFn(logoSrc)}" style="width:${Number(printerOpts.logo_width_mm || 45)}mm;height:auto;object-fit:contain"/></div>` : '';
+    const logoTag = printerOpts.show_logo && logoSrc ? `<div class="c"><img src="${logoSrc.startsWith('http') ? logoSrc : absUrlFn(logoSrc)}" onerror="this.style.display='none'" style="width:${Number(printerOpts.logo_width_mm || 45)}mm;height:auto;object-fit:contain"/></div>` : '';
     
     const alignCls = printerOpts.align === 'left' ? 'l' : printerOpts.align === 'right' ? 'r' : 'c';
     
@@ -317,9 +325,17 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     const addr = (settings.company_address || 'Dirección Principal');
     const phone = (settings.company_phone || '300 000 0000');
     const logo = settings.logo || '';
-    const absUrlFn = (path: string | null) => { try { if (!path) return ''; if (String(path).startsWith('http://') || String(path).startsWith('https://')) return path; if (String(path).startsWith('/')) return `${apiBase}${path}`; return `${apiBase}/${path}`; } catch { return path; } };
+    const absUrlFn = (path: string | null) => { 
+      try { 
+        if (!path) return ''; 
+        if (String(path).startsWith('http://') || String(path).startsWith('https://')) return path; 
+        const base = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
+        const p = String(path).startsWith('/') ? path : `/${path}`;
+        return `${base}${p}`; 
+      } catch { return path || ''; } 
+    };
     const logoSrc = printerOpts.logo_mode === 'custom' && printerOpts.logo_url ? printerOpts.logo_url : logo;
-    const logoTag = printerOpts.show_logo && logoSrc ? `<div class="c"><img src="${logoSrc.startsWith('http') ? logoSrc : absUrlFn(logoSrc)}" style="width:${Number(printerOpts.logo_width_mm || 45)}mm;height:auto;object-fit:contain"/></div>` : '';
+    const logoTag = printerOpts.show_logo && logoSrc ? `<div class="c"><img src="${logoSrc.startsWith('http') ? logoSrc : absUrlFn(logoSrc)}" onerror="this.style.display='none'" style="width:${Number(printerOpts.logo_width_mm || 45)}mm;height:auto;object-fit:contain"/></div>` : '';
     const alignCls = printerOpts.align === 'left' ? 'l' : printerOpts.align === 'right' ? 'r' : 'c';
     const css = `*{box-sizing:border-box} body{font-family:Arial, sans-serif;margin:0;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px;width:${paperW}mm} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px} .tab{width:100%;border-collapse:collapse} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px} .tab thead th{border-bottom:1px dashed #999;text-align:left} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
     
@@ -523,6 +539,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
 
     try {
       const fd = new FormData();
+      fd.append('client_type', clientFormData.client_type);
       fd.append('full_name', clientFormData.full_name);
       fd.append('cedula', clientFormData.cedula);
       fd.append('phone', clientFormData.phone);
@@ -542,7 +559,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       await loadClients(); // Reload list
       setFormData(prev => ({ ...prev, clientId: String(data.id) })); // Auto-select new client
       setIsClientModalOpen(false);
-      setClientFormData({ full_name: '', cedula: '', phone: '', email: '', address: '' });
+      setClientFormData({ client_type: 'person', full_name: '', cedula: '', phone: '', email: '', address: '' });
       
       showToast('Cliente registrado exitosamente', 'success');
       
@@ -1585,8 +1602,28 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
             </div>
             
             <form onSubmit={handleClientSubmit} className="p-6 space-y-4">
+              {/* Client Type Selector */}
+              <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setClientFormData(f => ({ ...f, client_type: 'person' }))}
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${clientFormData.client_type === 'person' ? 'bg-white dark:bg-gray-700 text-indigo-600 shadow-sm' : 'text-gray-500'}`}
+                >
+                  Persona Natural
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClientFormData(f => ({ ...f, client_type: 'company' }))}
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${clientFormData.client_type === 'company' ? 'bg-white dark:bg-gray-700 text-indigo-600 shadow-sm' : 'text-gray-500'}`}
+                >
+                  Empresa (NIT)
+                </button>
+              </div>
+
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Nombre Completo</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
+                  {clientFormData.client_type === 'person' ? 'Nombre Completo' : 'Razón Social'}
+                </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                   <input 
@@ -1594,7 +1631,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                     name="full_name"
                     value={clientFormData.full_name}
                     onChange={handleClientInputChange}
-                    placeholder="Nombre del cliente"
+                    placeholder={clientFormData.client_type === 'person' ? "Nombre del cliente" : "Nombre de la empresa"}
                     className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
                     required
                   />
@@ -1602,15 +1639,25 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Cédula / NIT</label>
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
+                  {clientFormData.client_type === 'person' ? 'Cédula' : 'NIT'}
+                </label>
                 <div className="relative">
                   <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                   <input 
                     type="text" 
                     name="cedula"
                     value={clientFormData.cedula}
-                    onChange={handleClientInputChange}
-                    placeholder="Número de identificación"
+                    onChange={(e) => {
+                      let val = e.target.value;
+                      if (clientFormData.client_type === 'company') {
+                        val = val.replace(/[^\d-]/g, '');
+                      } else {
+                        val = val.replace(/[^\d]/g, '');
+                      }
+                      setClientFormData(f => ({ ...f, cedula: val }));
+                    }}
+                    placeholder={clientFormData.client_type === 'person' ? "Ej. 12345678" : "Ej. 900123456-1"}
                     className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
                     required
                   />

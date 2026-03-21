@@ -49,6 +49,16 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
     clientId: '',
   });
 
+  const [isNewClient, setIsNewClient] = useState(false);
+  const [newClientData, setNewClientData] = useState({
+    client_type: 'person' as 'person' | 'company',
+    full_name: '',
+    cedula: '',
+    phone: '',
+    email: '',
+    address: ''
+  });
+
   const [serviceItems, setServiceItems] = useState<Array<{ id: string, name: string, description: string, value: string, third_party_provider: string, third_party_cost: string, worker: string }>>([
     { id: String(Date.now()), name: '', description: '', value: '', third_party_provider: '', third_party_cost: '', worker: '' }
   ]);
@@ -146,9 +156,16 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
   const handleSubmit = async () => {
       if (!token) return;
 
-      if (!formData.clientId) {
+      if (!isNewClient && !formData.clientId) {
         showToast("Seleccione un cliente", 'error');
         return;
+      }
+
+      if (isNewClient) {
+          if (!newClientData.full_name || !newClientData.cedula) {
+              showToast("Nombre y Cédula son obligatorios para el nuevo cliente", 'error');
+              return;
+          }
       }
 
       for (const item of serviceItems) {
@@ -163,17 +180,28 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
 
       try {
         const promises = serviceItems.map(item => {
-          const payload = {
+          const payload: any = {
             name: item.name,
             description: item.description,
             third_party_provider: item.third_party_provider || '',
             third_party_cost: item.third_party_cost ? Number(item.third_party_cost) : 0,
             value: Number(item.value),
-            client: Number(formData.clientId),
             worker: item.worker ? Number(item.worker) : null,
             status: 'recibido',
             entry_date: new Date().toISOString().split('T')[0],
           };
+
+          if (isNewClient) {
+              payload.client_type = newClientData.client_type;
+              payload.client_full_name = newClientData.full_name;
+              payload.client_cedula = newClientData.cedula;
+              payload.client_phone = newClientData.phone;
+              payload.client_email = newClientData.email;
+              payload.client_address = newClientData.address;
+          } else {
+              payload.client = Number(formData.clientId);
+          }
+
           return fetch(`${apiBase}/services/`, {
             method: 'POST',
             headers: authHeaders(token),
@@ -249,26 +277,130 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
                     
                     {/* Client Selection */}
                     <div className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700/50">
-                        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                            <User className="w-5 h-5 text-indigo-400" />
-                            Información del Cliente
-                        </h2>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Seleccionar Cliente</label>
-                            <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                                <select 
-                                    value={formData.clientId}
-                                    onChange={(e) => setFormData({...formData, clientId: e.target.value})}
-                                    className="w-full bg-gray-900 border border-gray-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all"
-                                >
-                                    <option value="">Buscar cliente...</option>
-                                    {clients.map(client => (
-                                    <option key={client.id} value={client.id}>{client.full_name} - {client.cedula}</option>
-                                    ))}
-                                </select>
-                            </div>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                                <User className="w-5 h-5 text-indigo-400" />
+                                Información del Cliente
+                            </h2>
+                            <button 
+                                onClick={() => setIsNewClient(!isNewClient)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                    isNewClient 
+                                    ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20' 
+                                    : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20'
+                                }`}
+                            >
+                                {isNewClient ? (
+                                    <> <ArrowLeft className="w-3.5 h-3.5" /> Seleccionar Existente </>
+                                ) : (
+                                    <> <Plus className="w-3.5 h-3.5" /> Nuevo Cliente </>
+                                )}
+                            </button>
                         </div>
+                        
+                        {!isNewClient ? (
+                            <div>
+                                <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Seleccionar Cliente</label>
+                                <div className="relative">
+                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                                    <select 
+                                        value={formData.clientId}
+                                        onChange={(e) => setFormData({...formData, clientId: e.target.value})}
+                                        className="w-full bg-gray-900 border border-gray-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all"
+                                    >
+                                        <option value="">Buscar cliente...</option>
+                                        {clients.map(client => (
+                                        <option key={client.id} value={client.id}>{client.full_name} - {client.cedula}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                {/* Client Type Selector */}
+                                <div className="flex bg-gray-900 p-1 rounded-xl border border-gray-700">
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewClientData(prev => ({ ...prev, client_type: 'person' }))}
+                                        className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${newClientData.client_type === 'person' ? 'bg-gray-800 text-indigo-400 shadow-sm' : 'text-gray-500'}`}
+                                    >
+                                        Persona Natural
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setNewClientData(prev => ({ ...prev, client_type: 'company' }))}
+                                        className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${newClientData.client_type === 'company' ? 'bg-gray-800 text-indigo-400 shadow-sm' : 'text-gray-500'}`}
+                                    >
+                                        Empresa (NIT)
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                                            {newClientData.client_type === 'person' ? 'Nombre Completo *' : 'Razón Social *'}
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            value={newClientData.full_name}
+                                            onChange={(e) => setNewClientData({...newClientData, full_name: e.target.value})}
+                                            placeholder={newClientData.client_type === 'person' ? "Ej. Juan Pérez" : "Ej. Mi Empresa S.A.S"}
+                                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                                            {newClientData.client_type === 'person' ? 'Cédula *' : 'NIT *'}
+                                        </label>
+                                        <input 
+                                            type="text" 
+                                            value={newClientData.cedula}
+                                            onChange={(e) => {
+                                                let val = e.target.value;
+                                                if (newClientData.client_type === 'company') {
+                                                    val = val.replace(/[^\d-]/g, '');
+                                                } else {
+                                                    val = val.replace(/[^\d]/g, '');
+                                                }
+                                                setNewClientData({...newClientData, cedula: val});
+                                            }}
+                                            placeholder={newClientData.client_type === 'person' ? "Ej. 123456789" : "Ej. 900123456-1"}
+                                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-400 mb-1.5">Teléfono</label>
+                                        <input 
+                                            type="text" 
+                                            value={newClientData.phone}
+                                            onChange={(e) => setNewClientData({...newClientData, phone: e.target.value})}
+                                            placeholder="Ej. 3001234567"
+                                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-400 mb-1.5">Email</label>
+                                        <input 
+                                            type="email" 
+                                            value={newClientData.email}
+                                            onChange={(e) => setNewClientData({...newClientData, email: e.target.value})}
+                                            placeholder="Ej. juan@correo.com"
+                                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none"
+                                        />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-medium text-gray-400 mb-1.5">Dirección</label>
+                                        <input 
+                                            type="text" 
+                                            value={newClientData.address}
+                                            onChange={(e) => setNewClientData({...newClientData, address: e.target.value})}
+                                            placeholder="Ej. Calle 123 #45-67"
+                                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Service Items */}

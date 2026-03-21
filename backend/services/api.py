@@ -76,14 +76,23 @@ class ServiceCategorySerializer(serializers.ModelSerializer):
 class ServiceSerializer(serializers.ModelSerializer):
     category = serializers.PrimaryKeyRelatedField(queryset=ServiceCategory.objects.all(), required=False, allow_null=True)
     service_definition = serializers.PrimaryKeyRelatedField(queryset=ServiceDefinition.objects.all(), required=False, allow_null=True)
-    client = serializers.PrimaryKeyRelatedField(queryset=Client.objects.all(), required=True, allow_null=False)
+    client = serializers.PrimaryKeyRelatedField(queryset=Client.objects.all(), required=False, allow_null=True)
     worker = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), required=False, allow_null=True)
+
+    # Campos para creación rápida de cliente
+    client_full_name = serializers.CharField(required=False, write_only=True)
+    client_cedula = serializers.CharField(required=False, write_only=True)
+    client_phone = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    client_email = serializers.EmailField(required=False, allow_null=True, write_only=True)
+    client_address = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    client_type = serializers.ChoiceField(choices=Client.CLIENT_TYPES, required=False, write_only=True)
 
     class Meta:
         model = Service
         fields = [
             'id', 'entry_date', 'exit_date', 'name', 'description', 'category', 'service_definition', 'client', 'worker',
-            'third_party_provider', 'third_party_cost', 'value', 'status', 'active', 'created_at'
+            'third_party_provider', 'third_party_cost', 'value', 'status', 'active', 'created_at',
+            'client_full_name', 'client_cedula', 'client_phone', 'client_email', 'client_address', 'client_type'
         ]
 
     def validate_name(self, value):
@@ -112,12 +121,25 @@ class ServiceSerializer(serializers.ModelSerializer):
         if not request:
             return attrs
         tenant = _get_user_tenant(request.user)
+        
+        # Validar si se proporciona cliente o datos para crearlo
+        client = attrs.get('client')
+        client_full_name = attrs.get('client_full_name')
+        client_cedula = attrs.get('client_cedula')
+
+        if not client and not (client_full_name and client_cedula):
+            raise serializers.ValidationError({
+                'client': 'Debe seleccionar un cliente o proporcionar los datos del nuevo cliente (nombre y cédula).'
+            })
+
         cat = attrs.get('category')
         if tenant and cat and getattr(cat, 'tenant', None) != tenant:
             raise serializers.ValidationError({'category': 'La categoría no pertenece a su organización.'})
+        
         cli = attrs.get('client')
         if tenant and cli and getattr(cli, 'tenant', None) != tenant:
             raise serializers.ValidationError({'client': 'El cliente no pertenece a su organización.'})
+        
         entry = attrs.get('entry_date')
         exit_ = attrs.get('exit_date')
         if exit_ and entry and exit_ < entry:
@@ -125,6 +147,40 @@ class ServiceSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        client = validated_data.get('client')
+        if not client:
+            # Creación rápida de cliente
+            request = self.context.get('request')
+            tenant = _get_user_tenant(request.user) if request else None
+            
+            client_full_name = validated_data.pop('client_full_name', '')
+            client_cedula = validated_data.pop('client_cedula', '')
+            client_phone = validated_data.pop('client_phone', '')
+            client_email = validated_data.pop('client_email', None)
+            client_address = validated_data.pop('client_address', '')
+            client_type = validated_data.pop('client_type', 'person')
+            
+            # Usar get_or_create para evitar duplicados si se envían varios ítems
+            client, _ = Client.objects.get_or_create(
+                cedula=client_cedula,
+                tenant=tenant,
+                defaults={
+                    'full_name': client_full_name,
+                    'phone': client_phone,
+                    'email': client_email,
+                    'address': client_address,
+                    'client_type': client_type,
+                }
+            )
+            validated_data['client'] = client
+        else:
+            # Limpiar campos de cliente si se proporcionó un ID
+            validated_data.pop('client_full_name', None)
+            validated_data.pop('client_cedula', None)
+            validated_data.pop('client_phone', None)
+            validated_data.pop('client_email', None)
+            validated_data.pop('client_address', None)
+            
         return super().create(validated_data)
 
 

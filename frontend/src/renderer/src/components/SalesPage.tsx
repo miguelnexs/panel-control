@@ -10,12 +10,14 @@ import {
   CreditCard,
   User,
   MapPin,
-  Mail,
-  Phone,
-  CheckCircle2,
-  DollarSign,
-  TrendingUp,
-  Calendar
+  Mail, 
+  Phone, 
+  CheckCircle2, 
+  DollarSign, 
+  TrendingUp, 
+  Calendar,
+  Package,
+  Palette
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
@@ -44,6 +46,7 @@ interface Product {
   active?: boolean;
   inventory_qty?: number;
   variants?: Variant[];
+  skus?: any[];
 }
 
 interface Client {
@@ -79,7 +82,14 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
   const [msg, setMsg] = useState<Msg | null>(null);
   const [search, setSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
-  const [clientForm, setClientForm] = useState({ full_name: '', cedula: '', email: '', address: '', phone: '' });
+  const [clientForm, setClientForm] = useState({ 
+    client_type: 'person',
+    full_name: '', 
+    cedula: '', 
+    email: '', 
+    address: '', 
+    phone: '' 
+  });
   const [openClientModal, setOpenClientModal] = useState(false);
   const [isCreatingClient, setIsCreatingClient] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -92,6 +102,13 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
 
   const authHeaders = (tkn: string) => ({ ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) });
   const [openCart, setOpenCart] = useState(false);
+  const [selectingProduct, setSelectingProduct] = useState<Product | null>(null);
+  const [selectionStep, setSelectionStep] = useState<'initial' | 'color' | 'variant' | 'quantity'>('initial');
+  const [useStandardColor, setUseStandardColor] = useState(false);
+  const [selectedColor, setSelectedColor] = useState<Color | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
+  const [currentAvailableStock, setCurrentAvailableStock] = useState(0);
+  const [selectionQty, setSelectionQty] = useState(1);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<{
     total_sales: number;
@@ -187,17 +204,96 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     return q === '' || String(p.name || '').toLowerCase().includes(q) || String(p.category_name || '').toLowerCase().includes(q);
   });
 
+  useEffect(() => {
+    if (selectingProduct) {
+        let stock = selectingProduct.inventory_qty || 0;
+        if (!useStandardColor && (selectedColor || selectedVariant)) {
+            const matchingSku = selectingProduct.skus?.find(s => 
+                (!selectedColor || String(s.color) === String(selectedColor.id)) && 
+                (!selectedVariant || String(s.variant) === String(selectedVariant.id))
+            );
+            stock = matchingSku?.stock ?? 0;
+        } else if (useStandardColor) {
+            stock = selectingProduct.inventory_qty || 0;
+        }
+        setCurrentAvailableStock(stock);
+        if (selectionQty > stock && stock > 0) setSelectionQty(stock);
+        else if (stock === 0) setSelectionQty(0);
+    }
+  }, [selectingProduct, selectedColor, selectedVariant, useStandardColor]);
+
+  const loadSkus = async (productId: number) => {
+    try {
+      const res = await fetch(`${apiBase}/products/${productId}/skus/`, { headers: authHeaders(token) });
+      const data = await res.json();
+      const list = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
+      setProducts(prev => prev.map(p => p.id === productId ? { ...p, skus: list } : p));
+      if (selectingProduct?.id === productId) {
+        setSelectingProduct(prev => prev ? { ...prev, skus: list } : null);
+      }
+    } catch (_) {}
+  };
+
   const addToCart = async (product: Product) => {
-    await loadColors(product.id);
-    await loadVariants(product.id);
+    // Load full data including SKUs before opening modal
+    setLoading(true);
+    try {
+        const res = await fetch(`${apiBase}/products/${product.id}/skus/`, { headers: authHeaders(token) });
+        const skusData = await res.json();
+        const skus = Array.isArray(skusData.results) ? skusData.results : (Array.isArray(skusData) ? skusData : []);
+        
+        const fullProduct = { ...product, skus };
+        
+        // If product has colors or variants, open the selection modal
+        if ((fullProduct.colors && fullProduct.colors.length > 0) || (fullProduct.variants && fullProduct.variants.length > 0)) {
+            setSelectingProduct(fullProduct);
+            setSelectedColor(null);
+            setSelectedVariant(null);
+            setUseStandardColor(false);
+            setSelectionQty(1);
+            setSelectionStep('initial');
+            setLoading(false);
+            return;
+        }
+    } catch (e) {
+        console.error("Error loading product SKUs:", e);
+    } finally {
+        setLoading(false);
+    }
+
+    // Direct add for products without variations
+    setCart((c) => [...c, { product, colorId: null, variantId: null, quantity: 1 }]);
+    setOpenCart(true);
+  };
+
+  const confirmSelection = () => {
+    if (!selectingProduct) return;
     
-    let colorSel = selectedColorMap[product.id] || null;
-    const cOpts = colorOptions[product.id] || product.colors || [];
-    if (!colorSel && Array.isArray(cOpts) && cOpts.length > 0) colorSel = String(cOpts[0].id);
+    // Find stock for selected combination
+    let stock = selectingProduct.inventory_qty || 0;
+    if (!useStandardColor && (selectedColor || selectedVariant)) {
+        const matchingSku = selectingProduct.skus?.find(s => 
+            (!selectedColor || String(s.color) === String(selectedColor.id)) && 
+            (!selectedVariant || String(s.variant) === String(selectedVariant.id))
+        );
+        stock = matchingSku?.stock ?? 0;
+    } else if (useStandardColor) {
+        stock = selectingProduct.inventory_qty || 0;
+    }
+
+    if (selectionQty > stock) {
+        alert(`Solo hay ${stock} unidades disponibles para esta selección.`);
+        return;
+    }
     
-    let variantSel = selectedVariantMap[product.id] || null;
+    setCart((c) => [...c, { 
+        product: selectingProduct, 
+        colorId: !useStandardColor && selectedColor ? String(selectedColor.id) : null, 
+        variantId: !useStandardColor && selectedVariant ? String(selectedVariant.id) : null, 
+        quantity: selectionQty 
+    }]);
     
-    setCart((c) => [...c, { product, colorId: colorSel, variantId: variantSel, quantity: 1 }]);
+    setSelectingProduct(null);
     setOpenCart(true);
   };
 
@@ -284,7 +380,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
       setMsg({ type: 'success', text: 'Venta registrada exitosamente' });
       setCart([]);
       setOpenCart(false);
-      setClientForm({ full_name: '', cedula: '', email: '', address: '', phone: '' });
+      setClientForm({ client_type: 'person', full_name: '', cedula: '', email: '', address: '', phone: '' });
       setSelectedClientId('');
       if (onSaleCreated) onSaleCreated();
     } catch (e: any) {
@@ -309,7 +405,23 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.detail || 'Error al crear cliente');
+        // Mejorar la extracción de errores de validación de Django REST Framework
+        let errorMessage = 'Error al crear cliente';
+        if (typeof data === 'object') {
+          if (data.detail) {
+            errorMessage = data.detail;
+          } else {
+            // Recoger todos los errores de validación del objeto (ej. { "cedula": ["..."] })
+            errorMessage = Object.entries(data)
+              .map(([key, val]) => {
+                const fieldName = key.charAt(0).toUpperCase() + key.slice(1);
+                const errors = Array.isArray(val) ? val.join(', ') : String(val);
+                return `${fieldName}: ${errors}`;
+              })
+              .join('\n');
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       // Añadir el nuevo cliente a la lista y seleccionarlo
@@ -320,7 +432,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
       setMsg({ type: 'success', text: 'Cliente creado y seleccionado correctamente' });
       
       // Limpiar el formulario
-      setClientForm({ full_name: '', cedula: '', email: '', address: '', phone: '' });
+      setClientForm({ client_type: 'person', full_name: '', cedula: '', email: '', address: '', phone: '' });
     } catch (e: any) {
       setMsg({ type: 'error', text: e.message });
     } finally {
@@ -457,50 +569,33 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                         onClick={() => addToCart(p)}
                                         className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium shadow-lg shadow-blue-900/20 transform translate-y-4 group-hover:translate-y-0 transition-transform"
                                     >
-                                        Agregar al Carrito
+                                        {(p.colors?.length || 0) > 0 || (p.variants?.length || 0) > 0 ? 'Personalizar' : 'Agregar al Carrito'}
                                     </button>
                                 </div>
                             </div>
                             
-                            <div className="p-4 flex-1 flex flex-col">
+                            <div className="p-4 flex-1 flex flex-col cursor-pointer" onClick={() => addToCart(p)}>
                                 <div className="flex justify-between items-start gap-2 mb-1">
                                     <h3 className="font-medium text-gray-900 dark:text-white line-clamp-2 text-sm" title={p.name}>{p.name}</h3>
                                     <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm whitespace-nowrap">
-                                        {displayPrice.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                                        {Number(p.price).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
                                     </span>
                                 </div>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{p.category_name || 'General'}</p>
                                 
-                                <div className="mt-auto space-y-2">
-                                    {/* Color Selection */}
-                                    {Array.isArray(colorOptions[p.id]) && colorOptions[p.id].length > 0 && (
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {colorOptions[p.id].map((c) => (
-                                                <button
-                                                    key={c.id}
-                                                    onClick={() => setSelectedColorMap((m) => ({ ...m, [p.id]: String(c.id) }))}
-                                                    className={`w-4 h-4 rounded-full border shadow-sm transition-transform hover:scale-110 ${String(selectedColorMap[p.id]) === String(c.id) ? 'ring-2 ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-gray-900 scale-110' : 'border-gray-300 dark:border-gray-600'}`}
-                                                    style={{ backgroundColor: c.hex }}
-                                                    title={`${c.name} (${c.stock})`}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* Variant Selection */}
-                                    {variants.length > 0 && (
-                                        <select 
-                                            value={selectedVariantMap[p.id] || ''} 
-                                            onChange={(e) => setSelectedVariantMap(m => ({ ...m, [p.id]: e.target.value }))}
-                                            className="w-full px-2 py-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-500"
-                                        >
-                                            <option value="">Estándar</option>
-                                            {variants.map(v => (
-                                                <option key={v.id} value={v.id}>
-                                                    {v.name} (+{Number(v.extra_price).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })})
-                                                </option>
-                                            ))}
-                                        </select>
+                                <div className="mt-auto flex items-center justify-between">
+                                    <div className="flex -space-x-1.5 overflow-hidden">
+                                        {p.colors?.slice(0, 4).map((c, i) => (
+                                            <div key={i} className="inline-block h-4 w-4 rounded-full ring-2 ring-white dark:ring-gray-900 border border-gray-200 dark:border-gray-700" style={{ backgroundColor: c.hex }} />
+                                        ))}
+                                        {(p.colors?.length || 0) > 4 && (
+                                            <div className="flex items-center justify-center h-4 w-4 rounded-full bg-gray-100 dark:bg-gray-800 ring-2 ring-white dark:ring-gray-900 text-[8px] font-bold text-gray-500">
+                                                +{p.colors!.length - 4}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {(p.variants?.length || 0) > 0 && (
+                                        <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">{p.variants!.length} Variantes</span>
                                     )}
                                 </div>
                             </div>
@@ -554,32 +649,20 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                         </button>
                                     </div>
                                     
-                                    <div className="flex flex-wrap gap-2 mb-2">
-                                        {/* Color Selector inside Cart */}
-                                        {colorOptions[it.product.id]?.length > 0 && (
-                                            <select 
-                                                value={it.colorId || ''} 
-                                                onChange={(e) => updateCart(idx, { colorId: e.target.value || null })}
-                                                className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs rounded px-1.5 py-0.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-500"
-                                            >
-                                                {colorOptions[it.product.id].map(c => (
-                                                    <option key={c.id} value={c.id}>{c.name}</option>
-                                                ))}
-                                            </select>
+                                    <div className="flex flex-wrap gap-1.5 mb-2">
+                                        {/* Color Badge */}
+                                        {it.colorId && (
+                                            <div className="flex items-center gap-1 px-1.5 py-0.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded text-[10px] font-bold">
+                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colorOptions[it.product.id]?.find(c => String(c.id) === String(it.colorId))?.hex }} />
+                                                {colorOptions[it.product.id]?.find(c => String(c.id) === String(it.colorId))?.name}
+                                            </div>
                                         )}
                                         
-                                        {/* Variant Selector inside Cart */}
-                                        {variants.length > 0 && (
-                                            <select
-                                                value={it.variantId || ''}
-                                                onChange={(e) => updateCart(idx, { variantId: e.target.value || null })}
-                                                className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs rounded px-1.5 py-0.5 text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-500 max-w-[120px]"
-                                            >
-                                                <option value="">Estándar</option>
-                                                {variants.map(v => (
-                                                    <option key={v.id} value={v.id}>{v.name}</option>
-                                                ))}
-                                            </select>
+                                        {/* Variant Badge */}
+                                        {it.variantId && (
+                                            <div className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 rounded text-[10px] font-bold uppercase">
+                                                {variantOptions[it.product.id]?.find(v => String(v.id) === String(it.variantId))?.name}
+                                            </div>
                                         )}
                                     </div>
 
@@ -636,7 +719,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                 </select>
                             </div>
                             <button 
-                                onClick={() => { setClientForm({ full_name: '', cedula: '', email: '', address: '', phone: '' }); setOpenClientModal(true); }} 
+                                onClick={() => { setClientForm({ client_type: 'person', full_name: '', cedula: '', email: '', address: '', phone: '' }); setOpenClientModal(true); }} 
                                 className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-blue-500 dark:text-blue-400 hover:text-white hover:bg-blue-600 hover:border-blue-600 transition-all"
                                 title="Nuevo Cliente"
                             >
@@ -683,8 +766,28 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
             </div>
             
             <form onSubmit={createPermanentClient} className="p-6 space-y-4">
+              {/* Client Type Selector */}
+              <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setClientForm(f => ({ ...f, client_type: 'person' }))}
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${clientForm.client_type === 'person' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                >
+                  Persona Natural
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setClientForm(f => ({ ...f, client_type: 'company' }))}
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${clientForm.client_type === 'company' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                >
+                  Empresa (NIT)
+                </button>
+              </div>
+
               <div>
-                <label className="block text-gray-600 dark:text-gray-400 text-sm font-medium mb-1.5">Nombre Completo</label>
+                <label className="block text-gray-600 dark:text-gray-400 text-sm font-medium mb-1.5">
+                  {clientForm.client_type === 'person' ? 'Nombre Completo' : 'Razón Social'}
+                </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                   <input 
@@ -692,22 +795,34 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                     value={clientForm.full_name} 
                     onChange={(e) => setClientForm((f) => ({ ...f, full_name: e.target.value }))} 
                     className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                    placeholder="Ej. Juan Pérez"
+                    placeholder={clientForm.client_type === 'person' ? "Ej. Juan Pérez" : "Ej. Mi Empresa S.A.S"}
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-gray-600 dark:text-gray-400 text-sm font-medium mb-1.5">Cédula</label>
+                <label className="block text-gray-600 dark:text-gray-400 text-sm font-medium mb-1.5">
+                  {clientForm.client_type === 'person' ? 'Cédula' : 'NIT'}
+                </label>
                 <div className="relative">
                   <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
                   <input 
                     type="text" 
                     value={clientForm.cedula} 
-                    onChange={(e) => setClientForm((f) => ({ ...f, cedula: e.target.value }))} 
+                    onChange={(e) => {
+                      let val = e.target.value;
+                      if (clientForm.client_type === 'company') {
+                        // Permitir solo números y guiones para el NIT
+                        val = val.replace(/[^\d-]/g, '');
+                      } else {
+                        // Solo números para cédula
+                        val = val.replace(/[^\d]/g, '');
+                      }
+                      setClientForm((f) => ({ ...f, cedula: val }));
+                    }} 
                     className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                    placeholder="Ej. 12345678"
+                    placeholder={clientForm.client_type === 'person' ? "Ej. 12345678" : "Ej. 900123456-1"}
                     required
                   />
                 </div>
@@ -777,6 +892,276 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Product Selection Modal (Step-by-Step) */}
+      {selectingProduct && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Header */}
+            <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+                        {selectedColor && firstColorImage(selectingProduct, selectedColor.id) ? (
+                            <img src={firstColorImage(selectingProduct, selectedColor.id)} className="w-full h-full object-cover" />
+                        ) : selectingProduct.image ? (
+                            <img src={mediaUrl(selectingProduct.image)} className="w-full h-full object-cover" />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                <Package className="w-6 h-6" />
+                            </div>
+                        )}
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{selectingProduct.name}</h3>
+                        <p className="text-xs text-gray-500 font-medium">Personaliza tu pedido</p>
+                    </div>
+                </div>
+                <button onClick={() => setSelectingProduct(null)} className="p-2 hover:bg-white dark:hover:bg-gray-800 rounded-xl transition-all text-gray-400 hover:text-gray-900 dark:hover:text-white shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-gray-700">
+                    <X size={20} />
+                </button>
+            </div>
+
+            <div className="p-8">
+                {/* Step Indicators */}
+                <div className="flex items-center justify-center gap-4 mb-10">
+                    {[
+                        { id: 'initial', label: 'Tipo', show: true },
+                        { id: 'color', label: 'Color', show: !useStandardColor && selectingProduct.colors && selectingProduct.colors.length > 0 },
+                        { id: 'variant', label: 'Variante', show: selectingProduct.variants && selectingProduct.variants.length > 0 },
+                        { id: 'quantity', label: 'Cantidad', show: true }
+                    ].filter(s => s.show).map((step, idx, arr) => (
+                        <React.Fragment key={step.id}>
+                            <div className="flex flex-col items-center gap-2">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all shadow-sm ${
+                                    selectionStep === step.id ? 'bg-blue-600 text-white scale-110 shadow-blue-500/20 ring-4 ring-blue-500/10' : 
+                                    (idx < arr.findIndex(s => s.id === selectionStep) ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-400')
+                                }`}>
+                                    {idx < arr.findIndex(s => s.id === selectionStep) ? <CheckCircle2 size={18} /> : idx + 1}
+                                </div>
+                                <span className={`text-[10px] font-bold uppercase tracking-widest ${selectionStep === step.id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'}`}>{step.label}</span>
+                            </div>
+                            {idx < arr.length - 1 && (
+                                <div className={`h-[2px] w-8 rounded-full transition-colors ${idx < arr.findIndex(s => s.id === selectionStep) ? 'bg-emerald-500' : 'bg-gray-100 dark:bg-gray-800'}`} />
+                            )}
+                        </React.Fragment>
+                    ))}
+                </div>
+
+                {/* Step Content */}
+                <div className="min-h-[200px] animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {selectionStep === 'initial' && (
+                        <div className="space-y-8 py-4">
+                            <h4 className="text-center font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest text-xs">¿Cómo deseas el producto?</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => {
+                                        setUseStandardColor(true);
+                                        setSelectionStep(selectingProduct.variants && selectingProduct.variants.length > 0 ? 'variant' : 'quantity');
+                                    }}
+                                    className="flex flex-col items-center gap-4 p-6 rounded-3xl border-2 border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30 hover:border-blue-500/50 hover:bg-blue-50/30 dark:hover:bg-blue-500/5 transition-all group"
+                                >
+                                    <div className="w-16 h-16 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-400 group-hover:text-blue-500 transition-colors shadow-sm">
+                                        <Package size={32} />
+                                    </div>
+                                    <div className="text-center">
+                                        <span className="block font-bold text-gray-900 dark:text-white uppercase tracking-wider">Estándar</span>
+                                        <span className="text-[10px] text-gray-500 font-medium">Usa el stock global</span>
+                                    </div>
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        setUseStandardColor(false);
+                                        setSelectionStep('color');
+                                    }}
+                                    className="flex flex-col items-center gap-4 p-6 rounded-3xl border-2 border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30 hover:border-blue-500/50 hover:bg-blue-50/30 dark:hover:bg-blue-500/5 transition-all group"
+                                >
+                                    <div className="w-16 h-16 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-400 group-hover:text-blue-500 transition-colors shadow-sm">
+                                        <Palette size={32} />
+                                    </div>
+                                    <div className="text-center">
+                                        <span className="block font-bold text-gray-900 dark:text-white uppercase tracking-wider">Color Específico</span>
+                                        <span className="text-[10px] text-gray-500 font-medium">Elige un tono de la lista</span>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {selectionStep === 'color' && (
+                        <div className="space-y-6">
+                            <h4 className="text-center font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest text-xs">Selecciona un color base</h4>
+                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                                {selectingProduct.colors?.filter(c => {
+                                    // If no SKUs are loaded yet, show the color anyway to avoid empty list
+                                    if (!selectingProduct.skus || selectingProduct.skus.length === 0) return true;
+                                    
+                                    // Filter out colors with 0 stock in ALL variants
+                                    const colorSkus = selectingProduct.skus.filter(s => String(s.color) === String(c.id));
+                                    if (colorSkus.length === 0) return false;
+                                    return colorSkus.some(s => Number(s.stock) > 0);
+                                }).map((c) => (
+                                    <button
+                                        key={c.id}
+                                        onClick={() => {
+                                            setSelectedColor(c);
+                                            setSelectionStep(selectingProduct.variants && selectingProduct.variants.length > 0 ? 'variant' : 'quantity');
+                                        }}
+                                        className={`group relative flex flex-col items-center gap-3 p-3 rounded-2xl border-2 transition-all hover:scale-105 ${
+                                            selectedColor?.id === c.id ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-500/5 shadow-lg' : 'border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30 hover:border-gray-200 dark:hover:border-gray-700'
+                                        }`}
+                                    >
+                                        <div className="w-12 h-12 rounded-full border-4 border-white dark:border-gray-900 shadow-md group-hover:rotate-12 transition-transform" style={{ backgroundColor: c.hex }} />
+                                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase text-center leading-tight">{c.name}</span>
+                                        {selectedColor?.id === c.id && (
+                                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg animate-in zoom-in">
+                                                <CheckCircle2 size={14} />
+                                            </div>
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {selectionStep === 'variant' && (
+                        <div className="space-y-6">
+                            <h4 className="text-center font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest text-xs">Selecciona el detalle / variante</h4>
+                            <div className="grid grid-cols-2 gap-3">
+                                {selectingProduct.variants?.map((v) => {
+                                    // Filter based on SKUs if possible
+                                    const hasStock = selectingProduct.skus?.find(s => 
+                                        (!selectedColor || String(s.color) === String(selectedColor.id)) && 
+                                        String(s.variant) === String(v.id)
+                                    )?.active !== false;
+
+                                    return (
+                                        <button
+                                            key={v.id}
+                                            disabled={!hasStock}
+                                            onClick={() => {
+                                                setSelectedVariant(v);
+                                                setSelectionStep('quantity');
+                                            }}
+                                            className={`relative flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all ${
+                                                selectedVariant?.id === v.id ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-500/5 shadow-lg' : 
+                                                (!hasStock ? 'opacity-30 cursor-not-allowed border-gray-100 dark:border-gray-800 bg-gray-100 dark:bg-gray-800/50' : 'border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30 hover:border-blue-500/30')
+                                            }`}
+                                        >
+                                            <span className="font-bold text-gray-900 dark:text-white uppercase tracking-wider">{v.name}</span>
+                                            {Number(v.extra_price) > 0 && (
+                                                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                                                    +{formatCurrency(v.extra_price)}
+                                                </span>
+                                            )}
+                                            {!hasStock && <span className="text-[8px] font-bold text-rose-500 uppercase">Sin Stock</span>}
+                                        </button>
+                                    );
+                                })}
+                                <button
+                                    onClick={() => {
+                                        setSelectedVariant(null);
+                                        setSelectionStep('quantity');
+                                    }}
+                                    className={`flex flex-col items-center justify-center p-5 rounded-2xl border-2 transition-all ${
+                                        selectedVariant === null ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-500/5 shadow-lg' : 'border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30'
+                                    }`}
+                                >
+                                    <span className="font-bold text-gray-900 dark:text-white uppercase tracking-wider">Estándar</span>
+                                    <span className="text-[10px] text-gray-400 font-medium">Sin cargo extra</span>
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {selectionStep === 'quantity' && (
+                        <div className="flex flex-col items-center justify-center space-y-8 py-4">
+                            <h4 className="text-center font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest text-xs">Define la cantidad</h4>
+                            
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="flex items-center gap-8">
+                                    <button 
+                                        onClick={() => setSelectionQty(Math.max(1, selectionQty - 1))}
+                                        disabled={currentAvailableStock === 0}
+                                        className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all shadow-sm active:scale-90 disabled:opacity-30"
+                                    >
+                                        <Minus size={24} />
+                                    </button>
+                                    <div className="text-6xl font-black text-gray-900 dark:text-white tabular-nums min-w-[80px] text-center">
+                                        {selectionQty}
+                                    </div>
+                                    <button 
+                                        onClick={() => setSelectionQty(Math.min(currentAvailableStock, selectionQty + 1))}
+                                        disabled={selectionQty >= currentAvailableStock}
+                                        className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all shadow-sm active:scale-90 disabled:opacity-30"
+                                    >
+                                        <Plus size={24} />
+                                    </button>
+                                </div>
+                                <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${
+                                    currentAvailableStock === 0 ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20' : 
+                                    currentAvailableStock < 5 ? 'bg-amber-500/10 text-amber-500 border border-amber-500/20' : 
+                                    'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                                }`}>
+                                    {currentAvailableStock === 0 ? 'Agotado' : `Stock disponible: ${currentAvailableStock}`}
+                                </div>
+                            </div>
+
+                            {/* Selection Summary Badge */}
+                            <div className="flex flex-wrap items-center justify-center gap-2">
+                                {selectedColor && (
+                                    <span className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 text-xs font-bold shadow-sm">
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedColor.hex }} />
+                                        {selectedColor.name}
+                                    </span>
+                                )}
+                                {selectedVariant && (
+                                    <span className="px-3 py-1.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-xl border border-blue-100 dark:border-blue-500/20 text-xs font-bold uppercase tracking-widest shadow-sm">
+                                        {selectedVariant.name}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-4">
+                <button 
+                    onClick={() => {
+                        if (selectionStep === 'quantity' && selectingProduct.variants && selectingProduct.variants.length > 0) setSelectionStep('variant');
+                        else if (selectionStep === 'variant' && selectingProduct.colors && selectingProduct.colors.length > 0) setSelectionStep('color');
+                        else if (selectionStep === 'quantity' && selectingProduct.colors && selectingProduct.colors.length > 0) setSelectionStep('color');
+                        else setSelectingProduct(null);
+                    }}
+                    className="px-6 py-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+                >
+                    Atrás
+                </button>
+                <button 
+                    onClick={() => {
+                        if (selectionStep === 'color' && selectingProduct.variants && selectingProduct.variants.length > 0) setSelectionStep('variant');
+                        else if (selectionStep === 'color') setSelectionStep('quantity');
+                        else if (selectionStep === 'variant') setSelectionStep('quantity');
+                        else confirmSelection();
+                    }}
+                    disabled={(selectionStep === 'color' && !selectedColor) || (selectionStep === 'variant' && !selectedVariant && selectingProduct.variants && selectingProduct.variants.length > 0) || (selectionStep === 'quantity' && currentAvailableStock === 0)}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3.5 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-300 dark:disabled:bg-gray-800 text-white rounded-2xl font-black shadow-lg shadow-blue-900/20 transition-all active:scale-95"
+                >
+                    {selectionStep === 'quantity' ? (
+                        <>
+                            <ShoppingCart size={18} />
+                            <span>{currentAvailableStock === 0 ? 'Agotado' : 'Añadir al Carrito'}</span>
+                        </>
+                    ) : (
+                        <span>Siguiente</span>
+                    )}
+                </button>
+            </div>
           </div>
         </div>
       )}

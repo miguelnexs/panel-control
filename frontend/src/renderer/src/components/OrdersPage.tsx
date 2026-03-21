@@ -147,6 +147,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
+  const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [deletingOrder, setDeletingOrder] = useState<Order | null>(null);
 
   const authHeaders = (tkn: string) => ({ ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) });
@@ -210,9 +211,17 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
     const phone = settings.company_phone || '';
     const logo = settings.logo || '';
     
-    const absUrlFn = (path: string | null) => { try { if (!path) return ''; if (String(path).startsWith('http://') || String(path).startsWith('https://')) return path; if (String(path).startsWith('/')) return `${apiBase}${path}`; return `${apiBase}/${path}`; } catch { return path; } };
+    const absUrlFn = (path: string | null) => { 
+      try { 
+        if (!path) return ''; 
+        if (String(path).startsWith('http://') || String(path).startsWith('https://')) return path; 
+        const base = apiBase.endsWith('/') ? apiBase.slice(0, -1) : apiBase;
+        const p = String(path).startsWith('/') ? path : `/${path}`;
+        return `${base}${p}`; 
+      } catch { return path || ''; } 
+    };
     const logoSrc = printerOpts.logo_mode === 'custom' && printerOpts.logo_url ? printerOpts.logo_url : logo;
-    const logoTag = printerOpts.show_logo && logoSrc ? `<div class="c"><img src="${logoSrc.startsWith('http') ? logoSrc : absUrlFn(logoSrc)}" style="width:${Number(printerOpts.logo_width_mm || 45)}mm;height:auto;object-fit:contain"/></div>` : '';
+    const logoTag = printerOpts.show_logo && logoSrc ? `<div class="c"><img src="${logoSrc.startsWith('http') ? logoSrc : absUrlFn(logoSrc)}" onerror="this.style.display='none'" style="width:${Number(printerOpts.logo_width_mm || 45)}mm;height:auto;object-fit:contain"/></div>` : '';
     
     const alignCls = printerOpts.align === 'left' ? 'l' : printerOpts.align === 'right' ? 'r' : 'c';
     
@@ -250,10 +259,18 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
   };
 
   const handleSilentPrint = async (order: Order) => {
+    // Primero abrimos la vista previa
+    setPrintingOrder(order);
+    setShowPrintPreview(true);
+  };
+
+  const confirmSilentPrint = async () => {
+    if (!printingOrder) return;
+    
     showToast('Iniciando servicio de impresión...', 'loading');
     
     try {
-      const html = generateReceiptHtml(order);
+      const html = generateReceiptHtml(printingOrder);
       const printerName = settings.printer_name || '';
       
       // @ts-ignore
@@ -269,10 +286,11 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
            throw new Error(result.error);
          }
          showToast('Impresión enviada correctamente', 'success');
+         setShowPrintPreview(false);
       } else {
         console.warn('Electron no detectado');
         showToast('Abriendo diálogo de impresión...', 'info');
-        setPrintingOrder(order);
+        handlePrint();
       }
     } catch (error: any) {
       console.error('Error printing:', error);
@@ -289,6 +307,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
       win.document.close();
       win.focus();
       win.print();
+      setShowPrintPreview(false);
     }
   };
 
@@ -347,11 +366,13 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
   const getStatusColor = (status: string = 'pending') => {
     switch(status.toLowerCase()) {
       case 'completed':
-      case 'delivered': return 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20';
-      case 'pending': return 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20';
-      case 'cancelled': return 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20';
-      case 'processing': return 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20';
-      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600';
+      case 'delivered': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
+      case 'pending': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+      case 'canceled':
+      case 'cancelled': return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
+      case 'processing': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
+      case 'shipped': return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20';
+      default: return 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20';
     }
   };
 
@@ -379,6 +400,37 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
       }
       
       showToast('Recibo enviado correctamente', 'success');
+    } catch (error: any) {
+      showToast(error.message, 'error');
+    }
+  };
+
+  const handleStatusUpdate = async (orderId: number, newStatus: string) => {
+    showToast('Actualizando estado...', 'loading');
+    try {
+      const res = await fetch(`${apiBase}/sales/status/${orderId}/`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        const errorMsg = data.detail || (data.status ? (Array.isArray(data.status) ? data.status[0] : data.status) : 'Error al actualizar estado');
+        throw new Error(errorMsg);
+      }
+
+      showToast('Estado actualizado correctamente', 'success');
+      
+      // Actualizar localmente si estamos viendo el detalle
+      if (viewOrder && viewOrder.id === orderId) {
+        setViewOrder({ ...viewOrder, status: newStatus });
+      }
+      
+      loadOrders(); // Recargar la lista y estadísticas
     } catch (error: any) {
       showToast(error.message, 'error');
     }
@@ -557,9 +609,17 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(o.status)}`}>
-                      {getStatusLabel(o.status)}
-                    </span>
+                    <select
+                      value={o.status || 'pending'}
+                      onChange={(e) => handleStatusUpdate(o.id, e.target.value)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border cursor-pointer outline-none transition-all dark:bg-gray-900 ${getStatusColor(o.status)}`}
+                    >
+                      <option value="pending">Pendiente</option>
+                      <option value="processing">Procesando</option>
+                      <option value="shipped">Enviado</option>
+                      <option value="delivered">Entregado</option>
+                      <option value="canceled">Cancelado</option>
+                    </select>
                   </td>
                   <td className="px-6 py-4">
                     <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -667,9 +727,17 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                 <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(viewOrder.status)}`}>
-                    {getStatusLabel(viewOrder.status)}
-                 </span>
+                 <select
+                    value={viewOrder.status || 'pending'}
+                    onChange={(e) => handleStatusUpdate(viewOrder.id, e.target.value)}
+                    className={`px-3 py-1 rounded-full text-xs font-bold border cursor-pointer outline-none transition-all dark:bg-gray-900 ${getStatusColor(viewOrder.status)}`}
+                 >
+                    <option value="pending">Pendiente</option>
+                    <option value="processing">Procesando</option>
+                    <option value="shipped">Enviado</option>
+                    <option value="delivered">Entregado</option>
+                    <option value="canceled">Cancelado</option>
+                 </select>
                 <button onClick={() => setViewOrder(null)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                   <X className="w-5 h-5" />
                 </button>
@@ -819,20 +887,22 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
         </div>
       )}
 
-      {/* Print Receipt Modal */}
-      {printingOrder && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-             {/* Preview Header */}
-             <div className="p-4 bg-gray-100 border-b flex justify-between items-center">
-                <h3 className="font-bold text-gray-800">Vista Previa del Recibo</h3>
-                <button onClick={() => setPrintingOrder(null)} className="text-gray-500 hover:text-gray-800">
+      {/* Print Preview Modal */}
+      {showPrintPreview && printingOrder && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-lg h-[80vh] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+             <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                   <Printer className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                   Vista Previa de Recibo
+                </h3>
+                <button onClick={() => { setShowPrintPreview(false); setPrintingOrder(null); }} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                    <X className="w-5 h-5" />
                 </button>
              </div>
              
              {/* Receipt Content - Iframe */}
-             <div className="flex-1 overflow-hidden bg-gray-200 flex justify-center p-4">
+             <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-gray-200 flex justify-center p-4">
                 <div className="shadow-lg bg-white overflow-hidden" style={{ width: `${settings.paper_width_mm || 58}mm`, maxHeight: '100%', overflowY: 'auto' }}>
                   <iframe 
                     srcDoc={generateReceiptHtml(printingOrder)} 
@@ -844,16 +914,16 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
              </div>
              
              {/* Actions */}
-             <div className="p-4 border-t bg-gray-50 flex gap-3">
+             <div className="p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex gap-3">
                 <button 
-                   onClick={handlePrint}
-                   className="flex-1 bg-gray-900 text-white py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors flex items-center justify-center gap-2"
+                   onClick={confirmSilentPrint}
+                   className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-500 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20"
                 >
-                   <Printer className="w-4 h-4" /> Imprimir
+                   <Printer className="w-4 h-4" /> Imprimir Recibo
                 </button>
                 <button 
-                   onClick={() => setPrintingOrder(null)}
-                   className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                   onClick={() => { setShowPrintPreview(false); setPrintingOrder(null); }}
+                   className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
                    Cerrar
                 </button>
