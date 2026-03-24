@@ -206,9 +206,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Security Headers
 # Allow Google OAuth popups to communicate with the opener
-SECURE_CROSS_ORIGIN_OPENER_POLICY = None
-# Or specifically allow popups:
-# SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 
 LOG_LEVEL = os.getenv('DJANGO_LOG_LEVEL', 'INFO').upper()
 LOG_DIR = BASE_DIR / 'logs'

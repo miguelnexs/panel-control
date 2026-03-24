@@ -50,6 +50,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
       
       if (!meRes.ok) throw new Error('No se pudo obtener el perfil del usuario');
 
+      // Verificar si tiene plan pagado
+      if (!meData.has_paid) {
+        throw new Error('No tienes un plan activo. Por favor, adquiere uno en nuestra página web para acceder al panel.');
+      }
+
       onLoginSuccess(data.access, data.refresh || null, meData.role, meData.id);
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión');
@@ -89,6 +94,11 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
       const meData = await meRes.json();
       
       if (!meRes.ok) throw new Error('No se pudo obtener el perfil del usuario');
+
+      // Verificar si tiene plan pagado
+      if (!meData.has_paid) {
+        throw new Error('No tienes un plan activo. Por favor, adquiere uno en nuestra página web para acceder al panel.');
+      }
 
       onLoginSuccess(data.access, data.refresh || null, meData.role, meData.id);
     } catch (err: any) {

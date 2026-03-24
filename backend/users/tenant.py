@@ -12,8 +12,11 @@ def get_current_tenant_alias():
 def ensure_tenant_for_user(user):
     """Ensure tenant DB exists for the admin linked to the user and set thread-local alias."""
     try:
+        if not hasattr(user, 'profile'):
+            _tl.tenant_alias = None
+            return None
         profile = user.profile
-    except UserProfile.DoesNotExist:
+    except:
         _tl.tenant_alias = None
         return None
 

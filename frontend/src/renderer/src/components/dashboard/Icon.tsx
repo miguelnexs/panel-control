@@ -114,8 +114,15 @@ const Icon: React.FC<IconProps> = ({ name, className = 'w-5 h-5' }) => {
   if (name === 'logout') {
     return (
       <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M13 16l4-4-4-4M17 12H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M7 21H5a2 2 0 01-2-2V5a2 2 0 012-2h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        <path d="M10 21H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h5M17 16l4-4-4-4M21 12H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  if (name === 'help') {
+    return (
+      <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M9 9c0-1.7 1.3-3 3-3s3 1.3 3 3c0 1.7-1.3 3-3 3v1.5M12 17h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     )
   }

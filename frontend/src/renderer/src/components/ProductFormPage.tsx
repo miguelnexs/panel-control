@@ -39,6 +39,72 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import ImageCropper from './ui/ImageCropper';
 
+const SortableImage = ({ id, src, onRemove, onCrop, isMain = false }: any) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: String(id) });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : 0,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style}
+      className={`relative aspect-square rounded-xl bg-gray-50 dark:bg-gray-800 border-2 overflow-hidden group transition-all ${
+        isDragging ? 'opacity-50 scale-105 border-blue-500 shadow-2xl z-[100]' : 
+        isMain ? 'border-blue-500/50 ring-2 ring-blue-500/20' : 'border-gray-200 dark:border-gray-700'
+      }`}
+    >
+      <img src={src} alt="Product" className="w-full h-full object-cover select-none pointer-events-none" />
+      
+      {/* Drag Handle Overlay - Captures the drag action */}
+      <div 
+        {...attributes} 
+        {...listeners}
+        className="absolute inset-0 cursor-grab active:cursor-grabbing z-10"
+      />
+      
+      {/* Visual Drag Handle Icon */}
+      <div className="absolute top-1.5 left-1.5 p-1.5 bg-white/90 dark:bg-gray-900/90 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-sm border border-gray-200 dark:border-gray-700 z-20 pointer-events-none">
+        <GripVertical className="w-3.5 h-3.5 text-gray-500" />
+      </div>
+
+      {isMain && (
+        <div className="absolute top-1.5 right-1.5 px-2 py-0.5 bg-blue-600 text-white text-[8px] font-bold rounded-md uppercase tracking-widest shadow-lg z-20 pointer-events-none">Principal</div>
+      )}
+
+      {/* Actions Overlay - Only active on hover, pointer-events-none by default */}
+      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 z-30 pointer-events-none">
+        <button 
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onCrop(); }}
+          className="p-2 bg-white text-gray-900 rounded-lg hover:bg-blue-50 transition-colors shadow-lg active:scale-95 pointer-events-auto"
+          title="Recortar"
+        >
+          <Crop className="w-4 h-4" />
+        </button>
+        <button 
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onRemove(); }}
+          className="p-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors shadow-lg active:scale-95 pointer-events-auto"
+          title="Eliminar"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 interface ProductFormPageProps {
   token: string | null;
   apiBase: string;
@@ -114,7 +180,11 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
   const skuCheckTimeout = useRef<any>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -481,7 +551,32 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       setProductImages((items) => {
         const oldIndex = items.findIndex(item => item.id === active.id);
         const newIndex = items.findIndex(item => item.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
+        const newItems = arrayMove(items, oldIndex, newIndex);
+        
+        // Sincronizar posiciones en el backend para imágenes existentes
+        const syncGalleryPositions = async () => {
+          const galleryItems = newItems.slice(1); // Excluir la principal
+          for (let i = 0; i < galleryItems.length; i++) {
+            const item = galleryItems[i];
+            if (item.isExisting && item.type === 'gallery') {
+              try {
+                const fd = new FormData();
+                fd.append('position', String(i));
+                await fetch(`${apiBase}/products/gallery/${item.originalId}/`, {
+                  method: 'PATCH',
+                  headers: { 'Authorization': `Bearer ${token}` },
+                  body: fd
+                });
+              } catch (e) {
+                console.error("Error syncing gallery position:", e);
+              }
+            }
+          }
+        };
+        
+        if (product) syncGalleryPositions();
+        
+        return newItems;
       });
     }
   };
@@ -508,69 +603,6 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       type: 'new'
     }));
     setProductImages(prev => [...prev, ...newImages]);
-  };
-
-  const SortableImage = ({ id, src, onRemove, onCrop, isMain = false }: any) => {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-      isDragging
-    } = useSortable({ id });
-
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-      zIndex: isDragging ? 50 : 0,
-    };
-
-    return (
-      <div 
-        ref={setNodeRef} 
-        style={style}
-        className={`relative aspect-square rounded-xl bg-gray-50 dark:bg-gray-800 border-2 overflow-hidden group transition-all ${
-          isDragging ? 'opacity-50 scale-105 border-blue-500 shadow-2xl' : 
-          isMain ? 'border-blue-500/50 ring-2 ring-blue-500/20' : 'border-gray-200 dark:border-gray-700'
-        }`}
-      >
-        <img src={src} alt="Product" className="w-full h-full object-cover" />
-        
-        {/* Drag Handle */}
-        <div 
-          {...attributes} 
-          {...listeners}
-          className="absolute top-1.5 left-1.5 p-1.5 bg-white/90 dark:bg-gray-900/90 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing shadow-sm border border-gray-200 dark:border-gray-700"
-        >
-          <GripVertical className="w-3.5 h-3.5 text-gray-500" />
-        </div>
-
-        {isMain && (
-          <div className="absolute top-1.5 right-1.5 px-2 py-0.5 bg-blue-600 text-white text-[8px] font-bold rounded-md uppercase tracking-widest shadow-lg">Principal</div>
-        )}
-
-        {/* Actions Overlay */}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-          <button 
-            type="button"
-            onClick={onCrop}
-            className="p-2 bg-white text-gray-900 rounded-lg hover:bg-blue-50 transition-colors shadow-lg active:scale-95"
-            title="Recortar"
-          >
-            <Crop className="w-4 h-4" />
-          </button>
-          <button 
-            type="button"
-            onClick={onRemove}
-            className="p-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors shadow-lg active:scale-95"
-            title="Eliminar"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    );
   };
 
   const validateClient = () => {
@@ -1191,7 +1223,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                     onDragEnd={handleDragEnd}
                   >
                     <SortableContext 
-                      items={productImages.map(img => img.id)}
+                      items={productImages.map(img => String(img.id))}
                       strategy={rectSortingStrategy}
                     >
                       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import Icon from './Icon'
 import asentingLogo from '../../assets/logo.png'
 import { ModeToggle } from '../ModeToggle'
+import UpdateModal from '../UpdateModal'
 import pkg from '../../../../../package.json'
 
 interface SidebarProps {
@@ -199,7 +200,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
   const textClass = `transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-[240px] opacity-100'}`
   const tooltipClass = collapsed ? 'absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap px-2 py-1 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-xs shadow-xl border border-gray-200 dark:border-white/10 opacity-0 group-hover:opacity-100 pointer-events-none z-50' : 'hidden'
   // Use padding transition for centering instead of justify-content change to avoid snapping
-  const itemBase = `group relative w-full flex items-center ${collapsed ? 'px-7 gap-0' : 'px-3 gap-3'} py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-300 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium`
+  const itemBase = `group relative w-full flex items-center ${collapsed ? 'justify-center px-0 gap-0' : 'px-3 gap-3'} py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-300 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium`
   const activeClass = 'bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white shadow-sm ring-1 ring-gray-200 dark:ring-white/10'
   const toneClasses = (key: string) => {
     if (key === 'dashboard') return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-700 dark:group-hover:text-blue-300'
@@ -220,9 +221,12 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
       <path d="M8 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
+  const iconBoxClass = `${collapsed ? 'w-14 h-14 mx-2' : 'w-10 h-10'} rounded-2xl flex items-center justify-center`
 
   return (
-    <aside className={`${asideClass} shrink-0 bg-blue-50/50 dark:bg-[#0B0D14] border-r border-blue-100 dark:border-white/5 text-gray-900 dark:text-gray-200 flex flex-col relative z-50 h-full transition-all duration-300 ease-in-out`}>
+    <aside 
+      className={`${asideClass} shrink-0 bg-blue-50/50 dark:bg-[#0B0D14] border-r border-blue-100 dark:border-white/5 text-gray-900 dark:text-gray-200 flex flex-col relative z-50 h-full transition-all duration-300 ease-in-out`}
+    >
       <style>{`
         .sidebar-scrollbar::-webkit-scrollbar {
           width: 4px;
@@ -292,7 +296,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
       <nav className={`p-2 space-y-1 flex-1 min-h-0 ${collapsed ? 'overflow-hidden' : 'sidebar-scrollbar overflow-y-auto'}`} role="navigation" aria-label="Secciones">
         <button className={`${itemBase} ${view === 'dashboard' ? activeClass : ''}`} onClick={() => setView('dashboard')} title="Dashboard" aria-current={view === 'dashboard' ? 'page' : undefined}>
           {view === 'dashboard' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-          <span className={`w-10 h-10 rounded-md flex items-center justify-center ${toneClasses('dashboard')} ${view === 'dashboard' ? 'ring-1 ring-white/20' : ''}`}>
+          <span className={`${iconBoxClass} ${toneClasses('dashboard')} ${view === 'dashboard' ? 'ring-1 ring-white/20' : ''}`}>
             <Icon name="dashboard" className="w-5 h-5" />
           </span>
           <span className={textClass}>Dashboard</span>
@@ -301,7 +305,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         <div className="relative">
           <button className={`${itemBase} ${['ventas', 'caja'].includes(view) ? activeClass : ''}`} onClick={toggleVentasMenu} title="Ventas">
             {['ventas', 'caja'].includes(view) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-            <span className={`w-10 h-10 rounded-md flex items-center justify-center ${toneClasses('ventas')} ${['ventas', 'caja'].includes(view) ? 'ring-1 ring-white/20' : ''}`}>
+            <span className={`${iconBoxClass} ${toneClasses('ventas')} ${['ventas', 'caja'].includes(view) ? 'ring-1 ring-white/20' : ''}`}>
               <Icon name="sales" className="w-5 h-5" />
             </span>
             <span className={textClass}>Ventas</span>
@@ -361,7 +365,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         </div>
         <button className={`${itemBase} ${view === 'pedidos' ? activeClass : ''}`} onClick={() => setView('pedidos')} title="Pedidos" aria-current={view === 'pedidos' ? 'page' : undefined}>
           {view === 'pedidos' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-          <span className={`w-10 h-10 rounded-md flex items-center justify-center ${toneClasses('pedidos')} ${view === 'pedidos' ? 'ring-1 ring-white/20' : ''} relative`}>
+          <span className={`${iconBoxClass} ${toneClasses('pedidos')} ${view === 'pedidos' ? 'ring-1 ring-white/20' : ''} relative`}>
             <Icon name="orders" className="w-5 h-5" />
             {Number(orderNotif || 0) > 0 && (
               <span
@@ -377,16 +381,16 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         </button>
         <button className={`${itemBase} ${view === 'clientes' ? activeClass : ''}`} onClick={() => setView('clientes')} title="Clientes" aria-current={view === 'clientes' ? 'page' : undefined}>
           {view === 'clientes' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-          <span className={`w-10 h-10 rounded-md flex items-center justify-center ${toneClasses('clientes')} ${view === 'clientes' ? 'ring-1 ring-white/20' : ''}`}>
+          <span className={`${iconBoxClass} ${toneClasses('clientes')} ${view === 'clientes' ? 'ring-1 ring-white/20' : ''}`}>
             <Icon name="clients" className="w-5 h-5" />
           </span>
           <span className={textClass}>Clientes</span>
           <span className={tooltipClass}>Clientes</span>
         </button>
         <div className="relative">
-          <button className={`${itemBase} ${['productos', 'categorias'].includes(view) ? activeClass : ''}`} onClick={toggleInventoryMenu} title="Inventario">
-            {['productos', 'categorias'].includes(view) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-            <span className={`w-10 h-10 rounded-md flex items-center justify-center ${toneClasses('inventory')} ${['productos', 'categorias'].includes(view) ? 'ring-1 ring-white/20' : ''}`}>
+          <button className={`${itemBase} ${['productos', 'categorias', 'servicios'].includes(view) ? activeClass : ''}`} onClick={toggleInventoryMenu} title="Inventario">
+            {['productos', 'categorias', 'servicios'].includes(view) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
+            <span className={`${iconBoxClass} ${toneClasses('inventory')} ${['productos', 'categorias', 'servicios'].includes(view) ? 'ring-1 ring-white/20' : ''}`}>
               <Icon name="inventory" className="w-5 h-5" />
             </span>
             <span className={textClass}>Inventario</span>
@@ -422,6 +426,13 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <Icon name="categories" className="w-4 h-4" />
                 <span>Categorías</span>
               </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setView('servicios'); setInventoryMenuPos(null); }} 
+                className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'servicios' ? 'text-pink-600 dark:text-pink-400 bg-pink-100 dark:bg-pink-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+              >
+                <Icon name="services" className="w-4 h-4" />
+                <span>Servicios</span>
+              </button>
             </div>
           )}
 
@@ -441,21 +452,20 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <Icon name="categories" className="w-4 h-4" />
                 <span>Categorías</span>
               </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setView('servicios'); }} 
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'servicios' ? 'text-pink-600 dark:text-pink-400 bg-pink-100 dark:bg-pink-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+              >
+                <Icon name="services" className="w-4 h-4" />
+                <span>Servicios</span>
+              </button>
             </div>
           )}
         </div>
-        <button className={`${itemBase} ${view === 'servicios' ? activeClass : ''}`} onClick={() => setView('servicios')} title="Servicios" aria-current={view === 'servicios' ? 'page' : undefined}>
-          {view === 'servicios' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-          <span className={`w-10 h-10 rounded-md flex items-center justify-center ${toneClasses('servicios')} ${view === 'servicios' ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
-            <Icon name="services" className="w-5 h-5" />
-          </span>
-          <span className={textClass}>Servicios</span>
-          <span className={tooltipClass}>Servicios</span>
-        </button>
         {(role === 'super_admin' || role === 'admin') && (
           <button className={`${itemBase} ${view === 'users' ? activeClass : ''}`} onClick={() => setView('users')} title="Usuarios" aria-current={view === 'users' ? 'page' : undefined}>
             {view === 'users' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-            <span className={`w-10 h-10 rounded-md flex items-center justify-center ${toneClasses('users')} ${view === 'users' ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
+            <span className={`${iconBoxClass} ${toneClasses('users')} ${view === 'users' ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
               <Icon name="users" className="w-5 h-5" />
             </span>
             <span className={textClass}>Usuarios</span>
@@ -467,7 +477,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
           <div className="relative">
             <button className={`${itemBase} ${['configuracion', 'web', 'planes'].includes(view) ? activeClass : ''}`} onClick={toggleConfigMenu} title="Configuración">
               {(['web', 'planes', 'configuracion'].includes(view)) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-              <span className={`w-10 h-10 rounded-md flex items-center justify-center ${toneClasses('web')} ${['web', 'planes', 'configuracion'].includes(view) ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
+              <span className={`${iconBoxClass} ${toneClasses('web')} ${['web', 'planes', 'configuracion'].includes(view) ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
                 <Icon name="settings" className="w-5 h-5" />
               </span>
               <span className={textClass}>Configuración</span>

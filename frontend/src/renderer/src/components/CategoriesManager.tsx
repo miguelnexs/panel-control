@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { 
   Plus, 
   Search, 
@@ -33,6 +33,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import ImageCropper from './ui/ImageCropper';
 
 interface CategoriesManagerProps {
   token: string | null;
@@ -85,11 +86,14 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
   const [errors, setErrors] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState<any>(null);
+  const [croppingImage, setCroppingImage] = useState<string | null>(null);
+  const searchTimeout = useRef<any>(null);
+  const [searchValue, setSearchValue] = useState('');
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -160,6 +164,21 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
   };
 
   useEffect(() => { if (token) loadCategories(); }, [token, page, pageSize, search, ordering]);
+
+  const handleSearchChange = (val: string) => {
+    setSearchValue(val);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      setPage(1);
+      setSearch(val);
+    }, 500);
+  };
+
+  const handleImageCropComplete = async (croppedBlob: Blob) => {
+    const file = new File([croppedBlob], `category-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    setImageFile(file);
+    setCroppingImage(null);
+  };
 
   const validateClient = () => {
     const errs: any = {};
@@ -343,8 +362,8 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 group-focus-within:text-blue-500 transition-colors" />
               <input
                 type="text"
-                value={search}
-                onChange={(e) => { setPage(1); setSearch(e.target.value); }}
+                value={searchValue}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Buscar categoría..."
                 className="pl-9 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all w-full sm:w-64"
               />
@@ -421,9 +440,12 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                       </td>
                       <td className="px-6 py-4">
                         {c.image ? (
-                          <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 relative group/img">
-                            <img src={mediaUrl(c.image)} alt={c.name} className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity cursor-pointer">
+                          <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 relative group/img shadow-sm hover:shadow-md transition-all">
+                            <img src={mediaUrl(c.image)} alt={c.name} className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-300" />
+                            <div 
+                              onClick={() => window.open(mediaUrl(c.image), '_blank')}
+                              className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity cursor-zoom-in"
+                            >
                               <ImageIcon className="w-4 h-4 text-white" />
                             </div>
                           </div>
@@ -539,7 +561,14 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                       <input
                         type="file"
                         accept="image/*"
-                        onChange={(e) => setImageFile(e.target.files ? e.target.files[0] : null)}
+                        onChange={(e) => {
+                          const file = e.target.files ? e.target.files[0] : null;
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = () => setCroppingImage(reader.result as string);
+                            reader.readAsDataURL(file);
+                          }
+                        }}
                         className="hidden"
                         id="cat-image-upload"
                       />
@@ -626,6 +655,16 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
             </div>
           </div>
         </div>
+      )}
+
+      {/* Image Cropper Modal */}
+      {croppingImage && (
+        <ImageCropper
+          image={croppingImage}
+          onCropComplete={handleImageCropComplete}
+          onCancel={() => setCroppingImage(null)}
+          aspectRatio={1} // Square for categories
+        />
       )}
     </div>
   );

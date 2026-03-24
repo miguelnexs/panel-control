@@ -46,9 +46,7 @@ const Auth = () => {
               if (data.has_paid) {
                   navigate('/download');
               } else {
-                  // Si tiene plan gratuito o no ha pagado, redirigir a precios
-                  // Verificar si el plan es gratuito (si 'has_paid' es falso pero tiene plan 'starter')
-                  // Por ahora, seguimos la instrucción estricta: si no ha pagado -> pasarela/precios
+                  toast.info("Por favor, selecciona y compra un plan para activar tu cuenta.");
                   navigate('/precios');
               }
           } else {

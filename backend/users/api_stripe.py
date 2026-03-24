@@ -118,6 +118,7 @@ class StripeWebhookView(APIView):
                 plan = SubscriptionPlan.objects.get(code=plan_code)
                 tenant.subscription_plan = plan
                 tenant.stripe_subscription_id = session.get('subscription')
+                tenant.has_paid = True
                 tenant.save()
             except Tenant.DoesNotExist:
                 pass

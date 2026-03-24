@@ -397,12 +397,16 @@ class SalesStatusUpdateView(APIView):
 class SalesNotificationCountView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self, request):
-        tenant = _get_user_tenant(request.user)
-        qs = OrderNotification.objects.all()
-        if tenant:
-            qs = qs.filter(tenant=tenant)
-        unread = qs.filter(read=False).count()
-        return Response({'unread': unread})
+        try:
+            tenant = _get_user_tenant(request.user)
+            qs = OrderNotification.objects.all()
+            if tenant:
+                qs = qs.filter(tenant=tenant)
+            unread = qs.filter(read=False).count()
+            return Response({'unread': unread})
+        except Exception as e:
+            # Si hay error (ej: tabla no existe), devolver 0 en lugar de 500
+            return Response({'unread': 0})
 
 
 class SalesNotificationMarkReadView(APIView):

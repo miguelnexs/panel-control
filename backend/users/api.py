@@ -82,7 +82,8 @@ class RegisterTenantSerializer(serializers.Serializer):
             db_alias=alias,
             db_path=f"schema:{alias}",
             name=validated_data['tenant_name'],
-            subscription_plan=plan
+            subscription_plan=plan,
+            has_paid=False
         )
         
         # 5. Vincular perfil al tenant
@@ -147,38 +148,77 @@ class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        try:
-            role = request.user.profile.role
-        except UserProfile.DoesNotExist:
-            role = 'employee'
-        
-        # Obtener información del plan de suscripción
+        # Inicializar variables por defecto
+        role = 'employee'
         subscription_info = None
         has_paid = False
-        tenant = _get_user_tenant(request.user)
-        if tenant:
-            if tenant.subscription_plan:
-                plan = tenant.subscription_plan
-                subscription_info = {
-                    'name': plan.name,
-                    'code': plan.code,
-                    'max_users': plan.max_users,
-                    'max_products': plan.max_products,
-                    'max_categories': plan.max_categories,
-                    'max_transactions': plan.max_transactions_per_month,
-                    'features': {
-                        'web_store': plan.enable_web_store,
-                        'inventory': plan.enable_inventory_management,
-                        'marketing': plan.enable_marketing_tools,
-                        'advanced_sales': plan.enable_advanced_sales_analysis,
-                        'detailed_reports': plan.enable_detailed_reports,
-                        'api_access': plan.enable_api_access,
-                        'user_management': plan.enable_user_management,
-                    }
+        is_superadmin = False
+
+        # Obtener datos de perfil de forma segura al inicio
+        profile = None
+        try:
+            if hasattr(request.user, 'profile'):
+                profile = request.user.profile
+        except:
+            pass
+
+        try:
+            if request.user.is_superuser or (profile and profile.role == 'super_admin'):
+                is_superadmin = True
+        except:
+            pass
+
+        if is_superadmin:
+            role = 'super_admin'
+            has_paid = True
+            subscription_info = {
+                'name': 'Plan Super Admin',
+                'code': 'super_admin',
+                'max_users': -1,
+                'max_products': -1,
+                'max_categories': -1,
+                'max_transactions': -1,
+                'features': {
+                    'web_store': True,
+                    'inventory': True,
+                    'marketing': True,
+                    'advanced_sales': True,
+                    'detailed_reports': True,
+                    'api_access': True,
+                    'user_management': True,
                 }
-            # Consideramos pagado si tiene un ID de suscripción de Stripe
-            if tenant.stripe_subscription_id:
-                has_paid = True
+            }
+        else:
+            if profile:
+                role = profile.role
+            
+            tenant = _get_user_tenant(request.user)
+            if tenant:
+                if tenant.subscription_plan:
+                    plan = tenant.subscription_plan
+                    subscription_info = {
+                        'name': plan.name,
+                        'code': plan.code,
+                        'max_users': plan.max_users,
+                        'max_products': plan.max_products,
+                        'max_categories': plan.max_categories,
+                        'max_transactions': plan.max_transactions_per_month,
+                        'features': {
+                            'web_store': plan.enable_web_store,
+                            'inventory': plan.enable_inventory_management,
+                            'marketing': plan.enable_marketing_tools,
+                            'advanced_sales': plan.enable_advanced_sales_analysis,
+                            'detailed_reports': plan.enable_detailed_reports,
+                            'api_access': plan.enable_api_access,
+                            'user_management': plan.enable_user_management,
+                        }
+                    }
+                # Consideramos pagado si el campo has_paid es True o si tiene ID de Stripe
+                try:
+                    if getattr(tenant, 'has_paid', False) or getattr(tenant, 'stripe_subscription_id', None):
+                        has_paid = True
+                except:
+                    pass
 
         return Response({
             'id': request.user.id,
@@ -187,9 +227,9 @@ class MeView(APIView):
             'email': request.user.email,
             'first_name': request.user.first_name,
             'last_name': request.user.last_name,
-            'phone': getattr(getattr(request.user, 'profile', None), 'phone', None),
-            'department': getattr(getattr(request.user, 'profile', None), 'department', None),
-            'position': getattr(getattr(request.user, 'profile', None), 'position', None),
+            'phone': profile.phone if profile else None,
+            'department': profile.department if profile else None,
+            'position': profile.position if profile else None,
             'subscription': subscription_info,
             'has_paid': has_paid
         }, status=status.HTTP_200_OK)
@@ -214,20 +254,26 @@ class MeView(APIView):
 
 
 def _serialize_user(user: User):
+    role = 'employee'
     try:
-        role = user.profile.role
-    except UserProfile.DoesNotExist:
-        role = 'employee'
-    # Intentar obtener campos del perfil
+        if hasattr(user, 'profile'):
+            role = user.profile.role
+    except:
+        pass
+    
+    # Intentar obtener campos del perfil de forma segura
     department = None
     position = None
     phone = None
     try:
-        department = getattr(user.profile, 'department', None)
-        position = getattr(user.profile, 'position', None)
-        phone = getattr(user.profile, 'phone', None)
-    except UserProfile.DoesNotExist:
+        if hasattr(user, 'profile'):
+            profile = user.profile
+            department = getattr(profile, 'department', None)
+            position = getattr(profile, 'position', None)
+            phone = getattr(profile, 'phone', None)
+    except:
         pass
+    
     return {
         'id': user.id,
         'username': user.username,
@@ -243,20 +289,26 @@ def _serialize_user(user: User):
 # Helper seguro para obtener el rol sin provocar 500 si no hay perfil
 def _get_user_role(user: User) -> str:
     try:
-        return user.profile.role
-    except UserProfile.DoesNotExist:
-        return 'employee'
+        if hasattr(user, 'profile'):
+            return user.profile.role
+    except:
+        pass
+    return 'employee'
 
 # Helper seguro para obtener el tenant del usuario (admin o empleado)
 def _get_user_tenant(user: User):
     # Intentar por perfil
     try:
-        profile = user.profile
-        return getattr(profile, 'tenant', None)
-    except UserProfile.DoesNotExist:
+        if hasattr(user, 'profile'):
+            profile = user.profile
+            return getattr(profile, 'tenant', None)
+    except:
         pass
     # Intentar por relación OneToOne de admin
-    return Tenant.objects.filter(admin=user).first()
+    try:
+        return Tenant.objects.filter(admin=user).first()
+    except:
+        return None
 
 
 class UsersView(APIView):

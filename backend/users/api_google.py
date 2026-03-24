@@ -60,11 +60,48 @@ class GoogleLoginView(APIView):
                 # Login existing user
                 pass
             else:
-                # Reject new users - force web registration
-                return Response(
-                    {'error': 'Usuario no registrado. Por favor, regístrese primero a través de nuestra página web.'}, 
-                    status=status.HTTP_400_BAD_REQUEST
+                # Register new user automatically
+                username = email.split('@')[0]
+                # Ensure unique username
+                if User.objects.filter(username=username).exists():
+                    username = f"{username}_{get_random_string(5)}"
+                
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    first_name=first_name,
+                    last_name=last_name,
+                    password=get_random_string(20) # Random password for social login
                 )
+                
+                # Create Profile
+                profile = UserProfile.objects.create(
+                    user=user,
+                    role='admin' # Default role for new web registrations
+                )
+                
+                # Default Subscription Plan (e.g., 'starter' or 'free')
+                plan = SubscriptionPlan.objects.filter(is_active=True, price=0).first()
+                if not plan:
+                    plan = SubscriptionPlan.objects.filter(is_active=True).first()
+                
+                # Create Tenant
+                alias = f"tenant_{user.id}"
+                tenant = Tenant.objects.create(
+                    admin=user,
+                    db_alias=alias,
+                    db_path=f"schema:{alias}",
+                    name=f"Negocio de {first_name or username}",
+                    subscription_plan=plan,
+                    has_paid=False # Force payment before dashboard access
+                )
+                
+                # Link profile to tenant
+                profile.tenant = tenant
+                profile.save()
+                
+                # Ensure Tenant creation/initialization
+                ensure_tenant_for_user(user)
 
             # Generate JWT
             refresh = RefreshToken.for_user(user)

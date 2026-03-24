@@ -212,7 +212,18 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                 (!selectedColor || String(s.color) === String(selectedColor.id)) && 
                 (!selectedVariant || String(s.variant) === String(selectedVariant.id))
             );
-            stock = matchingSku?.stock ?? 0;
+            // Si hay un SKU que coincide, usamos su stock
+            if (matchingSku) {
+                stock = matchingSku.stock;
+            } 
+            // Si no hay SKU pero seleccionamos un color, usamos el stock del color como fallback
+            else if (selectedColor && !selectedVariant) {
+                stock = selectedColor.stock || 0;
+            }
+            // De lo contrario es 0
+            else {
+                stock = 0;
+            }
         } else if (useStandardColor) {
             stock = selectingProduct.inventory_qty || 0;
         }
@@ -235,14 +246,21 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
   };
 
   const addToCart = async (product: Product) => {
-    // Load full data including SKUs before opening modal
+    // Load full data including SKUs and full product details before opening modal
     setLoading(true);
     try {
-        const res = await fetch(`${apiBase}/products/${product.id}/skus/`, { headers: authHeaders(token) });
-        const skusData = await res.json();
+        const [skusRes, prodRes] = await Promise.all([
+            fetch(`${apiBase}/products/${product.id}/skus/`, { headers: authHeaders(token) }),
+            fetch(`${apiBase}/products/${product.id}/`, { headers: authHeaders(token) })
+        ]);
+        
+        const skusData = await skusRes.json();
+        const fullProductData = await prodRes.json();
+        
         const skus = Array.isArray(skusData.results) ? skusData.results : (Array.isArray(skusData) ? skusData : []);
         
-        const fullProduct = { ...product, skus };
+        // Merge the full product data with SKUs
+        const fullProduct = { ...fullProductData, skus };
         
         // If product has colors or variants, open the selection modal
         if ((fullProduct.colors && fullProduct.colors.length > 0) || (fullProduct.variants && fullProduct.variants.length > 0)) {
@@ -256,7 +274,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
             return;
         }
     } catch (e) {
-        console.error("Error loading product SKUs:", e);
+        console.error("Error loading product details:", e);
     } finally {
         setLoading(false);
     }
@@ -276,7 +294,14 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
             (!selectedColor || String(s.color) === String(selectedColor.id)) && 
             (!selectedVariant || String(s.variant) === String(selectedVariant.id))
         );
-        stock = matchingSku?.stock ?? 0;
+        
+        if (matchingSku) {
+            stock = matchingSku.stock;
+        } else if (selectedColor && !selectedVariant) {
+            stock = selectedColor.stock || 0;
+        } else {
+            stock = 0;
+        }
     } else if (useStandardColor) {
         stock = selectingProduct.inventory_qty || 0;
     }
@@ -995,34 +1020,53 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                         <div className="space-y-6">
                             <h4 className="text-center font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest text-xs">Selecciona un color base</h4>
                             <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
-                                {selectingProduct.colors?.filter(c => {
-                                    // If no SKUs are loaded yet, show the color anyway to avoid empty list
-                                    if (!selectingProduct.skus || selectingProduct.skus.length === 0) return true;
-                                    
-                                    // Filter out colors with 0 stock in ALL variants
-                                    const colorSkus = selectingProduct.skus.filter(s => String(s.color) === String(c.id));
-                                    if (colorSkus.length === 0) return false;
-                                    return colorSkus.some(s => Number(s.stock) > 0);
-                                }).map((c) => (
-                                    <button
-                                        key={c.id}
-                                        onClick={() => {
-                                            setSelectedColor(c);
-                                            setSelectionStep(selectingProduct.variants && selectingProduct.variants.length > 0 ? 'variant' : 'quantity');
-                                        }}
-                                        className={`group relative flex flex-col items-center gap-3 p-3 rounded-2xl border-2 transition-all hover:scale-105 ${
-                                            selectedColor?.id === c.id ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-500/5 shadow-lg' : 'border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30 hover:border-gray-200 dark:hover:border-gray-700'
-                                        }`}
-                                    >
-                                        <div className="w-12 h-12 rounded-full border-4 border-white dark:border-gray-900 shadow-md group-hover:rotate-12 transition-transform" style={{ backgroundColor: c.hex }} />
-                                        <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase text-center leading-tight">{c.name}</span>
-                                        {selectedColor?.id === c.id && (
-                                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg animate-in zoom-in">
-                                                <CheckCircle2 size={14} />
-                                            </div>
-                                        )}
-                                    </button>
-                                ))}
+                                {Array.isArray(selectingProduct.colors) && selectingProduct.colors.length > 0 ? (
+                                    selectingProduct.colors.map((c) => {
+                                        // Determinar si hay stock para este color (ya sea en SKUs o directo)
+                                        let stock = 0;
+                                        if (selectingProduct.skus && selectingProduct.skus.length > 0) {
+                                            const colorSkus = selectingProduct.skus.filter(s => String(s.color) === String(c.id));
+                                            if (colorSkus.length > 0) {
+                                                stock = colorSkus.reduce((sum, s) => sum + Number(s.stock || 0), 0);
+                                            } else {
+                                                stock = Number(c.stock || 0);
+                                            }
+                                        } else {
+                                            stock = Number(c.stock || 0);
+                                        }
+
+                                        const hasStock = stock > 0;
+
+                                        return (
+                                            <button
+                                                key={c.id}
+                                                disabled={!hasStock}
+                                                onClick={() => {
+                                                    setSelectedColor(c);
+                                                    setSelectionStep(selectingProduct.variants && selectingProduct.variants.length > 0 ? 'variant' : 'quantity');
+                                                }}
+                                                className={`group relative flex flex-col items-center gap-3 p-3 rounded-2xl border-2 transition-all hover:scale-105 ${
+                                                    selectedColor?.id === c.id ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-500/5 shadow-lg' : 
+                                                    (!hasStock ? 'opacity-30 cursor-not-allowed border-gray-100 dark:border-gray-800 bg-gray-100 dark:bg-gray-800/50' : 'border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30 hover:border-gray-200 dark:hover:border-gray-700')
+                                                }`}
+                                            >
+                                                <div className="w-12 h-12 rounded-full border-4 border-white dark:border-gray-900 shadow-md group-hover:rotate-12 transition-transform" style={{ backgroundColor: c.hex }} />
+                                                <span className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase text-center leading-tight">{c.name}</span>
+                                                {!hasStock && <span className="text-[8px] font-bold text-rose-500 uppercase mt-1">Sin Stock</span>}
+                                                {selectedColor?.id === c.id && (
+                                                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg animate-in zoom-in">
+                                                        <CheckCircle2 size={14} />
+                                                    </div>
+                                                )}
+                                            </button>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="col-span-full p-8 text-center bg-gray-50 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
+                                        <Palette className="w-8 h-8 text-gray-400 mx-auto mb-2 opacity-20" />
+                                        <p className="text-xs text-gray-500 font-medium italic">No hay colores disponibles para este producto</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -1031,36 +1075,52 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                         <div className="space-y-6">
                             <h4 className="text-center font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest text-xs">Selecciona el detalle / variante</h4>
                             <div className="grid grid-cols-2 gap-3">
-                                {selectingProduct.variants?.map((v) => {
-                                    // Filter based on SKUs if possible
-                                    const hasStock = selectingProduct.skus?.find(s => 
-                                        (!selectedColor || String(s.color) === String(selectedColor.id)) && 
-                                        String(s.variant) === String(v.id)
-                                    )?.active !== false;
+                                {Array.isArray(selectingProduct.variants) && selectingProduct.variants.length > 0 ? (
+                                    selectingProduct.variants.map((v) => {
+                                        // Determinar si hay stock para esta variante
+                                        let stock = 0;
+                                        if (selectingProduct.skus && selectingProduct.skus.length > 0) {
+                                            const variantSkus = selectingProduct.skus.filter(s => 
+                                                (!selectedColor || String(s.color) === String(selectedColor.id)) && 
+                                                String(s.variant) === String(v.id)
+                                            );
+                                            stock = variantSkus.reduce((sum, s) => sum + Number(s.stock || 0), 0);
+                                        } else {
+                                            // Si no hay SKUs, asumimos stock global o permitimos selección
+                                            stock = selectingProduct.inventory_qty || 0;
+                                        }
 
-                                    return (
-                                        <button
-                                            key={v.id}
-                                            disabled={!hasStock}
-                                            onClick={() => {
-                                                setSelectedVariant(v);
-                                                setSelectionStep('quantity');
-                                            }}
-                                            className={`relative flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all ${
-                                                selectedVariant?.id === v.id ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-500/5 shadow-lg' : 
-                                                (!hasStock ? 'opacity-30 cursor-not-allowed border-gray-100 dark:border-gray-800 bg-gray-100 dark:bg-gray-800/50' : 'border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30 hover:border-blue-500/30')
-                                            }`}
-                                        >
-                                            <span className="font-bold text-gray-900 dark:text-white uppercase tracking-wider">{v.name}</span>
-                                            {Number(v.extra_price) > 0 && (
-                                                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                                                    +{formatCurrency(v.extra_price)}
-                                                </span>
-                                            )}
-                                            {!hasStock && <span className="text-[8px] font-bold text-rose-500 uppercase">Sin Stock</span>}
-                                        </button>
-                                    );
-                                })}
+                                        const hasStock = stock > 0;
+
+                                        return (
+                                            <button
+                                                key={v.id}
+                                                disabled={!hasStock}
+                                                onClick={() => {
+                                                    setSelectedVariant(v);
+                                                    setSelectionStep('quantity');
+                                                }}
+                                                className={`relative flex flex-col items-center gap-2 p-5 rounded-2xl border-2 transition-all ${
+                                                    selectedVariant?.id === v.id ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-500/5 shadow-lg' : 
+                                                    (!hasStock ? 'opacity-30 cursor-not-allowed border-gray-100 dark:border-gray-800 bg-gray-100 dark:bg-gray-800/50' : 'border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30 hover:border-blue-500/30')
+                                                }`}
+                                            >
+                                                <span className="font-bold text-gray-900 dark:text-white uppercase tracking-wider">{v.name}</span>
+                                                {Number(v.extra_price) > 0 && (
+                                                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                                                        +{formatCurrency(v.extra_price)}
+                                                    </span>
+                                                )}
+                                                {!hasStock && <span className="text-[8px] font-bold text-rose-500 uppercase">Sin Stock</span>}
+                                            </button>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="col-span-full p-8 text-center bg-gray-50 dark:bg-gray-800/50 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700">
+                                        <Package className="w-8 h-8 text-gray-400 mx-auto mb-2 opacity-20" />
+                                        <p className="text-xs text-gray-500 font-medium italic">No hay variantes disponibles para este producto</p>
+                                    </div>
+                                )}
                                 <button
                                     onClick={() => {
                                         setSelectedVariant(null);

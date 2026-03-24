@@ -105,37 +105,45 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, 
       
       {/* Section 1: Key Metrics & Performance */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCardV2 
-          title="Usuarios Activos" 
-          value={stats.usersCount} 
-          subValue={`+${stats.clientsNewMonth} nuevos`}
-          trend="up"
-          icon={Users}
-          color="text-blue-400"
-        />
-        <StatCardV2 
-          title="Pedidos Pendientes" 
-          value={stats.statusCounts.pending}
-          subValue="Por despachar"
-          trend="neutral"
-          icon={MonitorCheck}
-          color="text-amber-400"
-        />
-        <StatCardV2 
-          title="Envíos Realizados" 
-          value={stats.statusCounts.shipped}
-          subValue="En tránsito"
-          trend="up"
-          icon={Clock}
-          color="text-emerald-400"
-        />
-        <StatCardV2 
-          title="Ventas Totales" 
-          value={Number(stats.salesAmount).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
-          trend="up"
-          icon={Activity}
-          color="text-purple-400"
-        />
+        <div>
+          <StatCardV2 
+            title="Usuarios Activos" 
+            value={stats.usersCount} 
+            subValue={`+${stats.clientsNewMonth} nuevos`}
+            trend="up"
+            icon={Users}
+            color="text-blue-400"
+          />
+        </div>
+        <div>
+          <StatCardV2 
+            title="Pedidos Pendientes" 
+            value={stats.statusCounts.pending}
+            subValue="Por despachar"
+            trend="neutral"
+            icon={MonitorCheck}
+            color="text-amber-400"
+          />
+        </div>
+        <div>
+          <StatCardV2 
+            title="Envíos Realizados" 
+            value={stats.statusCounts.shipped}
+            subValue="En tránsito"
+            trend="up"
+            icon={Clock}
+            color="text-emerald-400"
+          />
+        </div>
+        <div>
+          <StatCardV2 
+            title="Ventas Totales" 
+            value={Number(stats.salesAmount).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+            trend="up"
+            icon={Activity}
+            color="text-purple-400"
+          />
+        </div>
       </div>
 
       {/* Section 2: Charts & System Health */}
@@ -145,7 +153,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, 
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Actividad de Ventas (Últimos 7 días)</h3>
           </div>
-          <div className="h-64">
+          <div className="h-80 md:h-[28rem]">
             <ActivityChart data={seriesA} labels={chartLabels} />
           </div>
         </div>
@@ -163,7 +171,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, 
             
             <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
               <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Ventas Diarias ($)</h4>
-              <div className="h-32">
+              <div className="h-48 md:h-56">
                  <PerformanceChart data={seriesB} />
               </div>
             </div>

@@ -262,9 +262,8 @@ class ProcessPaymentView(APIView):
             if payment.get("status") == "approved":
                 # Activar suscripción inmediatamente
                 tenant = request.user.tenant
-                # tenant.has_paid = True # No existe en modelo
+                tenant.has_paid = True
                 tenant.subscription_plan = plan
-                # tenant.subscription_status = 'active' # No existe en modelo
                 tenant.stripe_subscription_id = str(payment["id"]) # Usamos este campo para indicar pago
                 tenant.save()
                 
@@ -346,6 +345,7 @@ class MercadoPagoWebhookView(APIView):
                         
                         tenant.subscription_plan = plan
                         tenant.stripe_subscription_id = f"mp_{id}" # Guardamos ID de MP
+                        tenant.has_paid = True
                         tenant.save()
                         logger.info(f"Subscription activated for tenant {tenant_id}")
                     except Tenant.DoesNotExist:

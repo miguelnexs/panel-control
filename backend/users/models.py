@@ -21,6 +21,7 @@ class Tenant(models.Model):
     db_path = models.CharField(max_length=255, unique=True)
     name = models.CharField(max_length=255, default="Mi Negocio")
     subscription_plan = models.ForeignKey(SubscriptionPlan, on_delete=models.SET_NULL, null=True, blank=True, related_name='tenants')
+    has_paid = models.BooleanField(default=False)
     stripe_customer_id = models.CharField(max_length=255, blank=True, null=True)
     stripe_subscription_id = models.CharField(max_length=255, blank=True, null=True)
 
