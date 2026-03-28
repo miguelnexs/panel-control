@@ -836,15 +836,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                     type="text" 
                     value={clientForm.cedula} 
                     onChange={(e) => {
-                      let val = e.target.value;
-                      if (clientForm.client_type === 'company') {
-                        // Permitir solo números y guiones para el NIT
-                        val = val.replace(/[^\d-]/g, '');
-                      } else {
-                        // Solo números para cédula
-                        val = val.replace(/[^\d]/g, '');
-                      }
-                      setClientForm((f) => ({ ...f, cedula: val }));
+                      setClientForm((f) => ({ ...f, cedula: e.target.value }));
                     }} 
                     className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                     placeholder={clientForm.client_type === 'person' ? "Ej. 12345678" : "Ej. 900123456-1"}

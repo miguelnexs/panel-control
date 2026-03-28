@@ -2,7 +2,7 @@ appId: com.assent.dashboard
 productName: Assent Dashboard
 copyright: Copyright © 2024 Assent Dashboard
 directories:
-  output: dist-electron-v7
+  output: dist-electron-v11
   buildResources: build
 files:
   - "out/**/*"
@@ -31,6 +31,9 @@ removePackageKeywords: true
 win:
   target:
     - target: nsis
+      arch:
+        - x64
+    - target: nsis-web
       arch:
         - x64
   publish:
@@ -64,6 +67,18 @@ nsis:
   displayLanguageSelector: true
   perMachine: false
   differentialPackage: false
+
+nsisWeb:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  allowElevation: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Assent Dashboard
+  displayLanguageSelector: true
+  perMachine: false
+  differentialPackage: false
+  artifactName: "${productName} Web Setup ${version}.${ext}"
 
 mac:
   target: dmg

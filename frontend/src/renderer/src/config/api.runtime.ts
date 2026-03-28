@@ -1,7 +1,5 @@
 export const candidateApiBases = (): string[] => {
-  // En modo desarrollo, solo usamos local
-  return ['http://localhost:8000'];
-  // return ['http://localhost:8000', 'https://softwarebycg.shop'];
+  return ['http://localhost:8000', 'http://127.0.0.1:8000'];
 };
 
 const tryHealth = async (base: string): Promise<boolean> => {
@@ -24,7 +22,5 @@ export const detectApiBase = async (): Promise<string> => {
     const ok = await tryHealth(b);
     if (ok) return b.replace(/\/+$/,'');
   }
-  // Forzar local incluso si falla el health check durante el desarrollo
   return 'http://localhost:8000';
-  // return 'https://softwarebycg.shop';
 };

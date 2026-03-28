@@ -356,13 +356,7 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
                                             type="text" 
                                             value={newClientData.cedula}
                                             onChange={(e) => {
-                                                let val = e.target.value;
-                                                if (newClientData.client_type === 'company') {
-                                                    val = val.replace(/[^\d-]/g, '');
-                                                } else {
-                                                    val = val.replace(/[^\d]/g, '');
-                                                }
-                                                setNewClientData({...newClientData, cedula: val});
+                                                setNewClientData({...newClientData, cedula: e.target.value});
                                             }}
                                             placeholder={newClientData.client_type === 'person' ? "Ej. 123456789" : "Ej. 900123456-1"}
                                             className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none"

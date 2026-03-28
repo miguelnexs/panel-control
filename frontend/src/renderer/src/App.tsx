@@ -31,23 +31,58 @@ const App = () => {
   const [apiBase, setApiBase] = useState<string>(API_BASE_URL);
   const authHeaders = buildAuthHeaders;
 
-  // Removed auto-login from localStorage to force login screen on startup as requested
-  // useEffect(() => {
-  //   try {
-  //     const a = localStorage.getItem('globetrek_access_token');
-  //     const r = localStorage.getItem('globetrek_refresh_token');
-  //     if (a) setToken(a);
-  //     if (r) setRefresh(r);
-  //   } catch {}
-  // }, []);
-
   useEffect(() => {
     let mounted = true;
     detectApiBase().then((b) => { if (mounted) setApiBase(b); }).catch(() => {});
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    const restore = async () => {
+      const get = (k: string) => {
+        try {
+          return sessionStorage.getItem(k) || localStorage.getItem(k);
+        } catch {
+          return null;
+        }
+      };
+      const access = get('globetrek_access_token');
+      const refreshToken = get('globetrek_refresh_token');
+      if (!access) return;
+      try {
+        const meRes = await fetch(`${apiBase}/users/api/auth/me/`, {
+          headers: { Authorization: `Bearer ${access}` },
+        });
+        const meData = await meRes.json().catch(() => null);
+        if (!meRes.ok) throw new Error(meData?.detail || 'Sesión inválida');
+        if (!meData?.has_paid) throw new Error('No tienes un plan activo.');
+        if (!mounted) return;
+        setToken(access);
+        setRefresh(refreshToken);
+        setRole(meData.role || null);
+        setUserId(meData.id ?? null);
+      } catch {
+        try {
+          sessionStorage.removeItem('globetrek_access_token');
+          sessionStorage.removeItem('globetrek_refresh_token');
+          localStorage.removeItem('globetrek_access_token');
+          localStorage.removeItem('globetrek_refresh_token');
+          localStorage.removeItem('globetrek_role');
+          localStorage.removeItem('globetrek_user_id');
+          localStorage.removeItem('globetrek_remember_me');
+        } catch {}
+      }
+    };
+    if (apiBase) restore();
+    return () => { mounted = false; };
+  }, [apiBase]);
+
+  useEffect(() => {
     const ping = () => { fetch(`${apiBase}/health/`).catch(() => {}); };
     const id = setInterval(ping, 5 * 60 * 1000);
-    return () => { mounted = false; clearInterval(id); };
-  }, []);
+    return () => { clearInterval(id); };
+  }, [apiBase]);
 
   useEffect(() => {
     let id: NodeJS.Timeout | null = null;
@@ -76,15 +111,31 @@ const App = () => {
     return () => { if (id) clearInterval(id); };
   }, [refresh]);
 
-  const handleLoginSuccess = (accessToken: string, refreshToken: string | null, userRole: string | null, uid: string | number | null) => {
+  const handleLoginSuccess = (accessToken: string, refreshToken: string | null, userRole: string | null, uid: string | number | null, remember: boolean) => {
     setToken(accessToken);
     setRefresh(refreshToken);
     setRole(userRole);
     setUserId(uid);
     setMessage({ type: 'success', text: 'Inicio de sesión exitoso' });
     try {
-      localStorage.setItem('globetrek_access_token', accessToken);
-      if (refreshToken) localStorage.setItem('globetrek_refresh_token', refreshToken);
+      sessionStorage.removeItem('globetrek_access_token');
+      sessionStorage.removeItem('globetrek_refresh_token');
+      localStorage.removeItem('globetrek_access_token');
+      localStorage.removeItem('globetrek_refresh_token');
+      localStorage.removeItem('globetrek_role');
+      localStorage.removeItem('globetrek_user_id');
+      localStorage.removeItem('globetrek_remember_me');
+
+      if (remember) {
+        localStorage.setItem('globetrek_access_token', accessToken);
+        if (refreshToken) localStorage.setItem('globetrek_refresh_token', refreshToken);
+        if (userRole) localStorage.setItem('globetrek_role', userRole);
+        if (uid != null) localStorage.setItem('globetrek_user_id', String(uid));
+        localStorage.setItem('globetrek_remember_me', 'true');
+      } else {
+        sessionStorage.setItem('globetrek_access_token', accessToken);
+        if (refreshToken) sessionStorage.setItem('globetrek_refresh_token', refreshToken);
+      }
     } catch {}
   };
 
@@ -94,8 +145,13 @@ const App = () => {
     setRefresh(null);
     setMessage({ type: 'success', text: 'Sesión cerrada' });
     try {
+      sessionStorage.removeItem('globetrek_access_token');
+      sessionStorage.removeItem('globetrek_refresh_token');
       localStorage.removeItem('globetrek_access_token');
       localStorage.removeItem('globetrek_refresh_token');
+      localStorage.removeItem('globetrek_role');
+      localStorage.removeItem('globetrek_user_id');
+      localStorage.removeItem('globetrek_remember_me');
     } catch {}
   };
 

@@ -5,6 +5,8 @@ import {
   Plus, 
   Filter, 
   RefreshCw, 
+  Calendar,
+  ArrowUpDown,
   MoreVertical, 
   Edit, 
   Trash, 
@@ -43,9 +45,13 @@ interface ProductosManagerProps {
   apiBase: string;
   onCreate?: () => void;
   onEdit?: (product: any) => void;
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  canReorder?: boolean;
 }
 
-const SortableRow = ({ product, children }: { product: any, children: React.ReactNode }) => {
+const SortableRow = ({ product, children, disabled }: { product: any, children: React.ReactNode, disabled: boolean }) => {
     const {
       attributes,
       listeners,
@@ -53,7 +59,7 @@ const SortableRow = ({ product, children }: { product: any, children: React.Reac
       transform,
       transition,
       isDragging,
-    } = useSortable({ id: product.id });
+    } = useSortable({ id: product.id, disabled });
 
     const style = {
       transform: CSS.Transform.toString(transform),
@@ -65,7 +71,10 @@ const SortableRow = ({ product, children }: { product: any, children: React.Reac
 
     return (
       <tr ref={setNodeRef} style={style} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors group">
-        <td className="px-2 py-4 w-10 text-gray-400 dark:text-gray-500 cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
+        <td
+          className={`px-2 py-4 w-10 text-gray-400 dark:text-gray-500 ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-grab active:cursor-grabbing'}`}
+          {...(!disabled ? { ...attributes, ...listeners } : {})}
+        >
           <GripVertical className="w-5 h-5 hover:text-gray-600 dark:hover:text-gray-300" />
         </td>
         {children}
@@ -73,7 +82,7 @@ const SortableRow = ({ product, children }: { product: any, children: React.Reac
     );
   };
 
-const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onCreate, onEdit }) => {
+const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onCreate, onEdit, canCreate, canEdit, canDelete, canReorder }) => {
   const [items, setItems] = useState<any[]>([]);
   const [msg, setMsg] = useState<{ type: string; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -86,6 +95,11 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [lowStockThreshold, setLowStockThreshold] = useState(5);
   const [deletingProduct, setDeletingProduct] = useState<any>(null);
+  const [dateSort, setDateSort] = useState<'off' | 'desc' | 'asc'>('off');
+  const canCreateSafe = typeof canCreate === 'boolean' ? canCreate : true;
+  const canEditSafe = typeof canEdit === 'boolean' ? canEdit : true;
+  const canDeleteSafe = typeof canDelete === 'boolean' ? canDelete : true;
+  const canReorderSafe = typeof canReorder === 'boolean' ? canReorder : true;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -99,6 +113,7 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
+    if (dateSort !== 'off' || !canReorderSafe) return;
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
@@ -188,6 +203,13 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
     const matchesLowStock = !lowStockOnly || s < Number(lowStockThreshold || 0);
     return matchesSearch && matchesCategory && matchesActive && matchesLowStock;
   });
+  const displayed = dateSort === 'off'
+    ? filtered
+    : [...filtered].sort((a, b) => {
+        const ta = a?.created_at ? new Date(a.created_at).getTime() : 0;
+        const tb = b?.created_at ? new Date(b.created_at).getTime() : 0;
+        return dateSort === 'desc' ? tb - ta : ta - tb;
+      });
   const statsTotal = items.length;
   const statsLow = items.filter((p) => totalStockOf(p) < Number(lowStockThreshold || 0)).length;
   const statsActive = items.filter((p) => !!p.active).length;
@@ -358,9 +380,21 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
               <button onClick={loadProducts} className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title="Recargar">
                 <RefreshCw className="w-4 h-4" />
               </button>
+              <button
+                onClick={() => setDateSort((s) => (s === 'off' ? 'desc' : s === 'desc' ? 'asc' : 'off'))}
+                className={`p-2 rounded-lg transition-colors ${dateSort === 'off' ? 'text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800' : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20'}`}
+                title={dateSort === 'off' ? 'Ordenar por fecha de subida (más reciente)' : dateSort === 'desc' ? 'Ordenando por fecha (más reciente) - click para (más antiguo)' : 'Ordenando por fecha (más antiguo) - click para quitar'}
+              >
+                <span className="sr-only">Ordenar por fecha</span>
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  <ArrowUpDown className="w-4 h-4" />
+                </div>
+              </button>
               <button 
-                onClick={() => { if (onCreate) onCreate(); }} 
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-900/20"
+                onClick={() => { if (onCreate && canCreateSafe) onCreate(); }} 
+                disabled={!canCreateSafe}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="w-4 h-4" />
                 <span>Nuevo</span>
@@ -390,11 +424,11 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                 <SortableContext 
-                  items={filtered.map((p) => p.id)}
+                  items={displayed.map((p) => p.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {filtered.map((p) => (
-                    <SortableRow key={p.id} product={p}>
+                  {displayed.map((p) => (
+                    <SortableRow key={p.id} product={p} disabled={dateSort !== 'off' || !canReorderSafe}>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden flex-shrink-0">
@@ -449,14 +483,16 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
                             <Eye className="w-4 h-4" />
                           </button>
                           <button 
-                            onClick={() => { if (onEdit) onEdit(p); }} 
+                            onClick={() => { if (onEdit && canEditSafe) onEdit(p); }} 
+                            disabled={!canEditSafe}
                             className="p-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/10 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             title="Editar"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button 
-                            onClick={() => removeProduct(p.id)} 
+                            onClick={() => { if (canDeleteSafe) removeProduct(p.id); }} 
+                            disabled={!canDeleteSafe}
                             className="p-2 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/10 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
                             title="Eliminar"
                           >

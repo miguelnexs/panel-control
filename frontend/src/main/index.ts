@@ -9,37 +9,24 @@ import dotenv from 'dotenv';
 // Cargar variables de entorno
 dotenv.config();
 
-// Auto-updater logging
 autoUpdater.logger = require('electron-log');
 // @ts-ignore
 autoUpdater.logger.transports.file.level = 'info';
 autoUpdater.autoDownload = true;
 autoUpdater.allowPrerelease = false;
 
-// Configuración para repositorio privado (requiere token)
-// Priorizar token de entorno, pero tener un fallback para producción si es necesario
-const GH_TOKEN = process.env.GH_TOKEN || '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';
-
-if (!GH_TOKEN || GH_TOKEN === '') {
-  autoUpdater.logger.error('GH_TOKEN no encontrado. Las actualizaciones privadas fallarán.');
+const UPDATE_PROVIDER = process.env.UPDATE_PROVIDER || 'github';
+const UPDATE_URL = process.env.UPDATE_URL || '';
+if (UPDATE_PROVIDER === 'generic' && UPDATE_URL) {
+  autoUpdater.setFeedURL({ provider: 'generic', url: UPDATE_URL, channel: 'latest' });
 } else {
-  autoUpdater.logger.info('GH_TOKEN configurado para auto-updates.');
+  autoUpdater.setFeedURL({
+    provider: 'github',
+    owner: process.env.GITHUB_OWNER || 'miguelnexs',
+    repo: process.env.GITHUB_REPO || 'panel-control',
+    releaseType: 'release'
+  });
 }
-
-// Configurar encabezados de solicitud para autenticación en repo privado
-// GitHub API acepta tanto 'token <token>' como 'Bearer <token>'
-autoUpdater.requestHeaders = {
-  'Authorization': `Bearer ${GH_TOKEN}`,
-  'Accept': 'application/vnd.github.v3+json'
-};
-
-autoUpdater.setFeedURL({
-  provider: 'github',
-  owner: 'miguelnexs',
-  repo: 'panel-control',
-  private: true,
-  token: GH_TOKEN
-});
 
 // Auto-updater events
 autoUpdater.on('checking-for-update', () => {
@@ -280,6 +267,9 @@ function createWindow(): BrowserWindow {
             console.error('Error checking for updates:', err);
           });
         }, 3000);
+        setInterval(() => {
+          autoUpdater.checkForUpdatesAndNotify().catch(() => {});
+        }, 15 * 60 * 1000);
       }
     }
   });

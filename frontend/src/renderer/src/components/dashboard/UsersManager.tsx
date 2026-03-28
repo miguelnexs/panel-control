@@ -18,6 +18,7 @@ import {
   Phone,
   Lock
 } from 'lucide-react';
+import EmployeePermissionsManager from './EmployeePermissionsManager';
 
 interface UsersManagerProps {
   token: string | null;
@@ -53,6 +54,7 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<Msg | null>(null);
+  const [tab, setTab] = useState<'empleados' | 'permisos'>('empleados');
   
   // Create Form State
   const [form, setForm] = useState({ username: '', password: '', first_name: '', last_name: '', email: '', department: '', position: '' });
@@ -304,40 +306,61 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
           </div>
 
           <div className="flex flex-col md:flex-row gap-3">
-            {/* Search */}
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => { setPage(1); setSearch(e.target.value); }}
-                placeholder="Buscar usuario..."
-                className="pl-9 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all w-full md:w-64"
-              />
+            <div className="inline-flex rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <button
+                onClick={() => setTab('empleados')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${tab === 'empleados' ? 'bg-blue-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
+              >
+                Empleados
+              </button>
+              <button
+                onClick={() => setTab('permisos')}
+                className={`px-4 py-2 text-sm font-medium transition-colors ${tab === 'permisos' ? 'bg-blue-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'}`}
+              >
+                Permisos
+              </button>
             </div>
 
+            {/* Search */}
+            {tab === 'empleados' && (
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => { setPage(1); setSearch(e.target.value); }}
+                  placeholder="Buscar usuario..."
+                  className="pl-9 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all w-full md:w-64"
+                />
+              </div>
+            )}
+
             {/* Actions */}
-            <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-800 pl-2 ml-2">
-              <button onClick={loadEmployees} className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title="Recargar">
-                <RefreshCw className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => {
-                  if (role === 'super_admin') {
-                    setShowSAForm(true);
-                  } else {
-                    setOpenCreate(true);
-                  }
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-900/20"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Nuevo Usuario</span>
-              </button>
-            </div>
+            {tab === 'empleados' && (
+              <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-800 pl-2 ml-2">
+                <button onClick={loadEmployees} className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title="Recargar">
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => {
+                    if (role === 'super_admin') {
+                      setShowSAForm(true);
+                    } else {
+                      setOpenCreate(true);
+                    }
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-900/20"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Nuevo Usuario</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
+        {tab === 'empleados' && (
+        <>
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -465,6 +488,14 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
             </select>
           </div>
         </div>
+        </>
+        )}
+
+        {tab === 'permisos' && (
+          <div className="p-5">
+            <EmployeePermissionsManager token={token} apiBase={apiBase} role={role} />
+          </div>
+        )}
       </div>
 
       {/* Create Modal (Admin) */}

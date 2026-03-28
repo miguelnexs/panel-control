@@ -39,9 +39,13 @@ interface CategoriesManagerProps {
   token: string | null;
   apiBase: string;
   role: string;
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  canReorder?: boolean;
 }
 
-const SortableRow = ({ category, children }: { category: any, children: React.ReactNode }) => {
+const SortableRow = ({ category, children, disabled }: { category: any, children: React.ReactNode, disabled: boolean }) => {
     const {
       attributes,
       listeners,
@@ -49,7 +53,7 @@ const SortableRow = ({ category, children }: { category: any, children: React.Re
       transform,
       transition,
       isDragging,
-    } = useSortable({ id: category.id });
+    } = useSortable({ id: category.id, disabled });
 
     const style = {
       transform: CSS.Transform.toString(transform),
@@ -61,7 +65,10 @@ const SortableRow = ({ category, children }: { category: any, children: React.Re
 
     return (
       <tr ref={setNodeRef} style={style} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors group">
-        <td className="px-2 py-4 w-10 text-gray-400 dark:text-gray-500 cursor-grab active:cursor-grabbing" {...attributes} {...listeners}>
+        <td
+          className={`px-2 py-4 w-10 text-gray-400 dark:text-gray-500 ${disabled ? 'cursor-not-allowed opacity-40' : 'cursor-grab active:cursor-grabbing'}`}
+          {...(!disabled ? { ...attributes, ...listeners } : {})}
+        >
           <GripVertical className="w-5 h-5 hover:text-gray-600 dark:hover:text-gray-300" />
         </td>
         {children}
@@ -69,7 +76,11 @@ const SortableRow = ({ category, children }: { category: any, children: React.Re
     );
   };
 
-const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, role }) => {
+const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, role, canCreate, canEdit, canDelete, canReorder }) => {
+  const canCreateSafe = typeof canCreate === 'boolean' ? canCreate : true;
+  const canEditSafe = typeof canEdit === 'boolean' ? canEdit : true;
+  const canDeleteSafe = typeof canDelete === 'boolean' ? canDelete : true;
+  const canReorderSafe = typeof canReorder === 'boolean' ? canReorder : true;
   const [items, setItems] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -102,6 +113,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
+    if (!canReorderSafe) return;
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
@@ -182,8 +194,8 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
 
   const validateClient = () => {
     const errs: any = {};
-    const nameOk = /^[A-Za-z0-9ÁÉÍÓÚáéíóúÑñ\-\s]{1,100}$/.test(name);
-    if (!nameOk) errs.name = 'Nombre requerido, máx 100 y sin caracteres inválidos.';
+    const nameOk = name.trim().length > 0 && name.length <= 100;
+    if (!nameOk) errs.name = 'Nombre requerido (máx 100 caracteres).';
     if (description.length > 500) errs.description = 'Descripción máximo 500 caracteres.';
     if (imageFile) {
       const okType = ['image/jpeg','image/png','image/webp'].includes(imageFile.type);
@@ -198,7 +210,10 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
   const createCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg(null);
-    if (!validateClient()) return;
+    if (!validateClient()) {
+      setMsg({ type: 'error', text: 'Revisa los campos antes de guardar.' });
+      return;
+    }
     try {
       const fd = new FormData();
       fd.append('name', name);
@@ -206,8 +221,9 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
       fd.append('active', active ? 'true' : 'false');
       if (imageFile) fd.append('image', imageFile);
       const res = await fetch(`${apiBase}/products/categories/`, { method: 'POST', headers: authHeaders(token), body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'No se pudo crear la categoría');
+      let data: any = null;
+      try { data = await res.json(); } catch {}
+      if (!res.ok) throw new Error(data?.detail || 'No se pudo crear la categoría');
       setMsg({ type: 'success', text: 'Categoría creada exitosamente' });
       setOpen(false);
       setName('');
@@ -232,7 +248,10 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
   const updateCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     setMsg(null);
-    if (!validateClient()) return;
+    if (!validateClient()) {
+      setMsg({ type: 'error', text: 'Revisa los campos antes de guardar.' });
+      return;
+    }
     try {
       const fd = new FormData();
       fd.append('name', name);
@@ -240,8 +259,9 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
       fd.append('active', active ? 'true' : 'false');
       if (imageFile) fd.append('image', imageFile);
       const res = await fetch(`${apiBase}/products/categories/${editing.id}/`, { method: 'PATCH', headers: authHeaders(token), body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'No se pudo actualizar la categoría');
+      let data: any = null;
+      try { data = await res.json(); } catch {}
+      if (!res.ok) throw new Error(data?.detail || 'No se pudo actualizar la categoría');
       setMsg({ type: 'success', text: 'Categoría actualizada exitosamente' });
       setOpen(false);
       setEditing(null);
@@ -387,7 +407,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
 
               <button 
                 onClick={() => setOpen(true)} 
-                disabled={role !== 'admin' && role !== 'super_admin'} 
+                disabled={!canCreateSafe} 
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Plus className="w-4 h-4" />
@@ -421,7 +441,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                   strategy={verticalListSortingStrategy}
                 >
                   {items.map((c) => (
-                    <SortableRow key={c.id} category={c}>
+                    <SortableRow key={c.id} category={c} disabled={!canReorderSafe}>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 font-bold text-sm">
@@ -457,7 +477,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button 
                             onClick={() => startEdit(c)} 
-                            disabled={role !== 'admin' && role !== 'super_admin'}
+                            disabled={!canEditSafe}
                             className="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-500/10 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                             title="Editar"
                           >
@@ -465,7 +485,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                           </button>
                           <button 
                             onClick={() => removeCategory(c.id)} 
-                            disabled={role !== 'admin' && role !== 'super_admin'}
+                            disabled={!canDeleteSafe}
                             className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
                             title="Eliminar"
                           >

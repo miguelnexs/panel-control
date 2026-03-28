@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
 import { 
   Briefcase, 
@@ -13,18 +13,59 @@ import { useAutoUpdater } from '../hooks/useAutoUpdater';
 import { UpdateProgress } from './ui/UpdateProgress';
 
 interface LoginProps {
-  onLoginSuccess: (token: string, refresh: string | null, role: string | null, userId: string | number | null) => void;
+  onLoginSuccess: (token: string, refresh: string | null, role: string | null, userId: string | number | null, remember: boolean) => void;
   apiBase: string;
 }
 
 const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiStatus, setApiStatus] = useState<'checking' | 'ok' | 'error'>('checking');
+  const [apiStatusMsg, setApiStatusMsg] = useState<string | null>(null);
   
   // Custom hook for auto-updater
   const { status: updateStatus, progress: updateProgress, message: updateMessage } = useAutoUpdater();
+
+  const apiBaseLabel = useMemo(() => apiBase?.trim() || '(sin API)', [apiBase]);
+
+  useEffect(() => {
+    let mounted = true;
+    const check = async () => {
+      setApiStatus('checking');
+      setApiStatusMsg(null);
+      try {
+        const res = await fetch(`${apiBase}/health/`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json().catch(() => null);
+        if (!data || (data.status !== 'ok' && data.database !== true)) throw new Error('Health inválido');
+        if (!mounted) return;
+        setApiStatus('ok');
+      } catch (e: any) {
+        if (!mounted) return;
+        setApiStatus('error');
+        setApiStatusMsg(e?.message || 'No se pudo conectar');
+      }
+    };
+    if (apiBase?.trim()) check();
+    return () => { mounted = false; };
+  }, [apiBase]);
+
+  const extractFirstError = (data: any): string | null => {
+    if (!data) return null;
+    if (typeof data === 'string') return data;
+    if (data.detail) return data.detail;
+    if (Array.isArray(data.non_field_errors) && data.non_field_errors[0]) return data.non_field_errors[0];
+    const keys = Object.keys(data);
+    for (const k of keys) {
+      const v = (data as any)[k];
+      if (Array.isArray(v) && v[0]) return `${k}: ${v[0]}`;
+      if (typeof v === 'string') return `${k}: ${v}`;
+    }
+    return null;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,10 +78,14 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-      const data = await res.json();
+      const rawText = await res.text();
+      let data: any = {};
+      if (rawText) {
+        try { data = JSON.parse(rawText); } catch { data = rawText; }
+      }
 
       if (!res.ok) {
-        throw new Error(data.detail || 'Credenciales inválidas');
+        throw new Error(extractFirstError(data) || 'No se pudo iniciar sesión');
       }
 
       const meRes = await fetch(`${apiBase}/users/api/auth/me/`, {
@@ -55,7 +100,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
         throw new Error('No tienes un plan activo. Por favor, adquiere uno en nuestra página web para acceder al panel.');
       }
 
-      onLoginSuccess(data.access, data.refresh || null, meData.role, meData.id);
+      onLoginSuccess(data.access, data.refresh || null, meData.role, meData.id, rememberMe);
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión');
     } finally {
@@ -100,7 +145,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
         throw new Error('No tienes un plan activo. Por favor, adquiere uno en nuestra página web para acceder al panel.');
       }
 
-      onLoginSuccess(data.access, data.refresh || null, meData.role, meData.id);
+      onLoginSuccess(data.access, data.refresh || null, meData.role, meData.id, rememberMe);
     } catch (err: any) {
       setError(err.message || 'Falló el inicio de sesión con Google');
     } finally {
@@ -184,6 +229,10 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
           <div className="text-center lg:text-left space-y-2">
             <h2 className="text-3xl font-bold tracking-tight text-white">Bienvenido</h2>
             <p className="text-gray-400">Ingresa a tu panel de control</p>
+            <div className="text-xs text-gray-500">
+              API: {apiBaseLabel}{' '}
+              {apiStatus === 'checking' ? '(comprobando...)' : apiStatus === 'ok' ? '(conectada)' : `(sin conexión${apiStatusMsg ? `: ${apiStatusMsg}` : ''})`}
+            </div>
           </div>
 
           {/* Update Status UI */}
@@ -302,6 +351,18 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
                   </>
                 )}
               </button>
+
+              <div className="flex items-center justify-between pt-1">
+                <label className="flex items-center gap-2 text-sm text-gray-300 select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="rounded border-gray-600 bg-gray-900 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>Recordar</span>
+                </label>
+              </div>
             </form>
           </div>
         </div>

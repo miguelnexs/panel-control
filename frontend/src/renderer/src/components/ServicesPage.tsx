@@ -1649,13 +1649,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                     name="cedula"
                     value={clientFormData.cedula}
                     onChange={(e) => {
-                      let val = e.target.value;
-                      if (clientFormData.client_type === 'company') {
-                        val = val.replace(/[^\d-]/g, '');
-                      } else {
-                        val = val.replace(/[^\d]/g, '');
-                      }
-                      setClientFormData(f => ({ ...f, cedula: val }));
+                      setClientFormData(f => ({ ...f, cedula: e.target.value }));
                     }}
                     placeholder={clientFormData.client_type === 'person' ? "Ej. 12345678" : "Ej. 900123456-1"}
                     className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"

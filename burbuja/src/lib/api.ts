@@ -1,5 +1,4 @@
-export const API_BASE_URL = 'http://localhost:8000';
-// export const API_BASE_URL = 'https://softwarebycg.shop';
+export const API_BASE_URL = 'https://softwarebycg.shop';
 
 export const buildApiUrl = (endpoint: string) => {
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;

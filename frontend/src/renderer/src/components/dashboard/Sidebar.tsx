@@ -15,6 +15,8 @@ interface SidebarProps {
   apiBase: string;
   setUpdateMsg?: (msg: any) => void;
   subscription?: any;
+  permissions?: string[];
+  permissionsEnforced?: boolean;
 }
 
 interface MenuPos {
@@ -22,7 +24,7 @@ interface MenuPos {
   left: number;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, orderNotif, token, apiBase, setUpdateMsg, subscription }) => {
+const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, orderNotif, token, apiBase, setUpdateMsg, subscription, permissions = [], permissionsEnforced = false }) => {
   const [collapsed, setCollapsed] = useState(false)
   const [companyName, setCompanyName] = useState('')
   const [companyLogo, setCompanyLogo] = useState('')
@@ -37,6 +39,30 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
   const [isVentasOpen, setIsVentasOpen] = useState(false)
   const [isServiciosOpen, setIsServiciosOpen] = useState(false)
   const [showUpdateModal, setShowUpdateModal] = useState(false)
+
+  const canAccess = (targetView: string): boolean => {
+    if (role === 'admin' || role === 'super_admin') return true
+    if (!permissionsEnforced) return true
+    if (targetView === 'dashboard') return true
+    const map: Record<string, string | null> = {
+      productos: 'view_products',
+      producto_form: 'view_products',
+      categorias: 'view_categories',
+      clientes: 'view_clients',
+      client_details: 'view_clients',
+      ventas: 'create_sales',
+      caja: 'view_cashbox',
+      pedidos: 'view_orders',
+      servicios: 'view_services',
+      service_form: 'view_services',
+      web: 'view_web',
+      configuracion: 'manage_settings',
+      users: 'manage_users',
+    }
+    const required = map[targetView]
+    if (!required) return true
+    return permissions.includes(required)
+  }
 
   const toggleConfigMenu = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -302,6 +328,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
           <span className={textClass}>Dashboard</span>
           <span className={tooltipClass}>Dashboard</span>
         </button>
+        {(canAccess('ventas') || canAccess('caja')) && (
         <div className="relative">
           <button className={`${itemBase} ${['ventas', 'caja'].includes(view) ? activeClass : ''}`} onClick={toggleVentasMenu} title="Ventas">
             {['ventas', 'caja'].includes(view) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
@@ -327,6 +354,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
               }}
               className="w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 ml-2"
             >
+              {canAccess('ventas') && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setView('ventas'); setVentasMenuPos(null); }} 
                 className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'ventas' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
@@ -334,6 +362,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <Icon name="sales" className="w-4 h-4" />
                 <span>Nueva Venta</span>
               </button>
+              )}
+              {canAccess('caja') && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setView('caja'); setVentasMenuPos(null); }} 
                 className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'caja' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
@@ -341,11 +371,13 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <Icon name="sales" className="w-4 h-4" />
                 <span>Caja</span>
               </button>
+              )}
             </div>
           )}
 
           {isVentasOpen && !collapsed && (
             <div className="mt-1 ml-1 space-y-1 bg-gray-50 dark:bg-black/20 rounded-md p-1">
+              {canAccess('ventas') && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setView('ventas'); }} 
                 className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'ventas' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
@@ -353,6 +385,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <Icon name="sales" className="w-4 h-4" />
                 <span>Nueva Venta</span>
               </button>
+              )}
+              {canAccess('caja') && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setView('caja'); }} 
                 className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'caja' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
@@ -360,9 +394,12 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <Icon name="sales" className="w-4 h-4" />
                 <span>Caja</span>
               </button>
+              )}
             </div>
           )}
         </div>
+        )}
+        {canAccess('pedidos') && (
         <button className={`${itemBase} ${view === 'pedidos' ? activeClass : ''}`} onClick={() => setView('pedidos')} title="Pedidos" aria-current={view === 'pedidos' ? 'page' : undefined}>
           {view === 'pedidos' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
           <span className={`${iconBoxClass} ${toneClasses('pedidos')} ${view === 'pedidos' ? 'ring-1 ring-white/20' : ''} relative`}>
@@ -379,6 +416,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
           <span className={textClass}>Pedidos</span>
           <span className={tooltipClass}>Pedidos</span>
         </button>
+        )}
+        {canAccess('clientes') && (
         <button className={`${itemBase} ${view === 'clientes' ? activeClass : ''}`} onClick={() => setView('clientes')} title="Clientes" aria-current={view === 'clientes' ? 'page' : undefined}>
           {view === 'clientes' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
           <span className={`${iconBoxClass} ${toneClasses('clientes')} ${view === 'clientes' ? 'ring-1 ring-white/20' : ''}`}>
@@ -387,6 +426,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
           <span className={textClass}>Clientes</span>
           <span className={tooltipClass}>Clientes</span>
         </button>
+        )}
+        {(canAccess('productos') || canAccess('categorias') || canAccess('servicios')) && (
         <div className="relative">
           <button className={`${itemBase} ${['productos', 'categorias', 'servicios'].includes(view) ? activeClass : ''}`} onClick={toggleInventoryMenu} title="Inventario">
             {['productos', 'categorias', 'servicios'].includes(view) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
@@ -412,6 +453,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
               }}
               className="w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 ml-2"
             >
+              {canAccess('productos') && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setView('productos'); setInventoryMenuPos(null); }} 
                 className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'productos' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
@@ -419,6 +461,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <Icon name="products" className="w-4 h-4" />
                 <span>Productos</span>
               </button>
+              )}
+              {canAccess('categorias') && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setView('categorias'); setInventoryMenuPos(null); }} 
                 className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'categorias' ? 'text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
@@ -426,6 +470,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <Icon name="categories" className="w-4 h-4" />
                 <span>Categorías</span>
               </button>
+              )}
+              {canAccess('servicios') && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setView('servicios'); setInventoryMenuPos(null); }} 
                 className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'servicios' ? 'text-pink-600 dark:text-pink-400 bg-pink-100 dark:bg-pink-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
@@ -433,11 +479,13 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <Icon name="services" className="w-4 h-4" />
                 <span>Servicios</span>
               </button>
+              )}
             </div>
           )}
 
           {isInventoryOpen && !collapsed && (
             <div className="mt-1 ml-1 space-y-1 bg-gray-50 dark:bg-black/20 rounded-md p-1">
+              {canAccess('productos') && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setView('productos'); }} 
                 className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'productos' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
@@ -445,6 +493,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <Icon name="products" className="w-4 h-4" />
                 <span>Productos</span>
               </button>
+              )}
+              {canAccess('categorias') && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setView('categorias'); }} 
                 className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'categorias' ? 'text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
@@ -452,6 +502,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <Icon name="categories" className="w-4 h-4" />
                 <span>Categorías</span>
               </button>
+              )}
+              {canAccess('servicios') && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setView('servicios'); }} 
                 className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'servicios' ? 'text-pink-600 dark:text-pink-400 bg-pink-100 dark:bg-pink-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
@@ -459,9 +511,11 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <Icon name="services" className="w-4 h-4" />
                 <span>Servicios</span>
               </button>
+              )}
             </div>
           )}
         </div>
+        )}
         {(role === 'super_admin' || role === 'admin') && (
           <button className={`${itemBase} ${view === 'users' ? activeClass : ''}`} onClick={() => setView('users')} title="Usuarios" aria-current={view === 'users' ? 'page' : undefined}>
             {view === 'users' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
@@ -472,6 +526,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
             <span className={tooltipClass}>Usuarios</span>
           </button>
         )}
+
 
         {(role === 'admin' || role === 'super_admin') && (
           <div className="relative">

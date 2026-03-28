@@ -39,6 +39,77 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
   const [topProducts, setTopProducts] = useState([]);
   const [subscription, setSubscription] = useState<any>(null);
   const [selectedClient, setSelectedClient] = useState<any>(null);
+  const [permissionsEnforced, setPermissionsEnforced] = useState(false);
+  const [permissions, setPermissions] = useState<string[]>([]);
+  const [accessMsg, setAccessMsg] = useState<string | null>(null);
+
+  const canAccess = (targetView: string): boolean => {
+    if (role === 'admin' || role === 'super_admin') return true;
+    if (!permissionsEnforced) return true;
+    if (targetView === 'dashboard') return true;
+    const map: Record<string, string | null> = {
+      productos: 'view_products',
+      producto_form: 'view_products',
+      categorias: 'view_categories',
+      clientes: 'view_clients',
+      client_details: 'view_clients',
+      ventas: 'create_sales',
+      caja: 'view_cashbox',
+      pedidos: 'view_orders',
+      servicios: 'view_services',
+      service_form: 'view_services',
+      web: 'view_web',
+      configuracion: 'manage_settings',
+      users: 'manage_users',
+    };
+    const required = map[targetView];
+    if (!required) return true;
+    return permissions.includes(required);
+  };
+
+  const hasPermission = (perm: string): boolean => {
+    if (role === 'admin' || role === 'super_admin') return true;
+    if (!permissionsEnforced) return true;
+    return permissions.includes(perm);
+  };
+
+  const permsUi = {
+    products: {
+      create: hasPermission('create_products'),
+      edit: hasPermission('edit_products'),
+      del: hasPermission('delete_products'),
+    },
+    categories: {
+      create: hasPermission('create_categories'),
+      edit: hasPermission('edit_categories'),
+      del: hasPermission('delete_categories'),
+    },
+    clients: {
+      create: hasPermission('create_clients'),
+      edit: hasPermission('edit_clients'),
+      del: hasPermission('delete_clients'),
+    },
+    sales: {
+      create: hasPermission('create_sales'),
+      edit: hasPermission('edit_sales'),
+      del: hasPermission('delete_sales'),
+    },
+  };
+
+  const navigate = (v: string) => {
+    setAccessMsg(null);
+    if (!canAccess(v)) {
+      setAccessMsg('No tienes permiso para acceder a esta sección.');
+      return;
+    }
+    setNavLoading(true);
+    setView(v);
+    setTimeout(() => setNavLoading(false), 800);
+    if (v === 'pedidos') {
+      const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+      fetch(`${apiBase}/sales/notifications/read/`, { method: 'POST', headers }).then(() => setOrderNotif(0)).catch(() => setOrderNotif(0));
+    }
+  };
 
   useEffect(() => {
     const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
@@ -53,6 +124,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
     ]).then(([meRes, usersRes, productsRes, catsRes, clientsStats, ordersRes, salesStats]) => {
       if (meRes.ok && meRes.d && meRes.d.subscription) {
         setSubscription(meRes.d.subscription);
+      }
+      if (meRes.ok && meRes.d) {
+        setPermissionsEnforced(Boolean(meRes.d.permissions_enforced));
+        setPermissions(Array.isArray(meRes.d.permissions) ? meRes.d.permissions : []);
       }
       const usersCount = usersRes.ok && Array.isArray(usersRes.d) ? usersRes.d.length : 0;
       const products = productsRes.ok && Array.isArray(productsRes.d) ? productsRes.d : [];
@@ -111,21 +186,15 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
     <div className="h-full bg-gradient-to-br from-blue-100 via-blue-50/50 to-blue-100 dark:bg-none dark:bg-[#0B0D14] flex overflow-hidden transition-colors duration-300">
         <Sidebar 
           view={view} 
-          setView={(v) => { 
-            setNavLoading(true); 
-            setView(v); 
-            setTimeout(() => setNavLoading(false), 800); 
-            if (v === 'pedidos') { 
-              const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }; 
-              fetch(`${apiBase}/sales/notifications/read/`, { method: 'POST', headers }).then(() => setOrderNotif(0)).catch(() => setOrderNotif(0)); 
-            } 
-          }} 
+          setView={navigate} 
           onSignOut={onSignOut} 
           role={role} 
           orderNotif={orderNotif}
           token={token}
           apiBase={apiBase}
           subscription={subscription}
+          permissions={permissions}
+          permissionsEnforced={permissionsEnforced}
         />
       <main className="flex-1 p-6 space-y-6 relative overflow-y-auto">
         {navLoading && (
@@ -137,6 +206,11 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
           </div>
         )}
         <div className={`${navLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
+          {accessMsg && (
+            <div className="mb-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-sm">
+              {accessMsg}
+            </div>
+          )}
           <div className="flex items-center justify-between mb-6 gap-4">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
               {view === 'dashboard' ? 'Dashboard' : 
@@ -168,8 +242,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
             <ProductosManager
               token={token}
               apiBase={apiBase}
-              onCreate={() => { setProductEditing(null); setView('producto_form'); }}
-              onEdit={(p: any) => { setProductEditing(p); setView('producto_form'); }}
+              canCreate={permsUi.products.create}
+              canEdit={permsUi.products.edit}
+              canDelete={permsUi.products.del}
+              canReorder={permsUi.products.edit}
+              onCreate={() => { setProductEditing(null); navigate('producto_form'); }}
+              onEdit={(p: any) => { setProductEditing(p); navigate('producto_form'); }}
             />
           )}
           {view === 'producto_form' && (
@@ -177,20 +255,31 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
               token={token}
               apiBase={apiBase}
               product={productEditing}
-              onCancel={() => setView('productos')}
-              onSaved={() => setView('productos')}
+              onCancel={() => navigate('productos')}
+              onSaved={() => navigate('productos')}
             />
           )}
           {view === 'categorias' && (
-            <CategoriesManager token={token} apiBase={apiBase} role={role} />
+            <CategoriesManager
+              token={token}
+              apiBase={apiBase}
+              role={role}
+              canCreate={permsUi.categories.create}
+              canEdit={permsUi.categories.edit}
+              canDelete={permsUi.categories.del}
+              canReorder={permsUi.categories.edit}
+            />
           )}
           {view === 'clientes' && (
             <ClientsPage 
               token={token} 
               apiBase={apiBase} 
+              canCreate={permsUi.clients.create}
+              canEdit={permsUi.clients.edit}
+              canDelete={permsUi.clients.del}
               onViewClient={(client: any) => {
                 setSelectedClient(client);
-                setView('client_details');
+                navigate('client_details');
               }}
             />
           )}
@@ -201,7 +290,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
               client={selectedClient}
               onBack={() => {
                 setSelectedClient(null);
-                setView('clientes');
+                navigate('clientes');
               }}
             />
           )}
@@ -209,7 +298,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
             <SalesPage token={token} apiBase={apiBase} onSaleCreated={() => setOrderNotif((n) => n + 1)} />
           )}
           {view === 'web' && (
-            <WebPageManager token={token} apiBase={apiBase} adminId={userId} role={role} setView={(v: string) => setView(v)} setProductEditing={(p: any) => { setProductEditing(p); setView('producto_form'); }} />
+            <WebPageManager token={token} apiBase={apiBase} adminId={userId} role={role} setView={(v: string) => navigate(v)} setProductEditing={(p: any) => { setProductEditing(p); navigate('producto_form'); }} />
           )}
           {view === 'plantillas' && (
             <TemplatesManager />
@@ -230,15 +319,15 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
             <ServicesPage 
               token={token} 
               apiBase={apiBase} 
-              onCreate={() => setView('service_form')}
+              onCreate={() => navigate('service_form')}
             />
           )}
           {view === 'service_form' && (
             <FullServiceFormPage
               token={token}
               apiBase={apiBase}
-              onCancel={() => setView('servicios')}
-              onSaved={() => setView('servicios')}
+              onCancel={() => navigate('servicios')}
+              onSaved={() => navigate('servicios')}
             />
           )}
         </React.Suspense>

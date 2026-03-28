@@ -1,10 +1,6 @@
 // Configuración de API
 export const API_CONFIG = {
-  // Para desarrollo local
   baseURL: 'http://localhost:8000',
-
-  // Para producción (descomentar y comentar la de arriba)
-  // baseURL: 'https://softwarebycg.shop',
   
   // Timeout para peticiones (en milisegundos)
   timeout: 30000,

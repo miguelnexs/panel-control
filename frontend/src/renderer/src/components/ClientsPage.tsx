@@ -75,9 +75,15 @@ interface ClientsPageProps {
   token: string;
   apiBase: string;
   onViewClient?: (client: Client) => void;
+  canCreate?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
-const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient }) => {
+const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient, canCreate, canEdit, canDelete }) => {
+  const canCreateSafe = typeof canCreate === 'boolean' ? canCreate : true;
+  const canEditSafe = typeof canEdit === 'boolean' ? canEdit : true;
+  const canDeleteSafe = typeof canDelete === 'boolean' ? canDelete : true;
   const [items, setItems] = useState<Client[]>([]);
   const [msg, setMsg] = useState<Msg | null>(null);
   const [loading, setLoading] = useState(false);
@@ -293,13 +299,15 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
               <button onClick={() => { loadClients(); loadStats(); }} className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title="Recargar">
                 <RefreshCw className="w-4 h-4" />
               </button>
-              <button 
-                onClick={() => { setForm({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '' }); setErrors({}); setOpen(true); }}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-900/20"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Nuevo Cliente</span>
-              </button>
+              {canCreateSafe && (
+                <button 
+                  onClick={() => { setForm({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '' }); setErrors({}); setOpen(true); }}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-900/20"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Nuevo Cliente</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -385,30 +393,34 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button 
-                        onClick={() => { 
-                          setEditClient(c); 
-                          setEditForm({ 
-                            client_type: (c.client_type as 'person' | 'company') || 'person', 
-                            full_name: c.full_name || '', 
-                            cedula: c.cedula || '', 
-                            email: c.email || '', 
-                            phone: c.phone || '', 
-                            address: c.address || '' 
-                          }); 
-                        }}
-                        className="p-2 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-500/10 text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
-                        title="Editar"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => { setDeletingClient(c); }}
-                        className="p-2 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/10 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
-                        title="Eliminar"
-                      >
-                        <Trash className="w-4 h-4" />
-                      </button>
+                      {canEditSafe && (
+                        <button 
+                          onClick={() => { 
+                            setEditClient(c); 
+                            setEditForm({ 
+                              client_type: (c.client_type as 'person' | 'company') || 'person', 
+                              full_name: c.full_name || '', 
+                              cedula: c.cedula || '', 
+                              email: c.email || '', 
+                              phone: c.phone || '', 
+                              address: c.address || '' 
+                            }); 
+                          }}
+                          className="p-2 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-500/10 text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
+                          title="Editar"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      )}
+                      {canDeleteSafe && (
+                        <button 
+                          onClick={() => { setDeletingClient(c); }}
+                          className="p-2 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/10 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -523,13 +535,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                     type="text" 
                     value={form.cedula} 
                     onChange={(e) => {
-                      let val = e.target.value;
-                      if (form.client_type === 'company') {
-                        val = val.replace(/[^\d-]/g, '');
-                      } else {
-                        val = val.replace(/[^\d]/g, '');
-                      }
-                      setForm((f) => ({ ...f, cedula: val }));
+                      setForm((f) => ({ ...f, cedula: e.target.value }));
                     }} 
                     className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.cedula ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
                     placeholder={form.client_type === 'person' ? "Ej. 12345678" : "Ej. 900123456-1"}
@@ -847,13 +853,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient 
                 <input 
                   value={editForm.cedula} 
                   onChange={(e)=>{
-                    let val = e.target.value;
-                    if (editForm.client_type === 'company') {
-                      val = val.replace(/[^\d-]/g, '');
-                    } else {
-                      val = val.replace(/[^\d]/g, '');
-                    }
-                    setEditForm((f)=>({...f, cedula: val}));
+                    setEditForm((f)=>({...f, cedula: e.target.value}));
                   }} 
                   className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all" 
                   placeholder={editForm.client_type === 'person' ? "Cédula" : "900123456-1"} 
