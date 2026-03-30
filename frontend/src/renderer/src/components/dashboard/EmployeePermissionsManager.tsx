@@ -185,7 +185,7 @@ const EmployeePermissionsManager: React.FC<EmployeePermissionsManagerProps> = ({
 
   useEffect(() => {
     if (!token || role !== 'super_admin') return;
-    fetch(`${apiBase}/users/api/admin/tenants/`, { headers: authHeaders(token) })
+    fetch(`${apiBase}/api/admin/tenants/`, { headers: authHeaders(token) })
       .then((res) => res.json().then((d) => ({ ok: res.ok, d })))
       .then(({ ok, d }) => {
         if (ok && Array.isArray(d)) {
@@ -203,10 +203,10 @@ const EmployeePermissionsManager: React.FC<EmployeePermissionsManagerProps> = ({
     }
     setLoading(true);
     try {
-      const url =
-        role === 'super_admin' && tenantId
-          ? `${apiBase}/users/api/tenant/permissions/matrix/?tenant_id=${encodeURIComponent(tenantId)}`
-          : `${apiBase}/users/api/tenant/permissions/matrix/`;
+        const permUrl =
+          role === 'super_admin'
+            ? `${apiBase}/api/tenant/permissions/matrix/?tenant_id=${encodeURIComponent(tenantId)}`
+            : `${apiBase}/api/tenant/permissions/matrix/`;
       const res = await fetch(url, { headers: authHeaders(token) });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.detail || 'No se pudieron cargar los permisos.');
@@ -313,7 +313,7 @@ const EmployeePermissionsManager: React.FC<EmployeePermissionsManagerProps> = ({
     setMsg(null);
     setSaving(true);
     try {
-      const res = await fetch(`${apiBase}/users/api/tenant/permissions/matrix/`, {
+      const res = await fetch(`${apiBase}/api/tenant/permissions/matrix/`, {
         method: 'PATCH',
         headers: authHeaders(token),
         body: JSON.stringify({

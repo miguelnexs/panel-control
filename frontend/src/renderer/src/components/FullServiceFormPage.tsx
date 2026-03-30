@@ -86,7 +86,7 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
       try {
         const [clientsRes, employeesRes, catalogRes] = await Promise.all([
           fetch(`${apiBase}/clients/?page_size=100`, { headers: authHeaders(token) }),
-          fetch(`${apiBase}/users/api/users/?scope=tenant`, { headers: authHeaders(token) }),
+          fetch(`${apiBase}/api/users/?scope=tenant`, { headers: authHeaders(token) }),
           fetch(`${apiBase}/services/definitions/`, { headers: authHeaders(token) })
         ]);
 

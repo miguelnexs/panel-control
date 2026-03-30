@@ -98,7 +98,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
     setLoading(true);
     setMsg(null);
     try {
-      const res = await fetch(`${apiBase}/users/api/auth/me/`, { headers: headers(token) });
+      const res = await fetch(`${apiBase}/api/auth/me/`, { headers: headers(token) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'No se pudo cargar el perfil');
       setMe({
@@ -130,7 +130,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
     setMsg(null);
     try {
       const payload = { first_name: me.first_name, last_name: me.last_name, email: me.email, phone: me.phone, department: me.department, position: me.position };
-      const res = await fetch(`${apiBase}/users/api/auth/me/`, { method: 'PATCH', headers: headers(token), body: JSON.stringify(payload) });
+      const res = await fetch(`${apiBase}/api/auth/me/`, { method: 'PATCH', headers: headers(token), body: JSON.stringify(payload) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'No se pudo guardar');
       setMsg({ type: 'success', text: 'Datos personales actualizados correctamente' });

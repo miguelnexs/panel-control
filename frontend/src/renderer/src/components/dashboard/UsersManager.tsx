@@ -83,7 +83,7 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
     setMsg(null);
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/users/api/users/?page_size=1000`, { headers: authHeaders(token) });
+      const res = await fetch(`${apiBase}/api/users/?page_size=1000`, { headers: authHeaders(token) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'No se pudieron cargar usuarios');
       const list = Array.isArray(data) ? data : Array.isArray(data.results) ? data.results : (Array.isArray(data.items) ? data.items : []);
@@ -99,7 +99,7 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
 
   useEffect(() => { 
     if (token && role === 'super_admin') { 
-      fetch(`${apiBase}/users/api/admin/tenants/`, { headers: authHeaders(token) })
+      fetch(`${apiBase}/api/admin/tenants/`, { headers: authHeaders(token) })
         .then((res) => res.json().then((d) => ({ ok: res.ok, d })))
         .then(({ ok, d }) => { if (ok && Array.isArray(d)) setTenants(d); })
         .catch(() => {}); 
@@ -129,7 +129,7 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
     setLoading(true);
     try {
       const payload = { ...form, role: 'employee' };
-      const res = await fetch(`${apiBase}/users/api/users/`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify(payload) });
+      const res = await fetch(`${apiBase}/api/users/`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify(payload) });
       let data: any = null;
       try { data = await res.json(); } catch {}
       if (!res.ok) throw new Error((data && (data.detail || data.message)) || `Error ${res.status}`);
@@ -148,7 +148,7 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
     if (!confirm('¿Está seguro de eliminar este usuario?')) return;
     setMsg(null);
     try {
-      const res = await fetch(`${apiBase}/users/api/users/${id}/`, { method: 'DELETE', headers: authHeaders(token) });
+      const res = await fetch(`${apiBase}/api/users/${id}/`, { method: 'DELETE', headers: authHeaders(token) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || data.message || 'No se pudo eliminar');
       setMsg({ type: 'success', text: 'Usuario eliminado correctamente' });
@@ -177,7 +177,7 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
     setMsg(null);
     if (!editing) return;
     try {
-      const res = await fetch(`${apiBase}/users/api/users/${editing.id}/`, { method: 'PATCH', headers: authHeaders(token), body: JSON.stringify(editForm) });
+      const res = await fetch(`${apiBase}/api/users/${editing.id}/`, { method: 'PATCH', headers: authHeaders(token), body: JSON.stringify(editForm) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'No se pudo actualizar');
       setMsg({ type: 'success', text: 'Usuario actualizado correctamente' });
@@ -205,7 +205,7 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
         position: editForm.position || '' 
       };
       if (saRole === 'employee') body.tenant_id = saTenantId || undefined;
-      const res = await fetch(`${apiBase}/users/api/users/`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify(body) });
+      const res = await fetch(`${apiBase}/api/users/`, { method: 'POST', headers: authHeaders(token), body: JSON.stringify(body) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'No se pudo crear el usuario');
       setSaMsg({ type: 'success', text: `Usuario ${data.username} creado como ${saRole}.` });

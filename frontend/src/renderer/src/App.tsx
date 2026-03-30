@@ -3,7 +3,6 @@ import Dashboard from './components/Dashboard';
 import Login from './components/Login';
 import TitleBar from './components/TitleBar';
 import { API_BASE_URL, buildAuthHeaders } from './config/api.config';
-import { detectApiBase } from './config/api.runtime';
 
 interface Msg {
   type: 'success' | 'error';
@@ -28,14 +27,8 @@ const App = () => {
   const [refresh, setRefresh] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | number | null>(null);
 
-  const [apiBase, setApiBase] = useState<string>(API_BASE_URL);
+  const apiBase = API_BASE_URL.replace(/\/+$/,'');
   const authHeaders = buildAuthHeaders;
-
-  useEffect(() => {
-    let mounted = true;
-    detectApiBase().then((b) => { if (mounted) setApiBase(b); }).catch(() => {});
-    return () => { mounted = false; };
-  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -51,7 +44,7 @@ const App = () => {
       const refreshToken = get('globetrek_refresh_token');
       if (!access) return;
       try {
-        const meRes = await fetch(`${apiBase}/users/api/auth/me/`, {
+        const meRes = await fetch(`${apiBase}/api/auth/me/`, {
           headers: { Authorization: `Bearer ${access}` },
         });
         const meData = await meRes.json().catch(() => null);
@@ -89,7 +82,7 @@ const App = () => {
     const doRefresh = async () => {
       if (!refresh) return;
       try {
-        const res = await fetch(`${apiBase}/users/api/auth/token/refresh/`, {
+        const res = await fetch(`${apiBase}/api/auth/token/refresh/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refresh }),

@@ -52,7 +52,7 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
   const loadMe = async () => {
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const res = await fetch(`${apiBase}/users/api/auth/me/`, { headers });
+      const res = await fetch(`${apiBase}/api/auth/me/`, { headers });
       const data = await res.json();
       if (res.ok) {
         setMe({ username: data.username || '' });
