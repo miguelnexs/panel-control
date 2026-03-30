@@ -23,35 +23,9 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [apiStatus, setApiStatus] = useState<'checking' | 'ok' | 'error'>('checking');
-  const [apiStatusMsg, setApiStatusMsg] = useState<string | null>(null);
   
   // Custom hook for auto-updater
   const { status: updateStatus, progress: updateProgress, message: updateMessage } = useAutoUpdater();
-
-  const apiBaseLabel = useMemo(() => apiBase?.trim() || '(sin API)', [apiBase]);
-
-  useEffect(() => {
-    let mounted = true;
-    const check = async () => {
-      setApiStatus('checking');
-      setApiStatusMsg(null);
-      try {
-        const res = await fetch(`${apiBase}/health/`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json().catch(() => null);
-        if (!data || (data.status !== 'ok' && data.database !== true)) throw new Error('Health inválido');
-        if (!mounted) return;
-        setApiStatus('ok');
-      } catch (e: any) {
-        if (!mounted) return;
-        setApiStatus('error');
-        setApiStatusMsg(e?.message || 'No se pudo conectar');
-      }
-    };
-    if (apiBase?.trim()) check();
-    return () => { mounted = false; };
-  }, [apiBase]);
 
   const extractFirstError = (data: any): string | null => {
     if (!data) return null;
@@ -229,10 +203,6 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
           <div className="text-center lg:text-left space-y-2">
             <h2 className="text-3xl font-bold tracking-tight text-white">Bienvenido</h2>
             <p className="text-gray-400">Ingresa a tu panel de control</p>
-            <div className="text-xs text-gray-500">
-              API: {apiBaseLabel}{' '}
-              {apiStatus === 'checking' ? '(comprobando...)' : apiStatus === 'ok' ? '(conectada)' : `(sin conexión${apiStatusMsg ? `: ${apiStatusMsg}` : ''})`}
-            </div>
           </div>
 
           {/* Update Status UI */}
