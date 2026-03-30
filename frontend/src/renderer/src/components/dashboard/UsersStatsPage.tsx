@@ -55,7 +55,7 @@ const UsersStatsPage: React.FC<UsersStatsPageProps> = ({ token, apiBase, role })
 
   useEffect(() => {
     if (!token || role !== 'super_admin') return;
-    fetch(`${apiBase}/api/admin/tenants/`, { headers: authHeaders(token) })
+    fetch(`${apiBase}/users/api/admin/tenants/`, { headers: authHeaders(token) })
       .then((res) => res.json().then((d) => ({ ok: res.ok, d })))
       .then(({ ok, d }) => {
         if (ok && Array.isArray(d)) setTenants(d.map((t: any) => ({ id: Number(t.id), admin_username: String(t.admin_username || '') })));
@@ -73,8 +73,8 @@ const UsersStatsPage: React.FC<UsersStatsPageProps> = ({ token, apiBase, role })
     try {
       const url =
         role === 'super_admin'
-          ? `${apiBase}/api/users/?tenant_id=${encodeURIComponent(tenantId)}&role=employee`
-          : `${apiBase}/api/users/?page_size=1000`;
+          ? `${apiBase}/users/api/users/?tenant_id=${encodeURIComponent(tenantId)}&role=employee`
+          : `${apiBase}/users/api/users/?page_size=1000`;
       const res = await fetch(url, { headers: authHeaders(token) });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.detail || 'No se pudieron cargar usuarios');

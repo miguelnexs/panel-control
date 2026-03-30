@@ -44,7 +44,7 @@ const App = () => {
       const refreshToken = get('globetrek_refresh_token');
       if (!access) return;
       try {
-        const meRes = await fetch(`${apiBase}/api/auth/me/`, {
+        const meRes = await fetch(`${apiBase}/users/api/auth/me/`, {
           headers: { Authorization: `Bearer ${access}` },
         });
         const meData = await meRes.json().catch(() => null);
@@ -82,7 +82,7 @@ const App = () => {
     const doRefresh = async () => {
       if (!refresh) return;
       try {
-        const res = await fetch(`${apiBase}/api/auth/token/refresh/`, {
+        const res = await fetch(`${apiBase}/users/api/auth/token/refresh/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refresh }),

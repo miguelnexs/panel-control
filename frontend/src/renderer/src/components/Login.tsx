@@ -73,7 +73,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
     setError(null);
 
     try {
-      const res = await fetch(`${apiBase}/api/auth/login/`, {
+      const res = await fetch(`${apiBase}/users/api/auth/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -88,7 +88,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
         throw new Error(extractFirstError(data) || 'No se pudo iniciar sesión');
       }
 
-      const meRes = await fetch(`${apiBase}/api/auth/me/`, {
+      const meRes = await fetch(`${apiBase}/users/api/auth/me/`, {
         headers: { Authorization: `Bearer ${data.access}` },
       });
       const meData = await meRes.json();
@@ -121,7 +121,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
 
       if (!token) throw new Error('No se recibió token');
 
-      const res = await fetch(`${apiBase}/api/auth/google/`, {
+      const res = await fetch(`${apiBase}/users/api/auth/google/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -133,7 +133,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
 
       if (!res.ok) throw new Error(data.error || 'Error al iniciar sesión con Google');
 
-      const meRes = await fetch(`${apiBase}/api/auth/me/`, {
+      const meRes = await fetch(`${apiBase}/users/api/auth/me/`, {
         headers: { Authorization: `Bearer ${data.access}` },
       });
       const meData = await meRes.json();

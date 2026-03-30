@@ -432,7 +432,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
   const loadEmployees = async () => {
     if (!token) return;
     try {
-      const res = await fetch(`${apiBase}/api/users/?scope=tenant`, { headers: authHeaders(token) });
+      const res = await fetch(`${apiBase}/users/api/users/?scope=tenant`, { headers: authHeaders(token) });
       const data = await res.json();
       if (res.ok && Array.isArray(data)) {
         setEmployees(data);

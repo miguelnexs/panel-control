@@ -64,7 +64,7 @@ const SupportChatWidget: React.FC<SupportChatWidgetProps> = ({ token, apiBase: r
   const loadChats = async (silent?: boolean) => {
     if (!token || !canUse) return;
     try {
-      const res = await fetch(`${apiBase}/api/support/chats/`, { headers: authHeaders(token) });
+      const res = await fetch(`${apiBase}/users/api/support/chats/`, { headers: authHeaders(token) });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.detail || 'No se pudieron cargar chats');
       const items: SupportChatItem[] = Array.isArray(data?.results) ? data.results.map((c: any) => ({
@@ -114,7 +114,7 @@ const SupportChatWidget: React.FC<SupportChatWidgetProps> = ({ token, apiBase: r
       qs.set('limit', '50');
       if (role === 'super_admin' && tenantId) qs.set('tenant_id', String(tenantId));
       if (opts?.sinceId) qs.set('since_id', String(opts.sinceId));
-      const res = await fetch(`${apiBase}/api/support/messages/?${qs.toString()}`, { headers: authHeaders(token) });
+      const res = await fetch(`${apiBase}/users/api/support/messages/?${qs.toString()}`, { headers: authHeaders(token) });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.detail || 'No se pudieron cargar mensajes');
       const list = Array.isArray(data?.results) ? data.results : [];
@@ -177,7 +177,7 @@ const SupportChatWidget: React.FC<SupportChatWidgetProps> = ({ token, apiBase: r
       if (!token) return;
       const body: any = { last_seen_id: newestId };
       if (role === 'super_admin' && tenantId) body.tenant_id = tenantId;
-      await fetch(`${apiBase}/api/support/mark_read/`, {
+      await fetch(`${apiBase}/users/api/support/mark_read/`, {
         method: 'POST',
         headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -197,7 +197,7 @@ const SupportChatWidget: React.FC<SupportChatWidgetProps> = ({ token, apiBase: r
       const fd = new FormData();
       fd.append('text', t);
       if (role === 'super_admin' && tenantId) fd.append('tenant_id', String(tenantId));
-      const res = await fetch(`${apiBase}/api/support/messages/`, { method: 'POST', headers: authHeaders(token), body: fd });
+      const res = await fetch(`${apiBase}/users/api/support/messages/`, { method: 'POST', headers: authHeaders(token), body: fd });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.detail || 'No se pudo enviar');
       setText('');

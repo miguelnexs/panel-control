@@ -71,9 +71,9 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
     try {
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
       
-      const promises = [fetch(`${apiBase}/api/subscriptions/plans/`, { headers })];
+      const promises = [fetch(`${apiBase}/users/api/subscriptions/plans/`, { headers })];
       if (role === 'super_admin') {
-        promises.push(fetch(`${apiBase}/api/subscriptions/tenants/`, { headers }));
+        promises.push(fetch(`${apiBase}/users/api/subscriptions/tenants/`, { headers }));
       }
       
       const [pRes, tRes] = await Promise.all(promises);
@@ -103,7 +103,7 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
     setAssigning(true);
     try {
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-      const res = await fetch(`${apiBase}/api/subscriptions/plans/${planId}/assign/`, {
+      const res = await fetch(`${apiBase}/users/api/subscriptions/plans/${planId}/assign/`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ user_id: adminId })
@@ -126,7 +126,7 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
     
     try {
       const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-      const res = await fetch(`${apiBase}/api/subscriptions/plans/${editingPlan.id}/`, {
+      const res = await fetch(`${apiBase}/users/api/subscriptions/plans/${editingPlan.id}/`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify(editingPlan)

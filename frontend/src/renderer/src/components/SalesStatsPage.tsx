@@ -73,7 +73,7 @@ const SalesStatsPage: React.FC<SalesStatsPageProps> = ({ token, apiBase: rawApiB
 
   useEffect(() => {
     if (!token || role !== 'super_admin') return;
-    fetch(`${apiBase}/api/admin/tenants/`, { headers: authHeaders(token) })
+    fetch(`${apiBase}/users/api/admin/tenants/`, { headers: authHeaders(token) })
       .then((res) => res.json().then((d) => ({ ok: res.ok, d })))
       .then(({ ok, d }) => {
         if (ok && Array.isArray(d)) setTenants(d.map((t: any) => ({ id: Number(t.id), admin_username: String(t.admin_username || '') })));
