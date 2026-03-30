@@ -34,10 +34,14 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
   const [inventoryMenuPos, setInventoryMenuPos] = useState<MenuPos | null>(null)
   const [ventasMenuPos, setVentasMenuPos] = useState<MenuPos | null>(null)
   const [serviciosMenuPos, setServiciosMenuPos] = useState<MenuPos | null>(null)
+  const [usersMenuPos, setUsersMenuPos] = useState<MenuPos | null>(null)
+  const [webMenuPos, setWebMenuPos] = useState<MenuPos | null>(null)
   const [isConfigOpen, setIsConfigOpen] = useState(false)
   const [isInventoryOpen, setIsInventoryOpen] = useState(false)
   const [isVentasOpen, setIsVentasOpen] = useState(false)
   const [isServiciosOpen, setIsServiciosOpen] = useState(false)
+  const [isUsersOpen, setIsUsersOpen] = useState(false)
+  const [isWebOpen, setIsWebOpen] = useState(false)
   const [showUpdateModal, setShowUpdateModal] = useState(false)
 
   const canAccess = (targetView: string): boolean => {
@@ -51,13 +55,27 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
       clientes: 'view_clients',
       client_details: 'view_clients',
       ventas: 'create_sales',
+      ventas_estadisticas: 'create_sales',
       caja: 'view_cashbox',
       pedidos: 'view_orders',
       servicios: 'view_services',
       service_form: 'view_services',
       web: 'view_web',
+      web_productos: 'view_web',
+      web_categorias: 'view_web',
+      web_ofertas: 'view_web',
+      web_urls: 'view_web',
+      web_pagos: 'view_web',
+      web_envios: 'view_web',
       configuracion: 'manage_settings',
+      configuracion_empresa: 'manage_settings',
+      configuracion_impresora: 'manage_settings',
+      configuracion_google: 'manage_settings',
       users: 'manage_users',
+      users_empleados: 'manage_users',
+      users_permisos: 'manage_users',
+      users_actividades: 'manage_users',
+      users_estadisticas: 'manage_users',
     }
     const required = map[targetView]
     if (!required) return true
@@ -75,6 +93,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         setInventoryMenuPos(null)
         setVentasMenuPos(null)
         setServiciosMenuPos(null)
+        setUsersMenuPos(null)
+        setWebMenuPos(null)
       }
     } else {
       setIsConfigOpen(!isConfigOpen)
@@ -82,6 +102,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         setIsInventoryOpen(false)
         setIsVentasOpen(false)
         setIsServiciosOpen(false)
+        setIsUsersOpen(false)
+        setIsWebOpen(false)
       }
     }
   }
@@ -97,6 +119,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         setConfigMenuPos(null)
         setVentasMenuPos(null)
         setServiciosMenuPos(null)
+        setUsersMenuPos(null)
+        setWebMenuPos(null)
       }
     } else {
       setIsInventoryOpen(!isInventoryOpen)
@@ -104,6 +128,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         setIsConfigOpen(false)
         setIsVentasOpen(false)
         setIsServiciosOpen(false)
+        setIsUsersOpen(false)
+        setIsWebOpen(false)
       }
     }
   }
@@ -119,6 +145,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         setConfigMenuPos(null)
         setInventoryMenuPos(null)
         setServiciosMenuPos(null)
+        setUsersMenuPos(null)
+        setWebMenuPos(null)
       }
     } else {
       setIsVentasOpen(!isVentasOpen)
@@ -126,6 +154,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         setIsConfigOpen(false)
         setIsInventoryOpen(false)
         setIsServiciosOpen(false)
+        setIsUsersOpen(false)
+        setIsWebOpen(false)
       }
     }
   }
@@ -141,6 +171,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         setConfigMenuPos(null)
         setInventoryMenuPos(null)
         setVentasMenuPos(null)
+        setUsersMenuPos(null)
+        setWebMenuPos(null)
       }
     } else {
       setIsServiciosOpen(!isServiciosOpen)
@@ -148,6 +180,60 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         setIsConfigOpen(false)
         setIsInventoryOpen(false)
         setIsVentasOpen(false)
+        setIsUsersOpen(false)
+        setIsWebOpen(false)
+      }
+    }
+  }
+
+  const toggleUsersMenu = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (collapsed) {
+      if (usersMenuPos) {
+        setUsersMenuPos(null)
+      } else {
+        const rect = e.currentTarget.getBoundingClientRect()
+        setUsersMenuPos({ top: rect.top, left: rect.right })
+        setConfigMenuPos(null)
+        setInventoryMenuPos(null)
+        setVentasMenuPos(null)
+        setServiciosMenuPos(null)
+        setWebMenuPos(null)
+      }
+    } else {
+      setIsUsersOpen(!isUsersOpen)
+      if (!isUsersOpen) {
+        setIsConfigOpen(false)
+        setIsInventoryOpen(false)
+        setIsVentasOpen(false)
+        setIsServiciosOpen(false)
+        setIsWebOpen(false)
+      }
+    }
+  }
+
+  const toggleWebMenu = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (collapsed) {
+      if (webMenuPos) {
+        setWebMenuPos(null)
+      } else {
+        const rect = e.currentTarget.getBoundingClientRect()
+        setWebMenuPos({ top: rect.top, left: rect.right })
+        setConfigMenuPos(null)
+        setInventoryMenuPos(null)
+        setVentasMenuPos(null)
+        setServiciosMenuPos(null)
+        setUsersMenuPos(null)
+      }
+    } else {
+      setIsWebOpen(!isWebOpen)
+      if (!isWebOpen) {
+        setIsConfigOpen(false)
+        setIsInventoryOpen(false)
+        setIsVentasOpen(false)
+        setIsServiciosOpen(false)
+        setIsUsersOpen(false)
       }
     }
   }
@@ -222,11 +308,11 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
     loadStats()
   }, [token, apiBase])
 
-  const asideClass = collapsed ? 'w-24' : 'w-72'
-  const textClass = `transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-[240px] opacity-100'}`
+  const asideClass = collapsed ? 'w-16' : 'w-56'
+  const textClass = `transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100'}`
   const tooltipClass = collapsed ? 'absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap px-2 py-1 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-xs shadow-xl border border-gray-200 dark:border-white/10 opacity-0 group-hover:opacity-100 pointer-events-none z-50' : 'hidden'
   // Use padding transition for centering instead of justify-content change to avoid snapping
-  const itemBase = `group relative w-full flex items-center ${collapsed ? 'justify-center px-0 gap-0' : 'px-3 gap-3'} py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-300 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium`
+  const itemBase = `group relative w-full flex items-center ${collapsed ? 'justify-center px-0 gap-0' : 'px-2 gap-2'} py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-300 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white`
   const activeClass = 'bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white shadow-sm ring-1 ring-gray-200 dark:ring-white/10'
   const toneClasses = (key: string) => {
     if (key === 'dashboard') return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-700 dark:group-hover:text-blue-300'
@@ -243,11 +329,11 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
   }
 
   const ToggleIcon = () => (
-    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M8 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
-  const iconBoxClass = `${collapsed ? 'w-14 h-14 mx-2' : 'w-10 h-10'} rounded-2xl flex items-center justify-center`
+  const iconBoxClass = `${collapsed ? 'w-9 h-9 mx-1.5' : 'w-7 h-7'} rounded-lg flex items-center justify-center`
 
   return (
     <aside 
@@ -274,12 +360,12 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
           background: rgba(255, 255, 255, 0.3);
         }
       `}</style>
-      <div className={`px-4 py-4 flex items-center ${collapsed ? 'justify-center flex-col gap-2' : 'justify-between'} shrink-0 h-auto min-h-[64px]`}>
+      <div className={`px-3 py-3 flex items-center ${collapsed ? 'justify-center flex-col gap-2' : 'justify-between'} shrink-0 h-auto min-h-[56px]`}>
         <div className={`flex items-center overflow-hidden transition-all duration-300 ${collapsed ? 'justify-center w-full gap-0' : 'gap-3'}`}>
-          <img src={asentingLogo} alt="Asenting" className="w-10 h-10 object-contain drop-shadow-lg shrink-0" />
+          <img src={asentingLogo} alt="Asenting" className="w-8 h-8 object-contain drop-shadow-lg shrink-0" />
           <div className={`${textClass} flex flex-col`}>
              <div className="flex items-center gap-2">
-                <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight leading-none">Asenting</span>
+                <span className="text-base font-semibold text-gray-900 dark:text-white tracking-tight leading-none">Asenting</span>
                 <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-mono border border-blue-200 dark:border-blue-800">v{pkg.version}</span>
              </div>
              <span className="text-[10px] text-gray-500 dark:text-gray-500 font-semibold uppercase tracking-wider mt-1">{companyName || 'Panel'}</span>
@@ -287,7 +373,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         </div>
         <button 
           onClick={() => setCollapsed(!collapsed)}
-          className={`p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors ${collapsed ? 'mt-1' : ''}`}
+          className={`p-1 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors ${collapsed ? 'mt-1' : ''}`}
           title={collapsed ? "Expandir" : "Colapsar"}
         >
           <div className={`transform transition-transform duration-300 ${collapsed ? '' : 'rotate-180'}`}>
@@ -295,9 +381,9 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
           </div>
         </button>
       </div>
-      <div className="px-4 py-2 mb-2 shrink-0 overflow-hidden">
+      <div className="px-3 py-1.5 mb-2 shrink-0 overflow-hidden">
         <div className={`transition-all duration-300 ease-in-out ${collapsed ? 'max-h-0 opacity-0 -translate-y-2' : 'max-h-40 opacity-100 translate-y-0'}`}>
-          <div className={`text-xs text-gray-500 dark:text-gray-400 flex flex-col gap-1.5 bg-gray-100 dark:bg-white/5 p-2.5 rounded-xl border border-gray-200 dark:border-white/5`}>
+          <div className={`text-xs text-gray-500 dark:text-gray-400 flex flex-col gap-1 bg-gray-100 dark:bg-white/5 p-2 rounded-lg border border-gray-200 dark:border-white/5`}>
             <div className="flex items-center justify-between">
               <span className="font-medium text-gray-900 dark:text-gray-200">Rol</span>
               <span className={`inline-flex items-center px-2 py-0.5 rounded-md border border-gray-200 dark:border-white/5 bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-[10px] font-semibold uppercase tracking-wide`}>
@@ -319,26 +405,26 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
           </div>
         </div>
       </div>
-      <nav className={`p-2 space-y-1 flex-1 min-h-0 ${collapsed ? 'overflow-hidden' : 'sidebar-scrollbar overflow-y-auto'}`} role="navigation" aria-label="Secciones">
+      <nav className={`p-2 space-y-1 flex-1 min-h-0 ${collapsed ? 'overflow-hidden' : 'sidebar-scrollbar thin-scrollbar overflow-y-auto'}`} role="navigation" aria-label="Secciones">
         <button className={`${itemBase} ${view === 'dashboard' ? activeClass : ''}`} onClick={() => setView('dashboard')} title="Dashboard" aria-current={view === 'dashboard' ? 'page' : undefined}>
           {view === 'dashboard' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
           <span className={`${iconBoxClass} ${toneClasses('dashboard')} ${view === 'dashboard' ? 'ring-1 ring-white/20' : ''}`}>
-            <Icon name="dashboard" className="w-5 h-5" />
+            <Icon name="dashboard" className="w-4 h-4" />
           </span>
           <span className={textClass}>Dashboard</span>
           <span className={tooltipClass}>Dashboard</span>
         </button>
-        {(canAccess('ventas') || canAccess('caja')) && (
+        {(canAccess('ventas') || canAccess('ventas_estadisticas') || canAccess('caja')) && (
         <div className="relative">
-          <button className={`${itemBase} ${['ventas', 'caja'].includes(view) ? activeClass : ''}`} onClick={toggleVentasMenu} title="Ventas">
-            {['ventas', 'caja'].includes(view) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-            <span className={`${iconBoxClass} ${toneClasses('ventas')} ${['ventas', 'caja'].includes(view) ? 'ring-1 ring-white/20' : ''}`}>
-              <Icon name="sales" className="w-5 h-5" />
+          <button className={`${itemBase} ${['ventas', 'caja', 'ventas_estadisticas'].includes(view) ? activeClass : ''}`} onClick={toggleVentasMenu} title="Ventas">
+            {['ventas', 'caja', 'ventas_estadisticas'].includes(view) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
+            <span className={`${iconBoxClass} ${toneClasses('ventas')} ${['ventas', 'caja', 'ventas_estadisticas'].includes(view) ? 'ring-1 ring-white/20' : ''}`}>
+              <Icon name="sales" className="w-4 h-4" />
             </span>
             <span className={textClass}>Ventas</span>
             <span className={tooltipClass}>Ventas</span>
             {!collapsed && (
-              <svg className={`w-4 h-4 ml-auto text-gray-500 dark:text-gray-400 transition-transform ${ventasMenuPos || isVentasOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className={`w-3.5 h-3.5 ml-auto text-gray-500 dark:text-gray-400 transition-transform ${ventasMenuPos || isVentasOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             )}
@@ -352,15 +438,24 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 left: ventasMenuPos.left,
                 zIndex: 9999
               }}
-              className="w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 ml-2"
+              className="w-56 max-h-[70vh] overflow-y-auto thin-scrollbar bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 ml-2"
             >
               {canAccess('ventas') && (
               <button 
                 onClick={(e) => { e.stopPropagation(); setView('ventas'); setVentasMenuPos(null); }} 
                 className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'ventas' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
               >
-                <Icon name="sales" className="w-4 h-4" />
-                <span>Nueva Venta</span>
+                <Icon name="sales" className="w-3 h-3" />
+                <span>Registrar Venta</span>
+              </button>
+              )}
+              {canAccess('ventas_estadisticas') && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); setView('ventas_estadisticas'); setVentasMenuPos(null); }} 
+                className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'ventas_estadisticas' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+              >
+                <Icon name="dashboard" className="w-3 h-3" />
+                <span>Estadísticas</span>
               </button>
               )}
               {canAccess('caja') && (
@@ -368,7 +463,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 onClick={(e) => { e.stopPropagation(); setView('caja'); setVentasMenuPos(null); }} 
                 className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'caja' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
               >
-                <Icon name="sales" className="w-4 h-4" />
+                <Icon name="sales" className="w-3 h-3" />
                 <span>Caja</span>
               </button>
               )}
@@ -383,7 +478,16 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'ventas' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
               >
                 <Icon name="sales" className="w-4 h-4" />
-                <span>Nueva Venta</span>
+                <span>Registrar Venta</span>
+              </button>
+              )}
+              {canAccess('ventas_estadisticas') && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); setView('ventas_estadisticas'); }} 
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'ventas_estadisticas' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+              >
+                <Icon name="dashboard" className="w-4 h-4" />
+                <span>Estadísticas</span>
               </button>
               )}
               {canAccess('caja') && (
@@ -403,7 +507,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         <button className={`${itemBase} ${view === 'pedidos' ? activeClass : ''}`} onClick={() => setView('pedidos')} title="Pedidos" aria-current={view === 'pedidos' ? 'page' : undefined}>
           {view === 'pedidos' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
           <span className={`${iconBoxClass} ${toneClasses('pedidos')} ${view === 'pedidos' ? 'ring-1 ring-white/20' : ''} relative`}>
-            <Icon name="orders" className="w-5 h-5" />
+            <Icon name="orders" className="w-4 h-4" />
             {Number(orderNotif || 0) > 0 && (
               <span
                 className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] flex items-center justify-center border border-white/20 notification-badge"
@@ -421,7 +525,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         <button className={`${itemBase} ${view === 'clientes' ? activeClass : ''}`} onClick={() => setView('clientes')} title="Clientes" aria-current={view === 'clientes' ? 'page' : undefined}>
           {view === 'clientes' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
           <span className={`${iconBoxClass} ${toneClasses('clientes')} ${view === 'clientes' ? 'ring-1 ring-white/20' : ''}`}>
-            <Icon name="clients" className="w-5 h-5" />
+            <Icon name="clients" className="w-4 h-4" />
           </span>
           <span className={textClass}>Clientes</span>
           <span className={tooltipClass}>Clientes</span>
@@ -432,12 +536,12 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
           <button className={`${itemBase} ${['productos', 'categorias', 'servicios'].includes(view) ? activeClass : ''}`} onClick={toggleInventoryMenu} title="Inventario">
             {['productos', 'categorias', 'servicios'].includes(view) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
             <span className={`${iconBoxClass} ${toneClasses('inventory')} ${['productos', 'categorias', 'servicios'].includes(view) ? 'ring-1 ring-white/20' : ''}`}>
-              <Icon name="inventory" className="w-5 h-5" />
+              <Icon name="inventory" className="w-4 h-4" />
             </span>
             <span className={textClass}>Inventario</span>
             <span className={tooltipClass}>Inventario</span>
             {!collapsed && (
-              <svg className={`w-4 h-4 ml-auto text-gray-500 dark:text-gray-400 transition-transform ${inventoryMenuPos || isInventoryOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className={`w-3.5 h-3.5 ml-auto text-gray-500 dark:text-gray-400 transition-transform ${inventoryMenuPos || isInventoryOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             )}
@@ -458,7 +562,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 onClick={(e) => { e.stopPropagation(); setView('productos'); setInventoryMenuPos(null); }} 
                 className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'productos' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
               >
-                <Icon name="products" className="w-4 h-4" />
+                <Icon name="products" className="w-3 h-3" />
                 <span>Productos</span>
               </button>
               )}
@@ -467,7 +571,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 onClick={(e) => { e.stopPropagation(); setView('categorias'); setInventoryMenuPos(null); }} 
                 className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'categorias' ? 'text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
               >
-                <Icon name="categories" className="w-4 h-4" />
+                <Icon name="categories" className="w-3 h-3" />
                 <span>Categorías</span>
               </button>
               )}
@@ -476,7 +580,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 onClick={(e) => { e.stopPropagation(); setView('servicios'); setInventoryMenuPos(null); }} 
                 className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'servicios' ? 'text-pink-600 dark:text-pink-400 bg-pink-100 dark:bg-pink-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
               >
-                <Icon name="services" className="w-4 h-4" />
+                <Icon name="services" className="w-3 h-3" />
                 <span>Servicios</span>
               </button>
               )}
@@ -490,7 +594,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 onClick={(e) => { e.stopPropagation(); setView('productos'); }} 
                 className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'productos' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
               >
-                <Icon name="products" className="w-4 h-4" />
+                <Icon name="products" className="w-3 h-3" />
                 <span>Productos</span>
               </button>
               )}
@@ -499,7 +603,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 onClick={(e) => { e.stopPropagation(); setView('categorias'); }} 
                 className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'categorias' ? 'text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
               >
-                <Icon name="categories" className="w-4 h-4" />
+                <Icon name="categories" className="w-3 h-3" />
                 <span>Categorías</span>
               </button>
               )}
@@ -508,7 +612,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 onClick={(e) => { e.stopPropagation(); setView('servicios'); }} 
                 className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'servicios' ? 'text-pink-600 dark:text-pink-400 bg-pink-100 dark:bg-pink-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
               >
-                <Icon name="services" className="w-4 h-4" />
+                <Icon name="services" className="w-3 h-3" />
                 <span>Servicios</span>
               </button>
               )}
@@ -517,28 +621,227 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         </div>
         )}
         {(role === 'super_admin' || role === 'admin') && (
-          <button className={`${itemBase} ${view === 'users' ? activeClass : ''}`} onClick={() => setView('users')} title="Usuarios" aria-current={view === 'users' ? 'page' : undefined}>
-            {view === 'users' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-            <span className={`${iconBoxClass} ${toneClasses('users')} ${view === 'users' ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
-              <Icon name="users" className="w-5 h-5" />
-            </span>
-            <span className={textClass}>Usuarios</span>
-            <span className={tooltipClass}>Usuarios</span>
-          </button>
+          <div className="relative">
+            <button className={`${itemBase} ${['users', 'users_empleados', 'users_permisos', 'users_actividades', 'users_estadisticas'].includes(view) ? activeClass : ''}`} onClick={toggleUsersMenu} title="Usuarios">
+              {(['users', 'users_empleados', 'users_permisos', 'users_actividades', 'users_estadisticas'].includes(view)) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
+              <span className={`${iconBoxClass} ${toneClasses('users')} ${['users', 'users_empleados', 'users_permisos', 'users_actividades', 'users_estadisticas'].includes(view) ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
+                <Icon name="users" className="w-4 h-4" />
+              </span>
+              <span className={textClass}>Usuarios</span>
+              <span className={tooltipClass}>Usuarios</span>
+              {!collapsed && (
+                <svg className={`w-3.5 h-3.5 ml-auto text-gray-500 dark:text-gray-400 transition-transform ${usersMenuPos || isUsersOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              )}
+            </button>
+
+            {usersMenuPos && collapsed && (
+              <div
+                style={{
+                  position: 'fixed',
+                  top: usersMenuPos.top,
+                  left: usersMenuPos.left,
+                  zIndex: 9999
+                }}
+                className="w-56 max-h-[70vh] overflow-y-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 ml-2"
+              >
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('users_empleados'); setUsersMenuPos(null); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'users_empleados' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="users" className="w-3 h-3" />
+                  <span>Empleados</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('users_permisos'); setUsersMenuPos(null); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'users_permisos' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="help" className="w-3 h-3" />
+                  <span>Permisos</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('users_actividades'); setUsersMenuPos(null); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'users_actividades' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="orders" className="w-3 h-3" />
+                  <span>Actividades</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('users_estadisticas'); setUsersMenuPos(null); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'users_estadisticas' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="dashboard" className="w-3 h-3" />
+                  <span>Estadísticas</span>
+                </button>
+              </div>
+            )}
+
+            {isUsersOpen && !collapsed && (
+              <div className="mt-1 ml-1 space-y-1 bg-gray-50 dark:bg-black/20 rounded-md p-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('users_empleados'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'users_empleados' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="users" className="w-3 h-3" />
+                  <span>Empleados</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('users_permisos'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'users_permisos' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="help" className="w-3 h-3" />
+                  <span>Permisos</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('users_actividades'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'users_actividades' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="orders" className="w-3 h-3" />
+                  <span>Actividades</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('users_estadisticas'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'users_estadisticas' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="dashboard" className="w-3 h-3" />
+                  <span>Estadísticas</span>
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
+        {(role === 'super_admin' || subscription?.features?.web_store || subscription?.code === 'advanced') && (
+          <div className="relative">
+            <button className={`${itemBase} ${['web', 'web_productos', 'web_categorias', 'web_ofertas', 'web_urls', 'web_pagos', 'web_envios'].includes(view) ? activeClass : ''}`} onClick={toggleWebMenu} title="Página web">
+              {(['web', 'web_productos', 'web_categorias', 'web_ofertas', 'web_urls', 'web_pagos', 'web_envios'].includes(view)) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
+              <span className={`${iconBoxClass} ${toneClasses('web')} ${['web', 'web_productos', 'web_categorias', 'web_ofertas', 'web_urls', 'web_pagos', 'web_envios'].includes(view) ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
+                <Icon name="web" className="w-4 h-4" />
+              </span>
+              <span className={textClass}>Página web</span>
+              <span className={tooltipClass}>Página web</span>
+              {!collapsed && (
+                <svg className={`w-3.5 h-3.5 ml-auto text-gray-500 dark:text-gray-400 transition-transform ${webMenuPos || isWebOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              )}
+            </button>
+
+            {webMenuPos && collapsed && (
+              <div
+                style={{
+                  position: 'fixed',
+                  top: webMenuPos.top,
+                  left: webMenuPos.left,
+                  zIndex: 9999
+                }}
+                className="w-56 max-h-[70vh] overflow-y-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 ml-2"
+              >
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('web_productos'); setWebMenuPos(null); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'web_productos' || view === 'web' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="products" className="w-3 h-3" />
+                  <span>Productos</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('web_categorias'); setWebMenuPos(null); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'web_categorias' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="categories" className="w-3 h-3" />
+                  <span>Categorías</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('web_ofertas'); setWebMenuPos(null); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'web_ofertas' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="products" className="w-3 h-3" />
+                  <span>Ofertas</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('web_urls'); setWebMenuPos(null); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'web_urls' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="web" className="w-3 h-3" />
+                  <span>URLs</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('web_pagos'); setWebMenuPos(null); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'web_pagos' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="sales" className="w-3 h-3" />
+                  <span>Pagos</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('web_envios'); setWebMenuPos(null); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'web_envios' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="orders" className="w-3 h-3" />
+                  <span>Envíos</span>
+                </button>
+              </div>
+            )}
+
+            {isWebOpen && !collapsed && (
+              <div className="mt-1 ml-1 space-y-1 bg-gray-50 dark:bg-black/20 rounded-md p-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('web_productos'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'web_productos' || view === 'web' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="products" className="w-3 h-3" />
+                  <span>Productos</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('web_categorias'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'web_categorias' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="categories" className="w-3 h-3" />
+                  <span>Categorías</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('web_ofertas'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'web_ofertas' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="products" className="w-3 h-3" />
+                  <span>Ofertas</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('web_urls'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'web_urls' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="web" className="w-3 h-3" />
+                  <span>URLs</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('web_pagos'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'web_pagos' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="sales" className="w-3 h-3" />
+                  <span>Pagos</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('web_envios'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'web_envios' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="orders" className="w-3 h-3" />
+                  <span>Envíos</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {(role === 'admin' || role === 'super_admin') && (
           <div className="relative">
-            <button className={`${itemBase} ${['configuracion', 'web', 'planes'].includes(view) ? activeClass : ''}`} onClick={toggleConfigMenu} title="Configuración">
-              {(['web', 'planes', 'configuracion'].includes(view)) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-              <span className={`${iconBoxClass} ${toneClasses('web')} ${['web', 'planes', 'configuracion'].includes(view) ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
-                <Icon name="settings" className="w-5 h-5" />
+            <button className={`${itemBase} ${['configuracion', 'configuracion_empresa', 'configuracion_impresora', 'configuracion_google', 'planes'].includes(view) ? activeClass : ''}`} onClick={toggleConfigMenu} title="Configuración">
+              <span className={`${iconBoxClass} ${toneClasses('web')} ${['configuracion', 'configuracion_empresa', 'configuracion_impresora', 'configuracion_google', 'planes'].includes(view) ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
+                <Icon name="settings" className="w-4 h-4" />
               </span>
               <span className={textClass}>Configuración</span>
               <span className={tooltipClass}>Configuración</span>
               {!collapsed && (
-                <svg className={`w-4 h-4 ml-auto text-gray-500 dark:text-gray-400 transition-transform ${configMenuPos || isConfigOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className={`w-3.5 h-3.5 ml-auto text-gray-500 dark:text-gray-400 transition-transform ${configMenuPos || isConfigOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               )}
@@ -552,24 +855,14 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                   left: configMenuPos.left,
                   zIndex: 9999
                 }}
-                className="w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 ml-2"
+                className="w-56 max-h-[70vh] overflow-y-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 ml-2"
               >
-                {(role === 'super_admin' || (role === 'admin' && (subscription?.features?.web_store || subscription?.code === 'advanced'))) && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setView('web'); setConfigMenuPos(null); }} 
-                    className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'web' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
-                  >
-                    <Icon name="web" className="w-4 h-4" />
-                    <span>Página web</span>
-                  </button>
-                )}
-
                 {role === 'super_admin' && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); setView('planes'); setConfigMenuPos(null); }} 
                     className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'planes' ? 'text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
                   >
-                    <Icon name="plans" className="w-4 h-4" />
+                    <Icon name="plans" className="w-3 h-3" />
                     <span>Planes</span>
                   </button>
                 )}
@@ -577,29 +870,41 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                   onClick={(e) => { e.stopPropagation(); setView('configuracion'); setConfigMenuPos(null); }} 
                   className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'configuracion' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
                 >
-                  <Icon name="settings" className="w-4 h-4" />
-                  <span>General</span>
+                  <Icon name="settings" className="w-3 h-3" />
+                  <span>Perfil</span>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setView('configuracion_empresa'); setConfigMenuPos(null); }} 
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'configuracion_empresa' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="clients" className="w-3 h-3" />
+                  <span>Empresa</span>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setView('configuracion_impresora'); setConfigMenuPos(null); }} 
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'configuracion_impresora' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="templates" className="w-3 h-3" />
+                  <span>Impresora</span>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setView('configuracion_google'); setConfigMenuPos(null); }} 
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'configuracion_google' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="web" className="w-3 h-3" />
+                  <span>Google API</span>
                 </button>
               </div>
             )}
 
             {isConfigOpen && !collapsed && (
               <div className="mt-1 ml-1 space-y-1 bg-gray-50 dark:bg-black/20 rounded-md p-1">
-                {(role === 'super_admin' || (role === 'admin' && (subscription?.features?.web_store || subscription?.code === 'advanced'))) && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setView('web'); }} 
-                    className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'web' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
-                  >
-                    <Icon name="web" className="w-4 h-4" />
-                    <span>Página web</span>
-                  </button>
-                )}
                 {role === 'super_admin' && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); setView('planes'); }} 
                     className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'planes' ? 'text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
                   >
-                    <Icon name="plans" className="w-4 h-4" />
+                    <Icon name="plans" className="w-3 h-3" />
                     <span>Planes</span>
                   </button>
                 )}
@@ -607,8 +912,29 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                   onClick={(e) => { e.stopPropagation(); setView('configuracion'); }} 
                   className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'configuracion' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
                 >
-                  <Icon name="settings" className="w-4 h-4" />
-                  <span>General</span>
+                  <Icon name="settings" className="w-3 h-3" />
+                  <span>Perfil</span>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setView('configuracion_empresa'); }} 
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'configuracion_empresa' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="clients" className="w-3 h-3" />
+                  <span>Empresa</span>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setView('configuracion_impresora'); }} 
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'configuracion_impresora' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="templates" className="w-3 h-3" />
+                  <span>Impresora</span>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setView('configuracion_google'); }} 
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'configuracion_google' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="web" className="w-3 h-3" />
+                  <span>Google API</span>
                 </button>
               </div>
             )}
@@ -618,12 +944,12 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
       <div className="p-2 border-t border-gray-200 dark:border-white/5 shrink-0 space-y-2">
         <ModeToggle collapsed={collapsed} />
         <button 
-          className={`w-full flex items-center ${collapsed ? 'justify-center' : ''} gap-3 px-3 py-2 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-red-500/10 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 border border-gray-200 dark:border-white/5 hover:border-red-500/20 transition-all duration-200 group relative`} 
+          className={`w-full flex items-center ${collapsed ? 'justify-center' : ''} gap-2 px-2.5 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5 hover:bg-red-500/10 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 border border-gray-200 dark:border-white/5 hover:border-red-500/20 transition-all duration-200 group relative`} 
           onClick={onSignOut} 
           title="Cerrar sesión"
         >
-          <Icon name="logout" className="w-5 h-5 group-hover:scale-110 transition-transform" />
-          <span className={`${textClass} font-medium`}>Cerrar sesión</span>
+          <Icon name="logout" className="w-4 h-4 group-hover:scale-110 transition-transform" />
+          <span className={`${textClass}`}>Cerrar sesión</span>
           <span className={tooltipClass}>Cerrar sesión</span>
         </button>
       </div>

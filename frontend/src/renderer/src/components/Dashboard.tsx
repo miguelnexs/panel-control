@@ -1,22 +1,35 @@
 import React, { useEffect, useState } from 'react';
 import DashboardView from './dashboard/DashboardView';
 import Sidebar from './dashboard/Sidebar';
-import UsersManager from './dashboard/UsersManager';
+import SupportChatWidget from './dashboard/SupportChatWidget';
 
 const ProductosManager = React.lazy(() => import('./ProductosManager'));
 const ProductFormPage = React.lazy(() => import('./ProductFormPage'));
 const CategoriesManager = React.lazy(() => import('./CategoriesManager'));
 const SalesPage = React.lazy(() => import('./SalesPage'));
+const SalesStatsPage = React.lazy(() => import('./SalesStatsPage'));
 const OrdersPage = React.lazy(() => import('./OrdersPage'));
 const ClientsPage = React.lazy(() => import('./ClientsPage'));
-const WebPageManager = React.lazy(() => import('./WebPageManager'));
+const WebProductsPage = React.lazy(() => import('./WebProductsPage'));
+const WebCategoriesPage = React.lazy(() => import('./WebCategoriesPage'));
+const WebOffersPage = React.lazy(() => import('./WebOffersPage'));
+const WebUrlsPage = React.lazy(() => import('./WebUrlsPage'));
+const WebPaymentsPage = React.lazy(() => import('./WebPaymentsPage'));
+const WebShippingPage = React.lazy(() => import('./WebShippingPage'));
 const TemplatesManager = React.lazy(() => import('./dashboard/TemplatesManager'));
 const PlansManager = React.lazy(() => import('./dashboard/PlansManager'));
-const ConfigPage = React.lazy(() => import('./ConfigPage'));
+const ConfigProfilePage = React.lazy(() => import('./ConfigProfilePage'));
+const ConfigCompanyPage = React.lazy(() => import('./ConfigCompanyPage'));
+const ConfigPrinterPage = React.lazy(() => import('./ConfigPrinterPage'));
+const ConfigGoogleApiPage = React.lazy(() => import('./ConfigGoogleApiPage'));
 const CashboxPage = React.lazy(() => import('./CashboxPage'));
 const ServicesPage = React.lazy(() => import('./ServicesPage'));
 const FullServiceFormPage = React.lazy(() => import('./FullServiceFormPage'));
 const ClientDetailsPage = React.lazy(() => import('./ClientDetailsPage'));
+const UsersEmployeesPage = React.lazy(() => import('./dashboard/UsersEmployeesPage'));
+const UsersPermissionsPage = React.lazy(() => import('./dashboard/UsersPermissionsPage'));
+const UsersActivitiesPage = React.lazy(() => import('./dashboard/UsersActivitiesPage'));
+const UsersStatsPage = React.lazy(() => import('./dashboard/UsersStatsPage'));
 
 interface DashboardProps {
   token: string | null;
@@ -54,13 +67,27 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
       clientes: 'view_clients',
       client_details: 'view_clients',
       ventas: 'create_sales',
+      ventas_estadisticas: 'create_sales',
       caja: 'view_cashbox',
       pedidos: 'view_orders',
       servicios: 'view_services',
       service_form: 'view_services',
       web: 'view_web',
+      web_productos: 'view_web',
+      web_categorias: 'view_web',
+      web_ofertas: 'view_web',
+      web_urls: 'view_web',
+      web_pagos: 'view_web',
+      web_envios: 'view_web',
       configuracion: 'manage_settings',
+      configuracion_empresa: 'manage_settings',
+      configuracion_impresora: 'manage_settings',
+      configuracion_google: 'manage_settings',
       users: 'manage_users',
+      users_empleados: 'manage_users',
+      users_permisos: 'manage_users',
+      users_actividades: 'manage_users',
+      users_estadisticas: 'manage_users',
     };
     const required = map[targetView];
     if (!required) return true;
@@ -197,6 +224,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
           permissionsEnforced={permissionsEnforced}
         />
       <main className="flex-1 p-6 space-y-6 relative overflow-y-auto">
+        {(role === 'admin' || role === 'super_admin') && (
+          <SupportChatWidget token={token} apiBase={apiBase} role={role} userId={userId} />
+        )}
         {navLoading && (
           <div className="absolute inset-0 z-40 bg-white/80 dark:bg-gray-900/80 flex items-center justify-center backdrop-blur-sm transition-all">
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-xl p-5 shadow-xl text-center">
@@ -214,15 +244,27 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
           <div className="flex items-center justify-between mb-6 gap-4">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
               {view === 'dashboard' ? 'Dashboard' : 
-               view === 'users' ? 'Gestión de usuarios' : 
+               view === 'users' || view === 'users_empleados' ? 'Usuarios / Empleados' :
+               view === 'users_permisos' ? 'Usuarios / Permisos' :
+               view === 'users_actividades' ? 'Usuarios / Actividades' :
+               view === 'users_estadisticas' ? 'Usuarios / Estadísticas' :
                view === 'productos' ? 'Productos' : 
                view === 'producto_form' ? (productEditing ? 'Editar Producto' : 'Nuevo Producto') :
                view === 'categorias' ? 'Categorías' : 
                view === 'clientes' ? 'Clientes' : 
                view === 'ventas' ? 'Ventas' : 
-               view === 'web' ? 'Página web' : 
+               view === 'ventas_estadisticas' ? 'Ventas / Estadísticas' :
+               view === 'web' || view === 'web_productos' ? 'Página web / Productos' :
+               view === 'web_categorias' ? 'Página web / Categorías' :
+               view === 'web_ofertas' ? 'Página web / Ofertas' :
+               view === 'web_urls' ? 'Página web / URLs' :
+               view === 'web_pagos' ? 'Página web / Pagos' :
+               view === 'web_envios' ? 'Página web / Envíos' :
                view === 'planes' ? 'Planes de Suscripción' :
-               view === 'configuracion' ? 'Configuración' :
+               view === 'configuracion' ? 'Configuración / Perfil' :
+               view === 'configuracion_empresa' ? 'Configuración / Empresa' :
+               view === 'configuracion_impresora' ? 'Configuración / Impresora' :
+               view === 'configuracion_google' ? 'Configuración / Google API' :
                view === 'caja' ? 'Caja' :
                view === 'servicios' ? 'Servicios' :
                view === 'service_form' ? 'Nuevo Servicio' :
@@ -236,7 +278,19 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
           )}
         <React.Suspense fallback={<div className="text-gray-500 dark:text-gray-400 text-sm flex items-center gap-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"/> Cargando módulo...</div>}>
           {view === 'users' && (
-            <UsersManager token={token} apiBase={apiBase} role={role} />
+            <UsersEmployeesPage token={token} apiBase={apiBase} role={role} />
+          )}
+          {view === 'users_empleados' && (
+            <UsersEmployeesPage token={token} apiBase={apiBase} role={role} />
+          )}
+          {view === 'users_permisos' && (
+            <UsersPermissionsPage token={token} apiBase={apiBase} role={role} />
+          )}
+          {view === 'users_actividades' && (
+            <UsersActivitiesPage token={token} apiBase={apiBase} role={role} />
+          )}
+          {view === 'users_estadisticas' && (
+            <UsersStatsPage token={token} apiBase={apiBase} role={role} />
           )}
           {view === 'productos' && (
             <ProductosManager
@@ -297,8 +351,68 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
           {view === 'ventas' && (
             <SalesPage token={token} apiBase={apiBase} onSaleCreated={() => setOrderNotif((n) => n + 1)} />
           )}
-          {view === 'web' && (
-            <WebPageManager token={token} apiBase={apiBase} adminId={userId} role={role} setView={(v: string) => navigate(v)} setProductEditing={(p: any) => { setProductEditing(p); navigate('producto_form'); }} />
+          {view === 'ventas_estadisticas' && (
+            <SalesStatsPage token={token} apiBase={apiBase} role={role} />
+          )}
+          {(view === 'web' || view === 'web_productos') && (
+            <WebProductsPage
+              token={token}
+              apiBase={apiBase}
+              adminId={userId}
+              role={role}
+              setView={(v: string) => navigate(v)}
+              setProductEditing={(p: any) => { setProductEditing(p); navigate('producto_form'); }}
+            />
+          )}
+          {view === 'web_categorias' && (
+            <WebCategoriesPage
+              token={token}
+              apiBase={apiBase}
+              adminId={userId}
+              role={role}
+              setView={(v: string) => navigate(v)}
+              setProductEditing={(p: any) => { setProductEditing(p); navigate('producto_form'); }}
+            />
+          )}
+          {view === 'web_ofertas' && (
+            <WebOffersPage
+              token={token}
+              apiBase={apiBase}
+              adminId={userId}
+              role={role}
+              setView={(v: string) => navigate(v)}
+              setProductEditing={(p: any) => { setProductEditing(p); navigate('producto_form'); }}
+            />
+          )}
+          {view === 'web_urls' && (
+            <WebUrlsPage
+              token={token}
+              apiBase={apiBase}
+              adminId={userId}
+              role={role}
+              setView={(v: string) => navigate(v)}
+              setProductEditing={(p: any) => { setProductEditing(p); navigate('producto_form'); }}
+            />
+          )}
+          {view === 'web_pagos' && (
+            <WebPaymentsPage
+              token={token}
+              apiBase={apiBase}
+              adminId={userId}
+              role={role}
+              setView={(v: string) => navigate(v)}
+              setProductEditing={(p: any) => { setProductEditing(p); navigate('producto_form'); }}
+            />
+          )}
+          {view === 'web_envios' && (
+            <WebShippingPage
+              token={token}
+              apiBase={apiBase}
+              adminId={userId}
+              role={role}
+              setView={(v: string) => navigate(v)}
+              setProductEditing={(p: any) => { setProductEditing(p); navigate('producto_form'); }}
+            />
           )}
           {view === 'plantillas' && (
             <TemplatesManager />
@@ -310,7 +424,16 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
             <PlansManager token={token} role={role} />
           )}
           {view === 'configuracion' && (
-            <ConfigPage token={token} apiBase={apiBase} />
+            <ConfigProfilePage token={token} apiBase={apiBase} />
+          )}
+          {view === 'configuracion_empresa' && (
+            <ConfigCompanyPage token={token} apiBase={apiBase} />
+          )}
+          {view === 'configuracion_impresora' && (
+            <ConfigPrinterPage token={token} apiBase={apiBase} />
+          )}
+          {view === 'configuracion_google' && (
+            <ConfigGoogleApiPage token={token} apiBase={apiBase} />
           )}
           {view === 'caja' && (
             <CashboxPage token={token} apiBase={apiBase} />

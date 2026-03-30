@@ -444,13 +444,25 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
                             <div className="flex items-center gap-2">
                               <div className="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{p.name}</div>
                               {p.is_draft && <DraftBadge />}
+                              {p.is_sale && p.sale_price && (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300 border border-rose-200 dark:border-rose-500/20 font-bold uppercase tracking-wider">
+                                  Oferta
+                                </span>
+                              )}
                             </div>
                             {p.sku && <div className="text-xs text-gray-500">SKU: {p.sku}</div>}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="font-medium text-gray-700 dark:text-gray-200">{formatCurrency(p.price)}</span>
+                        {p.is_sale && p.sale_price ? (
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-rose-700 dark:text-rose-300">{formatCurrency(p.sale_price)}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 line-through">{formatCurrency(p.price)}</span>
+                          </div>
+                        ) : (
+                          <span className="font-medium text-gray-700 dark:text-gray-200">{formatCurrency(p.price)}</span>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         {p.category_name ? (
@@ -577,7 +589,14 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
 
                   <div className="flex items-center gap-2">
                     <DollarSign className="w-5 h-5 text-emerald-500" />
-                    <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(viewing.price)}</span>
+                    {viewing.is_sale && viewing.sale_price ? (
+                      <div className="flex flex-col">
+                        <span className="text-3xl font-bold text-rose-700 dark:text-rose-300">{formatCurrency(viewing.sale_price)}</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400 line-through">{formatCurrency(viewing.price)}</span>
+                      </div>
+                    ) : (
+                      <span className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(viewing.price)}</span>
+                    )}
                   </div>
 
                   <div>

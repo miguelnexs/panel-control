@@ -5,6 +5,7 @@ import {
   Package, 
   Tag, 
   DollarSign, 
+  Percent,
   FileText, 
   Image as ImageIcon, 
   Layers, 
@@ -139,6 +140,10 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [costPrice, setCostPrice] = useState('');
+  const [isSale, setIsSale] = useState(false);
+  const [offerMode, setOfferMode] = useState<'percent' | 'price'>('percent');
+  const [offerPercent, setOfferPercent] = useState('');
+  const [salePrice, setSalePrice] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [categories, setCategories] = useState<any[]>([]);
   const [sku, setSku] = useState('');
@@ -217,6 +222,19 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
     if (parts[1]) parts[1] = parts[1].slice(0, 2);
     return parts.join('.');
   };
+  const normalizePercent = (v: any) => {
+    const s = String(v).replace(/[^0-9.,]/g, '').replace(',', '.');
+    const parts = s.split('.');
+    if (parts.length > 2) return parts[0] + '.' + parts.slice(1).join('');
+    if (parts[1]) parts[1] = parts[1].slice(0, 2);
+    return parts.join('.');
+  };
+  const computeSaleFromPercent = (basePrice: number, percent: number) => {
+    const p = Math.max(0, Math.min(100, percent));
+    const discounted = basePrice * (1 - p / 100);
+    const rounded = Math.round(discounted * 100) / 100;
+    return rounded.toFixed(2);
+  };
 
   const mediaUrl = (path: string | null) => {
     if (!path) return '';
@@ -284,18 +302,42 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
   useEffect(() => {
     if (autoGenerateSkus) {
       const newSkus: any[] = [];
+      const baseSku = String(sku || '').toUpperCase();
+      const defaultSkuFor = (colorName: string | null, variantName: string | null) => {
+        if (colorName && variantName) return `${baseSku}-${colorName.substring(0,2)}-${variantName.substring(0,2)}`.toUpperCase();
+        if (colorName) return `${baseSku}-${colorName.substring(0,3)}`.toUpperCase();
+        if (variantName) return `${baseSku}-${variantName.substring(0,3)}`.toUpperCase();
+        return baseSku;
+      };
+      const findExisting = (color: any | null, variant: any | null) => {
+        const colorId = color?.id != null ? Number(color.id) : null;
+        const variantId = variant?.id != null ? Number(variant.id) : null;
+        if (colorId != null || variantId != null) {
+          const byId = skus.find((s: any) => {
+            const sc = s?.colorId != null ? Number(s.colorId) : null;
+            const sv = s?.variantId != null ? Number(s.variantId) : null;
+            return sc === colorId && sv === variantId;
+          });
+          if (byId) return byId;
+        }
+        const cn = color?.name ?? null;
+        const vn = variant?.name ?? null;
+        return skus.find((s: any) => (s?.colorName ?? null) === cn && (s?.variantName ?? null) === vn);
+      };
       
       // Caso 1: Hay colores y variantes
       if (colors.length > 0 && variants.length > 0) {
         colors.forEach(color => {
           variants.forEach(variant => {
-            const existing = skus.find(s => s.colorName === color.name && s.variantName === variant.name);
+            const existing = findExisting(color, variant);
             newSkus.push({
               id: existing?.id || null,
+              colorId: color.id ?? null,
+              variantId: variant.id ?? null,
               colorName: color.name,
               variantName: variant.name,
-              sku: existing?.sku || `${sku}-${color.name.substring(0,2)}-${variant.name.substring(0,2)}`.toUpperCase(),
-              stock: existing?.stock || '0',
+              sku: existing?.sku ?? defaultSkuFor(color.name, variant.name),
+              stock: existing?.stock ?? '0',
               active: existing?.active ?? true
             });
           });
@@ -304,13 +346,15 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       // Caso 2: Solo colores
       else if (colors.length > 0) {
         colors.forEach(color => {
-          const existing = skus.find(s => s.colorName === color.name && !s.variantName);
+          const existing = findExisting(color, null);
           newSkus.push({
             id: existing?.id || null,
+            colorId: color.id ?? null,
+            variantId: null,
             colorName: color.name,
             variantName: null,
-            sku: existing?.sku || `${sku}-${color.name.substring(0,3)}`.toUpperCase(),
-            stock: existing?.stock || color.stock || '0',
+            sku: existing?.sku ?? defaultSkuFor(color.name, null),
+            stock: existing?.stock ?? (color.stock ?? '0'),
             active: existing?.active ?? true
           });
         });
@@ -318,13 +362,15 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       // Caso 3: Solo variantes
       else if (variants.length > 0) {
         variants.forEach(variant => {
-          const existing = skus.find(s => !s.colorName && s.variantName === variant.name);
+          const existing = findExisting(null, variant);
           newSkus.push({
             id: existing?.id || null,
+            colorId: null,
+            variantId: variant.id ?? null,
             colorName: null,
             variantName: variant.name,
-            sku: existing?.sku || `${sku}-${variant.name.substring(0,3)}`.toUpperCase(),
-            stock: existing?.stock || '0',
+            sku: existing?.sku ?? defaultSkuFor(null, variant.name),
+            stock: existing?.stock ?? '0',
             active: existing?.active ?? true
           });
         });
@@ -341,6 +387,22 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       setName(product.name || '');
       setPrice(String(product.price || ''));
       setCostPrice(String(product.cost_price || '0'));
+      const existingIsSale = Boolean(product.is_sale);
+      setIsSale(existingIsSale);
+      const existingSalePrice = product.sale_price != null ? String(product.sale_price) : '';
+      setSalePrice(existingSalePrice);
+      if (existingIsSale && existingSalePrice) {
+        const base = Number(product.price || 0);
+        const sp = Number(existingSalePrice);
+        if (base > 0 && sp > 0 && sp < base) {
+          const pct = ((1 - sp / base) * 100);
+          setOfferPercent(pct.toFixed(2));
+          setOfferMode('price');
+        }
+      } else {
+        setOfferPercent('');
+        setOfferMode('percent');
+      }
       setCategoryId(String(product.category || ''));
       setSku(product.sku || '');
       setInventoryQty(String(product.inventory_qty || '0'));
@@ -422,7 +484,6 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
         });
         setSkus(loadedSkus);
         setInitialSkus(loadedSkus);
-        if (loadedSkus.length > 0) setAutoGenerateSkus(false);
 
       } catch (_) {
         setColors([]);
@@ -623,6 +684,27 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
     
     const inv = Number(inventoryQty);
     if (!Number.isInteger(inv) || inv < 0) errs.inventoryQty = 'Cantidad debe ser entero positivo.';
+
+    if (isSale) {
+      const base = Number(normalizePrice(price));
+      if (!base || Number.isNaN(base) || base <= 0) {
+        errs.sale_price = 'Define primero el precio de venta.';
+      } else {
+        let sp = 0;
+        if (offerMode === 'percent') {
+          const pct = Number(normalizePercent(offerPercent));
+          if (Number.isNaN(pct) || pct <= 0 || pct >= 100) {
+            errs.sale_price = 'Porcentaje inválido (1 a 99.99).';
+          } else {
+            sp = Number(computeSaleFromPercent(base, pct));
+          }
+        } else {
+          sp = Number(normalizePrice(salePrice));
+          if (Number.isNaN(sp) || sp <= 0) errs.sale_price = 'Precio de oferta inválido.';
+        }
+        if (!errs.sale_price && sp >= base) errs.sale_price = 'El precio de oferta debe ser menor al precio normal.';
+      }
+    }
     
     if (productImages.length > 0) {
       const firstImg = productImages[0];
@@ -655,6 +737,15 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
     fd.append('description', description || '');
     fd.append('active', active ? 'true' : 'false');
     fd.append('is_draft', forceDraft ? 'true' : 'false');
+    fd.append('is_sale', isSale ? 'true' : 'false');
+    if (isSale) {
+      const base = Number(normalizePrice(price) || '0');
+      const sp =
+        offerMode === 'percent'
+          ? computeSaleFromPercent(base, Number(normalizePercent(offerPercent) || '0'))
+          : (normalizePrice(salePrice) || '0');
+      fd.append('sale_price', sp);
+    }
     
     // Handle Main Image (First in productImages)
     if (productImages.length > 0) {
@@ -884,8 +975,12 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
       // Save or update combinations
       for (const s of currentSkus) {
-        const colorMatch = updatedColors.find((c: any) => c.name === s.colorName);
-        const variantMatch = updatedVariants.find((v: any) => v.name === s.variantName);
+        const colorMatch =
+          (s.colorId != null ? updatedColors.find((c: any) => String(c.id) === String(s.colorId)) : null) ||
+          updatedColors.find((c: any) => c.name === s.colorName);
+        const variantMatch =
+          (s.variantId != null ? updatedVariants.find((v: any) => String(v.id) === String(s.variantId)) : null) ||
+          updatedVariants.find((v: any) => v.name === s.variantName);
 
         const payload: any = {
           sku: s.sku,
@@ -1143,6 +1238,105 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                         <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">{formatCurrency(costPrice)}</p>
                       </div>
                     </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
+                    <div className="flex items-center justify-between gap-4">
+                      <label className="flex items-center gap-3 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={isSale}
+                          onChange={(e) => {
+                            const next = e.target.checked;
+                            setIsSale(next);
+                            if (!next) {
+                              setOfferPercent('');
+                              setSalePrice('');
+                            } else {
+                              setOfferMode('percent');
+                            }
+                          }}
+                          className="rounded border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-blue-600 focus:ring-blue-500"
+                        />
+                        <div className="flex items-center gap-2">
+                          <Percent className="w-4 h-4 text-blue-500" />
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Ofertas</span>
+                        </div>
+                      </label>
+                    </div>
+
+                    {isSale && (
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Tipo de oferta</label>
+                          <div className="inline-flex rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                            <button
+                              type="button"
+                              onClick={() => setOfferMode('percent')}
+                              className={`px-4 py-2 text-sm font-medium transition-colors ${offerMode === 'percent' ? 'bg-blue-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}
+                            >
+                              Porcentaje
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setOfferMode('price')}
+                              className={`px-4 py-2 text-sm font-medium transition-colors ${offerMode === 'price' ? 'bg-blue-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50'}`}
+                            >
+                              Precio oferta
+                            </button>
+                          </div>
+                        </div>
+
+                        <div>
+                          {offerMode === 'percent' ? (
+                            <>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Porcentaje</label>
+                              <div className="relative">
+                                <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                                <input
+                                  type="text"
+                                  value={offerPercent}
+                                  onChange={(e) => setOfferPercent(normalizePercent(e.target.value))}
+                                  className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.sale_price ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                                  placeholder="Ej. 10"
+                                />
+                              </div>
+                              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                {(() => {
+                                  const base = Number(normalizePrice(price));
+                                  const pct = Number(normalizePercent(offerPercent));
+                                  if (!base || Number.isNaN(base) || base <= 0) return 'Define primero el precio de venta.';
+                                  if (!pct || Number.isNaN(pct) || pct <= 0) return 'Escribe un porcentaje para calcular el precio.';
+                                  const sp = Number(computeSaleFromPercent(base, pct));
+                                  return `Precio oferta: ${formatCurrency(sp.toFixed(2))}`;
+                                })()}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Precio de oferta (COP)</label>
+                              <div className="relative">
+                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                                <input
+                                  type="text"
+                                  value={salePrice}
+                                  onChange={(e) => setSalePrice(normalizePrice(e.target.value))}
+                                  className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.sale_price ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                                  placeholder="0.00"
+                                />
+                              </div>
+                              <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">{formatCurrency(salePrice)}</div>
+                            </>
+                          )}
+
+                          {errors.sale_price && (
+                            <p className="mt-1 text-xs text-rose-400 flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" /> {errors.sale_price}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Profit Margin Info */}
@@ -1559,7 +1753,8 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                         <thead>
                           <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                             <th className="px-4 pb-2">Combinación</th>
-                            <th className="px-4 pb-2">SKU Específico</th>
+                            <th className="px-4 pb-2">SKU</th>
+                            <th className="px-4 pb-2">Principal</th>
                             <th className="px-4 pb-2">Stock</th>
                             <th className="px-4 pb-2 text-right">Acciones</th>
                           </tr>
@@ -1570,13 +1765,13 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                               <td className="px-4 py-3 rounded-l-xl">
                                 <div className="flex items-center gap-2">
                                   {skuItem.colorName && (
-                                    <span className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-[10px] font-bold">
+                                    <span className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-[10px] font-bold text-gray-900 dark:!text-white">
                                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.find(c => c.name === skuItem.colorName)?.hex }} />
                                       {skuItem.colorName}
                                     </span>
                                   )}
                                   {skuItem.variantName && (
-                                    <span className="px-2 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg border border-blue-100 dark:border-blue-500/20 text-[10px] font-bold uppercase tracking-wider">
+                                    <span className="px-2 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:!text-white rounded-lg border border-blue-100 dark:border-blue-500/20 text-[10px] font-bold uppercase tracking-wider">
                                       {skuItem.variantName}
                                     </span>
                                   )}
@@ -1585,17 +1780,41 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                               <td className="px-4 py-3">
                                 <input 
                                   type="text" 
-                                  value={skuItem.sku}
+                                  value={String(skuItem.sku ?? '')}
+                                  disabled={String(skuItem.sku ?? '') === ''}
                                   onChange={(e) => setSkus(prev => prev.map((s, i) => i === idx ? { ...s, sku: e.target.value.toUpperCase() } : s))}
-                                  className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs font-mono focus:ring-2 focus:ring-blue-500/50 outline-none"
+                                  className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs font-mono text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 outline-none disabled:opacity-60 disabled:cursor-not-allowed"
+                                  placeholder="SKU específico"
                                 />
+                              </td>
+                              <td className="px-4 py-3">
+                                <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 select-none cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={String(skuItem.sku ?? '') === ''}
+                                    onChange={(e) => {
+                                      const checked = e.target.checked;
+                                      setSkus(prev => prev.map((s, i) => {
+                                        if (i !== idx) return s;
+                                        if (checked) return { ...s, sku: '' };
+                                        const baseSku = String(sku || '').toUpperCase();
+                                        const cn = s.colorName ? String(s.colorName) : null;
+                                        const vn = s.variantName ? String(s.variantName) : null;
+                                        const generated = cn && vn ? `${baseSku}-${cn.substring(0,2)}-${vn.substring(0,2)}`.toUpperCase() : cn ? `${baseSku}-${cn.substring(0,3)}`.toUpperCase() : vn ? `${baseSku}-${vn.substring(0,3)}`.toUpperCase() : baseSku;
+                                        return { ...s, sku: generated };
+                                      }));
+                                    }}
+                                    className="rounded border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span>Usar SKU principal</span>
+                                </label>
                               </td>
                               <td className="px-4 py-3">
                                 <input 
                                   type="number" 
                                   value={skuItem.stock}
                                   onChange={(e) => setSkus(prev => prev.map((s, i) => i === idx ? { ...s, stock: e.target.value } : s))}
-                                  className="w-24 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-blue-500/50 outline-none"
+                                  className="w-24 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none"
                                 />
                               </td>
                               <td className="px-4 py-3 rounded-r-xl text-right">

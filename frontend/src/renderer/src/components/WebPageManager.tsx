@@ -87,6 +87,8 @@ interface WebPageManagerProps {
   role?: string;
   setView?: (v: string) => void;
   setProductEditing?: (p: Product) => void;
+  forcedTab?: 'productos' | 'categorias' | 'ofertas' | 'urls' | 'pagos' | 'envios';
+  hideTabs?: boolean;
 }
 
 const DragHandle = () => (
@@ -156,10 +158,10 @@ const SortableCategoryCard = ({
   );
 };
 
-const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiBase, adminId = '', role, setView, setProductEditing }) => {
+const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiBase, adminId = '', role, setView, setProductEditing, forcedTab, hideTabs }) => {
   const apiBase = rawApiBase.replace(/\/$/, '');
   const headers = (tkn: string | null, json = true) => ({ ...(json ? { 'Content-Type': 'application/json' } : {}), ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) });
-  const [tab, setTab] = useState('productos');
+  const [tab, setTab] = useState<'productos' | 'categorias' | 'ofertas' | 'urls' | 'pagos' | 'envios'>(forcedTab || 'productos');
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -190,6 +192,17 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
   const [selectedOfferProducts, setSelectedOfferProducts] = useState<number[]>([]);
   const [offerPercent, setOfferPercent] = useState<number>(0);
   const [applyingOffer, setApplyingOffer] = useState(false);
+  useEffect(() => {
+    if (tab !== 'ofertas') return;
+    if (selectedOfferProducts.length > 0) return;
+    const ids = products.filter((p) => Boolean(p.is_sale)).map((p) => p.id);
+    if (ids.length > 0) setSelectedOfferProducts(ids);
+  }, [tab, products]);
+
+  useEffect(() => {
+    if (!forcedTab) return;
+    setTab(forcedTab);
+  }, [forcedTab]);
 
   // Shipping State
   const [shippingCost, setShippingCost] = useState<number>(15000);
@@ -699,14 +712,25 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
 
       {/* Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white/80 dark:bg-gray-900 p-2 rounded-2xl border border-gray-200 dark:border-gray-800">
-        <div className="flex items-center gap-2">
-          <TabButton id="productos" label="Productos" icon={ShoppingBag} />
-          <TabButton id="categorias" label="Categorías" icon={Layers} />
-          <TabButton id="ofertas" label="Ofertas" icon={Tag} />
-          <TabButton id="urls" label="URLs de Usuario" icon={Globe} />
-          <TabButton id="pagos" label="Métodos de Pago" icon={CreditCard} />
-          <TabButton id="envios" label="Envíos" icon={Truck} />
-        </div>
+        {!hideTabs ? (
+          <div className="flex items-center gap-2">
+            <TabButton id="productos" label="Productos" icon={ShoppingBag} />
+            <TabButton id="categorias" label="Categorías" icon={Layers} />
+            <TabButton id="ofertas" label="Ofertas" icon={Tag} />
+            <TabButton id="urls" label="URLs de Usuario" icon={Globe} />
+            <TabButton id="pagos" label="Métodos de Pago" icon={CreditCard} />
+            <TabButton id="envios" label="Envíos" icon={Truck} />
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-semibold text-gray-900 dark:text-white">
+            {tab === 'productos' ? 'Productos' :
+              tab === 'categorias' ? 'Categorías' :
+              tab === 'ofertas' ? 'Ofertas' :
+              tab === 'urls' ? 'URLs de Usuario' :
+              tab === 'pagos' ? 'Métodos de Pago' :
+              'Envíos'}
+          </div>
+        )}
         
         <div className="flex items-center gap-2">
           <a
@@ -783,6 +807,13 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                         <ShoppingBag className="w-8 h-8 opacity-50" />
                       </div>
                     )}
+                    {p.is_sale && p.sale_price && (
+                      <div className="absolute top-2 left-2">
+                        <span className="text-[10px] px-2 py-1 rounded-full bg-rose-600 text-white font-bold shadow">
+                          Oferta
+                        </span>
+                      </div>
+                    )}
                     <div className="absolute top-2 right-2">
                        <button 
                           onClick={() => toggleVisible(p, !visible[p.id])}
@@ -796,9 +827,20 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                   
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <h3 className="font-medium text-gray-900 dark:text-white truncate" title={p.name}>{p.name}</h3>
-                    <span className="font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                      {Number(p.price || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
-                    </span>
+                    {p.is_sale && p.sale_price ? (
+                      <div className="flex flex-col items-end shrink-0">
+                        <span className="font-bold text-rose-700 dark:text-rose-300">
+                          {Number(p.sale_price || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                        </span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 line-through">
+                          {Number(p.price || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                        {Number(p.price || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                      </span>
+                    )}
                   </div>
                   
                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-3">

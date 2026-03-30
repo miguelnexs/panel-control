@@ -41,6 +41,8 @@ interface Product {
   name: string;
   category_name?: string;
   price: number | string;
+  is_sale?: boolean;
+  sale_price?: number | string | null;
   image?: string;
   colors?: Color[];
   active?: boolean;
@@ -331,7 +333,10 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
   };
 
   const getItemPrice = (item: CartItem) => {
-    let price = Number(item.product.price || 0);
+    let price =
+      item.product.is_sale && item.product.sale_price != null && Number(item.product.sale_price) > 0
+        ? Number(item.product.sale_price)
+        : Number(item.product.price || 0);
     if (item.variantId) {
       const vars = variantOptions[item.product.id] || [];
       const v = vars.find(v => String(v.id) === String(item.variantId));
@@ -577,7 +582,9 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                     const variants = variantOptions[p.id] || [];
                     const selectedVarId = selectedVariantMap[p.id];
                     const selectedVariant = variants.find(v => String(v.id) === String(selectedVarId));
-                    const displayPrice = Number(p.price) + (selectedVariant ? Number(selectedVariant.extra_price) : 0);
+                    const hasOffer = Boolean(p.is_sale && p.sale_price != null && Number(p.sale_price) > 0);
+                    const basePrice = hasOffer ? Number(p.sale_price) : Number(p.price);
+                    const displayPrice = basePrice + (selectedVariant ? Number(selectedVariant.extra_price) : 0);
 
                     return (
                         <div key={p.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden hover:border-gray-300 dark:hover:border-gray-600 transition-all group flex flex-col shadow-sm dark:shadow-none">
@@ -588,6 +595,13 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                     <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600">
                                         <ShoppingCart className="w-8 h-8 opacity-20" />
                                     </div>
+                                )}
+                                {hasOffer && (
+                                  <div className="absolute top-3 left-3">
+                                    <span className="text-[10px] px-2 py-1 rounded-full bg-rose-600 text-white font-bold shadow">
+                                      Oferta
+                                    </span>
+                                  </div>
                                 )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-4">
                                     <button 
@@ -602,9 +616,20 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                             <div className="p-4 flex-1 flex flex-col cursor-pointer" onClick={() => addToCart(p)}>
                                 <div className="flex justify-between items-start gap-2 mb-1">
                                     <h3 className="font-medium text-gray-900 dark:text-white line-clamp-2 text-sm" title={p.name}>{p.name}</h3>
-                                    <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm whitespace-nowrap">
-                                        {Number(p.price).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
-                                    </span>
+                                    {hasOffer ? (
+                                      <div className="flex flex-col items-end">
+                                        <span className="font-bold text-rose-700 dark:text-rose-300 text-sm whitespace-nowrap">
+                                          {Number(displayPrice).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                                        </span>
+                                        <span className="text-[10px] text-gray-500 dark:text-gray-400 line-through whitespace-nowrap">
+                                          {Number(p.price).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <span className="font-bold text-emerald-600 dark:text-emerald-400 text-sm whitespace-nowrap">
+                                          {Number(displayPrice).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                                      </span>
+                                    )}
                                 </div>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{p.category_name || 'General'}</p>
                                 
@@ -668,7 +693,14 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                 
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-start mb-1">
-                                        <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate pr-2">{it.product.name}</h4>
+                                        <div className="flex items-center gap-2 min-w-0 pr-2">
+                                          <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">{it.product.name}</h4>
+                                          {it.product.is_sale && it.product.sale_price != null && Number(it.product.sale_price) > 0 && (
+                                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-600 text-white font-bold shrink-0">
+                                              Oferta
+                                            </span>
+                                          )}
+                                        </div>
                                         <button onClick={() => removeCart(idx)} className="text-gray-400 dark:text-gray-500 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">
                                             <Trash2 size={14} />
                                         </button>

@@ -59,12 +59,16 @@ interface Msg {
 interface ConfigPageProps {
   token: string;
   apiBase: string;
+  forcedTab?: 'datos' | 'empresa' | 'impresora' | 'google';
+  hideTabs?: boolean;
+  title?: string;
+  subtitle?: string;
 }
 
-const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) => {
+const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, forcedTab, hideTabs, title, subtitle }) => {
   const apiBase = rawApiBase.replace(/\/$/, '');
   const headers = (tkn: string, json = true) => ({ ...(json ? { 'Content-Type': 'application/json' } : {}), ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) });
-  const [tab, setTab] = useState('datos');
+  const [tab, setTab] = useState<'datos' | 'empresa' | 'impresora' | 'google'>(forcedTab || 'datos');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<Msg | null>(null);
@@ -85,6 +89,10 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
     logo_url: '',
     logo_width_mm: 45,
   });
+
+  useEffect(() => {
+    if (forcedTab) setTab(forcedTab);
+  }, [forcedTab]);
 
   const loadMe = async () => {
     setLoading(true);
@@ -402,8 +410,12 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 dark:border-gray-800 pb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Configuración del Sistema</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Gestiona tu perfil, la identidad de tu empresa y preferencias de impresión</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
+            {title || 'Configuración del Sistema'}
+          </h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
+            {subtitle || 'Gestiona tu perfil, la identidad de tu empresa y preferencias de impresión'}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <button 
@@ -418,29 +430,31 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase }) =
       </div>
 
       {/* Tabs */}
-      <div className="flex p-1 bg-gray-100 dark:bg-gray-900/60 rounded-xl border border-gray-200 dark:border-gray-800 w-full md:w-fit overflow-x-auto">
-        {[
-          { id: 'datos', label: 'Datos Personales', icon: User },
-          { id: 'empresa', label: 'Empresa', icon: Building },
-          { id: 'impresora', label: 'Impresora', icon: Printer },
-          { id: 'google', label: 'Google API', icon: Globe },
-        ].map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`
-              flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap
-              ${tab === t.id 
-                ? 'bg-white dark:bg-emerald-600 text-gray-900 dark:text-white shadow-sm dark:shadow-lg dark:shadow-emerald-900/20' 
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/5'
-              }
-            `}
-          >
-            <t.icon size={18} />
-            {t.label}
-          </button>
-        ))}
-      </div>
+      {!hideTabs && (
+        <div className="flex p-1 bg-gray-100 dark:bg-gray-900/60 rounded-xl border border-gray-200 dark:border-gray-800 w-full md:w-fit overflow-x-auto">
+          {[
+            { id: 'datos', label: 'Datos Personales', icon: User },
+            { id: 'empresa', label: 'Empresa', icon: Building },
+            { id: 'impresora', label: 'Impresora', icon: Printer },
+            { id: 'google', label: 'Google API', icon: Globe },
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id as any)}
+              className={`
+                flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap
+                ${tab === t.id 
+                  ? 'bg-white dark:bg-emerald-600 text-gray-900 dark:text-white shadow-sm dark:shadow-lg dark:shadow-emerald-900/20' 
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/5'
+                }
+              `}
+            >
+              <t.icon size={18} />
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Messages */}
       {msg && (
