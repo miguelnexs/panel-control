@@ -193,6 +193,82 @@ templatesServer.listen(TEMPLATES_PORT, () => {
 const isDev = process.env.NODE_ENV === 'development';
 
 let mainWindow: BrowserWindow | null = null;
+type UiSettings = { preset: string; zoom: number };
+const defaultUiSettings: UiSettings = { preset: 'default', zoom: 0.9 };
+let uiSettingsCache: UiSettings = { ...defaultUiSettings };
+
+const getUiSettingsPath = () => {
+  try {
+    const base = app.getPath('userData');
+    return path.join(base, 'ui.json');
+  } catch {
+    return null;
+  }
+};
+
+const readUiSettings = (): UiSettings => {
+  const p = getUiSettingsPath();
+  if (!p) return { ...defaultUiSettings };
+  try {
+    const raw = fs.readFileSync(p, 'utf8');
+    const data = JSON.parse(raw);
+    const preset = String(data?.preset || defaultUiSettings.preset);
+    const zoom = normalizeZoomFactor(data?.zoom);
+    return { preset, zoom };
+  } catch {
+    return { ...defaultUiSettings };
+  }
+};
+
+const writeUiSettings = (s: UiSettings) => {
+  const p = getUiSettingsPath();
+  if (!p) return;
+  try {
+    fs.writeFileSync(p, JSON.stringify(s), 'utf8');
+  } catch {}
+};
+
+const deleteUiSettings = () => {
+  const p = getUiSettingsPath();
+  if (!p) return;
+  try {
+    if (fs.existsSync(p)) fs.unlinkSync(p);
+  } catch {}
+};
+
+const normalizeZoomFactor = (value: any) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 1;
+  return Math.max(0.6, Math.min(1.5, n));
+};
+
+const applyUiSettings = (win: BrowserWindow, preset: string, zoom: number) => {
+  const z = normalizeZoomFactor(zoom);
+  try {
+    win.webContents.setZoomFactor(z);
+  } catch {}
+
+  if (preset === 'maximized') {
+    if (!win.isMaximized()) win.maximize();
+    return;
+  }
+
+  if (win.isMaximized()) win.unmaximize();
+
+  const sizes: Record<string, { w: number; h: number }> = {
+    compact: { w: 1280, h: 720 },
+    normal: { w: 1400, h: 900 },
+    large: { w: 1600, h: 1000 },
+    fullhd: { w: 1920, h: 1080 },
+    default: { w: 1400, h: 900 },
+  };
+
+  const s = sizes[preset] || sizes.default;
+  try {
+    win.setSize(s.w, s.h);
+    win.center();
+  } catch {}
+};
 
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -252,6 +328,11 @@ function createWindow(): BrowserWindow {
     mainWindow.loadFile(htmlPath);
   }
 
+  mainWindow.webContents.on('did-finish-load', () => {
+    uiSettingsCache = readUiSettings();
+    applyUiSettings(mainWindow as BrowserWindow, uiSettingsCache.preset, uiSettingsCache.zoom);
+  });
+
   // Wait for window to be ready
   mainWindow.once('ready-to-show', () => {
     if (mainWindow) {
@@ -278,6 +359,29 @@ function createWindow(): BrowserWindow {
 }
 
 // Register IPC handlers globally
+ipcMain.handle('ui:get-settings', async () => {
+  return {
+    preset: String(uiSettingsCache.preset || 'default'),
+    zoom: normalizeZoomFactor(uiSettingsCache.zoom),
+  };
+});
+
+ipcMain.handle('ui:apply-settings', async (_, args: any) => {
+  const preset = String(args?.preset || 'default');
+  const zoom = normalizeZoomFactor(args?.zoom);
+  uiSettingsCache = { preset, zoom };
+  writeUiSettings(uiSettingsCache);
+  if (mainWindow) applyUiSettings(mainWindow, preset, zoom);
+  return { ok: true };
+});
+
+ipcMain.handle('ui:reset-settings', async () => {
+  uiSettingsCache = { ...defaultUiSettings };
+  deleteUiSettings();
+  if (mainWindow) applyUiSettings(mainWindow, 'default', 1);
+  return { ok: true };
+});
+
 ipcMain.handle('start-google-auth', async (_, clientId: string) => {
   return new Promise((resolve, reject) => {
     const server = http.createServer((req, res) => {

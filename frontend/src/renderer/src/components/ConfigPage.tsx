@@ -89,10 +89,55 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
     logo_url: '',
     logo_width_mm: 45,
   });
+  const hasElectronIpc = Boolean((window as any)?.electron?.ipcRenderer?.invoke);
+  const [uiIpcAvailable, setUiIpcAvailable] = useState(true);
+  const [uiPreset, setUiPreset] = useState<'default' | 'compact' | 'normal' | 'large' | 'fullhd' | 'maximized'>('default');
+  const [uiZoom, setUiZoom] = useState<number>(0.9);
 
   useEffect(() => {
     if (forcedTab) setTab(forcedTab);
   }, [forcedTab]);
+
+  useEffect(() => {
+    if (!hasElectronIpc || !uiIpcAvailable) return;
+    (window as any).electron.ipcRenderer.invoke('ui:get-settings').then((s: any) => {
+      const preset = String(s?.preset || 'default');
+      const zoom = Number(s?.zoom || 1);
+      if (['default', 'compact', 'normal', 'large', 'fullhd', 'maximized'].includes(preset)) setUiPreset(preset as any);
+      if (Number.isFinite(zoom)) setUiZoom(zoom);
+    }).catch((e: any) => {
+      const msg = String(e?.message || '');
+      if (msg.includes('No handler registered')) setUiIpcAvailable(false);
+    });
+  }, [hasElectronIpc, uiIpcAvailable]);
+
+  const applyUi = async () => {
+    if (!hasElectronIpc || !uiIpcAvailable) return;
+    setMsg(null);
+    try {
+      await (window as any).electron.ipcRenderer.invoke('ui:apply-settings', { preset: uiPreset, zoom: uiZoom });
+      setMsg({ type: 'success', text: 'Resolución aplicada.' });
+    } catch (e: any) {
+      const msg = String(e?.message || '');
+      if (msg.includes('No handler registered')) setUiIpcAvailable(false);
+      setMsg({ type: 'error', text: msg || 'No se pudo aplicar la resolución.' });
+    }
+  };
+
+  const resetUi = async () => {
+    if (!hasElectronIpc || !uiIpcAvailable) return;
+    setMsg(null);
+    try {
+      await (window as any).electron.ipcRenderer.invoke('ui:reset-settings');
+      setUiPreset('default');
+      setUiZoom(1);
+      setMsg({ type: 'success', text: 'Resolución restablecida.' });
+    } catch (e: any) {
+      const msg = String(e?.message || '');
+      if (msg.includes('No handler registered')) setUiIpcAvailable(false);
+      setMsg({ type: 'error', text: msg || 'No se pudo restablecer la resolución.' });
+    }
+  };
 
   const loadMe = async () => {
     setLoading(true);
@@ -577,6 +622,82 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                 </button>
               </div>
             </form>
+
+            <div className="pt-8 mt-8 border-t border-gray-200 dark:border-gray-800">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
+                  <Layout size={18} />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-gray-900 dark:text-white">Resolución del Dashboard</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Ajusta el tamaño de la ventana y el zoom</div>
+                </div>
+              </div>
+
+              {!hasElectronIpc ? (
+                <div className="text-sm text-gray-500">Disponible solo en la aplicación instalada.</div>
+              ) : !uiIpcAvailable ? (
+                <div className="text-sm text-gray-500">Reinicia la aplicación para habilitar este ajuste.</div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
+                      <Maximize size={14} /> Tamaño
+                    </label>
+                    <select
+                      value={uiPreset}
+                      onChange={(e) => setUiPreset(e.target.value as any)}
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all cursor-pointer"
+                    >
+                      <option value="default">Automático</option>
+                      <option value="compact">Compacto (1280×720)</option>
+                      <option value="normal">Normal (1400×900)</option>
+                      <option value="large">Grande (1600×1000)</option>
+                      <option value="fullhd">Full HD (1920×1080)</option>
+                      <option value="maximized">Pantalla completa</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
+                      <Type size={14} /> Zoom
+                    </label>
+                    <select
+                      value={String(uiZoom)}
+                      onChange={(e) => setUiZoom(Number(e.target.value))}
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all cursor-pointer"
+                    >
+                      <option value="0.75">75%</option>
+                      <option value="0.8">80%</option>
+                      <option value="0.85">85%</option>
+                      <option value="0.9">90%</option>
+                      <option value="1">100%</option>
+                      <option value="1.1">110%</option>
+                      <option value="1.25">125%</option>
+                    </select>
+                  </div>
+
+                  <div className="flex gap-2 md:justify-end">
+                    <button
+                      type="button"
+                      onClick={resetUi}
+                      className="px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-medium transition-all flex items-center gap-2"
+                    >
+                      <Minimize size={16} />
+                      Restablecer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={applyUi}
+                      className="px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all flex items-center gap-2 shadow-lg shadow-blue-900/20"
+                    >
+                      <Maximize size={16} />
+                      Aplicar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
