@@ -203,11 +203,11 @@ const EmployeePermissionsManager: React.FC<EmployeePermissionsManagerProps> = ({
     }
     setLoading(true);
     try {
-        const permUrl =
-          role === 'super_admin'
-            ? `${apiBase}/users/api/tenant/permissions/matrix/?tenant_id=${encodeURIComponent(tenantId)}`
-            : `${apiBase}/users/api/tenant/permissions/matrix/`;
-      const res = await fetch(url, { headers: authHeaders(token) });
+      const permUrl =
+        role === 'super_admin'
+          ? `${apiBase}/users/api/tenant/permissions/matrix/?tenant_id=${encodeURIComponent(tenantId)}`
+          : `${apiBase}/users/api/tenant/permissions/matrix/`;
+      const res = await fetch(permUrl, { headers: authHeaders(token) });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.detail || 'No se pudieron cargar los permisos.');
       const list = Array.isArray(data) ? data : [];

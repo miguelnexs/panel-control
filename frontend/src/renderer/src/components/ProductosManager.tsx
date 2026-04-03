@@ -196,7 +196,11 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
   };
   const filtered = items.filter((p) => {
     const q = search.trim().toLowerCase();
-    const matchesSearch = q === '' || String(p.name || '').toLowerCase().includes(q);
+    const matchesSearch =
+      q === '' ||
+      String(p.name || '').toLowerCase().includes(q) ||
+      String(p.category_name || '').toLowerCase().includes(q) ||
+      String(p.sku || '').toLowerCase().includes(q);
     const matchesCategory = !categoryFilter || String(p.category) === String(categoryFilter) || String(p.category_name || '') === String(categoryFilter);
     const matchesActive = activeFilter === 'all' || (activeFilter === 'active' ? !!p.active : !p.active);
     const s = totalStockOf(p);
@@ -330,7 +334,7 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar producto..."
+                placeholder="Buscar por nombre o SKU..."
                 className="pl-9 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all w-full md:w-64"
               />
             </div>

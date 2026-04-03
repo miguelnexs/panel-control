@@ -40,6 +40,7 @@ interface Product {
   id: number;
   name: string;
   category_name?: string;
+  sku?: string;
   price: number | string;
   is_sale?: boolean;
   sale_price?: number | string | null;
@@ -203,7 +204,13 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
 
   const filtered = products.filter((p) => {
     const q = search.trim().toLowerCase();
-    return q === '' || String(p.name || '').toLowerCase().includes(q) || String(p.category_name || '').toLowerCase().includes(q);
+    const nameMatch = String(p.name || '').toLowerCase().includes(q);
+    const catMatch = String(p.category_name || '').toLowerCase().includes(q);
+    const skuMatch = String((p as any).sku || '').toLowerCase().includes(q);
+    const skuListMatch = Array.isArray((p as any).skus)
+      ? (p as any).skus.some((s: any) => String(s?.sku || '').toLowerCase().includes(q))
+      : false;
+    return q === '' || nameMatch || catMatch || skuMatch || skuListMatch;
   });
 
   useEffect(() => {
@@ -555,7 +562,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                         type="text"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Buscar producto..."
+                        placeholder="Buscar por nombre o SKU..."
                         className="w-full pl-9 pr-4 py-2.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
                     />
                 </div>
