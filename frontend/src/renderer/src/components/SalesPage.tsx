@@ -20,6 +20,8 @@ import {
   Palette
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { useOfflineSync } from '../hooks/useOfflineSync';
+import SyncStatusBanner from './SyncStatusBanner';
 
 interface Color {
   id: number;
@@ -80,6 +82,7 @@ interface SalesPageProps {
 }
 
 const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) => {
+  const offlineSync = useOfflineSync(token);
   const [products, setProducts] = useState<Product[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [msg, setMsg] = useState<Msg | null>(null);
@@ -170,11 +173,10 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     const loadAll = async () => {
       setLoading(true);
       try {
-        const [prodsRes, clientsRes] = await Promise.all([
-          fetch(`${apiBase}/products/`, { headers: authHeaders(token) }),
-          fetch(`${apiBase}/clients/?page_size=200`, { headers: authHeaders(token) }),
+        const [prodsData, clientsData] = await Promise.all([
+          offlineSync.loadData('sales', `${apiBase}/products/`, token),
+          offlineSync.loadData('clients', `${apiBase}/clients/?page_size=200`, token),
         ]);
-        const prodsData = await prodsRes.json();
         const active = (Array.isArray(prodsData) ? prodsData : []).filter((p: Product) => !!p.active);
         setProducts(active);
         
@@ -192,8 +194,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
         setColorOptions(cMap);
         setSelectedColorMap(cSel);
         
-        const clientsData = await clientsRes.json();
-        setClients(Array.isArray(clientsData.results) ? clientsData.results : []);
+        setClients(Array.isArray(clientsData) ? clientsData : []);
       } catch(_) {
       } finally {
         setLoading(false);
@@ -408,13 +409,25 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     };
 
     try {
-      const res = await fetch(`${apiBase}/sales/`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders(token) }, body: JSON.stringify(payload) });
-      const data = await res.json();
-      if (!res.ok) {
-        const detail = typeof data === 'object' ? (data.detail || JSON.stringify(data)) : 'Error desconocido';
+      const result = await offlineSync.queueMutation({
+        token,
+        method: 'POST',
+        url: `${apiBase}/sales/`,
+        body: payload,
+        store: 'sales',
+      });
+      if (!result.ok && !result.queued) {
+        const detail = typeof result.data === 'object'
+          ? (result.data?.detail || JSON.stringify(result.data))
+          : 'Error desconocido';
         throw new Error(detail);
       }
-      setMsg({ type: 'success', text: 'Venta registrada exitosamente' });
+      setMsg({
+        type: 'success',
+        text: result.queued
+          ? 'Venta guardada localmente. Se sincronizará al reconectar.'
+          : 'Venta registrada exitosamente',
+      });
       setCart([]);
       setOpenCart(false);
       setClientForm({ client_type: 'person', full_name: '', cedula: '', email: '', address: '', phone: '' });
@@ -498,6 +511,15 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
 
   return (
     <div className="space-y-6 relative animate-in fade-in duration-500">
+      {/* Sync Status */}
+      <SyncStatusBanner
+        isOnline={offlineSync.isOnline}
+        pendingCount={offlineSync.pendingCount}
+        syncing={offlineSync.syncing}
+        lastError={offlineSync.lastError}
+        onSync={offlineSync.syncNow}
+      />
+
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard 

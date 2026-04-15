@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Wand2,
   Crop,
-  GripVertical
+  GripVertical,
+  CloudOff
 } from 'lucide-react';
 import {
   DndContext,
@@ -116,6 +117,7 @@ interface ProductFormPageProps {
 
 interface Color {
   id?: number;
+  clientId?: string;
   name: string;
   hex: string;
   stock: string | number;
@@ -125,6 +127,7 @@ interface Color {
 
 interface Variant {
   id?: number;
+  clientId?: string;
   name: string;
   extra_price: string | number;
   position?: number;
@@ -161,12 +164,15 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
   const [initialColors, setInitialColors] = useState<Color[]>([]);
   const [colorName, setColorName] = useState('');
   const [colorHex, setColorHex] = useState('#000000');
-  const [colorStock, setColorStock] = useState('0');
+  const [showAddColor, setShowAddColor] = useState(false);
+  const [activeColorKey, setActiveColorKey] = useState<string | null>(null);
 
   const [variants, setVariants] = useState<Variant[]>([]);
   const [initialVariants, setInitialVariants] = useState<Variant[]>([]);
   const [variantName, setVariantName] = useState('');
   const [variantPrice, setVariantPrice] = useState('0');
+  const [variantColorLinks, setVariantColorLinks] = useState<Record<string, string[] | null>>({});
+  const [openVariantLinkKey, setOpenVariantLinkKey] = useState<string | null>(null);
 
   const [features, setFeatures] = useState<Feature[]>([]);
   const [initialFeatures, setInitialFeatures] = useState<Feature[]>([]);
@@ -183,6 +189,30 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
   const [activeTab, setActiveTab] = useState('detalles');
   const [loading, setLoading] = useState(false);
   const skuCheckTimeout = useRef<any>(null);
+  const [highlightSkuKey, setHighlightSkuKey] = useState<string | null>(null);
+  const [hasAppliedFocusSku, setHasAppliedFocusSku] = useState(false);
+  const [highlightVariantKey, setHighlightVariantKey] = useState<string | null>(null);
+  const [hasAppliedFocusVariant, setHasAppliedFocusVariant] = useState(false);
+
+  // Offline detection
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const on = () => setIsOnline(true);
+    const off = () => setIsOnline(false);
+    window.addEventListener('online', on);
+    window.addEventListener('offline', off);
+    return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
+  }, []);
+
+  useEffect(() => {
+    const focusSku = (product as any)?.__focusSku;
+    const focusVariant = (product as any)?.__focusVariantName;
+    setHasAppliedFocusSku(false);
+    setHighlightSkuKey(null);
+    setHasAppliedFocusVariant(false);
+    setHighlightVariantKey(null);
+    if (focusSku || focusVariant) setActiveTab('variantes');
+  }, [product?.id]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -199,8 +229,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
   const sections = [
     { id: 'detalles', name: 'Información General', icon: Package, isComplete: name.trim() !== '' && price !== '' && categoryId !== '' },
     { id: 'imagenes', name: 'Imágenes', icon: ImageIcon, isComplete: productImages.length > 0 },
-    { id: 'colores', name: 'Colores y Stock', icon: Palette, isComplete: colors.length > 0 },
-    { id: 'variantes', name: 'Variantes', icon: Layers, isComplete: variants.length > 0 },
+    { id: 'variantes', name: 'Variantes', icon: Layers, isComplete: colors.length > 0 || variants.length > 0 },
     { id: 'caracteristicas', name: 'Características', icon: CheckCircle2, isComplete: features.length > 0 },
   ];
 
@@ -208,6 +237,49 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
     'Accept': 'application/json',
     ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) 
   });
+
+  const makeClientId = (prefix: string) =>
+    `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  const colorKeyOf = (c: any, idx: number) => String(c?.clientId ?? c?.id ?? idx);
+  const variantKeyOf = (v: any, idx: number) => String(v?.clientId ?? v?.id ?? idx);
+  const variantLinksStorageKey = `productForm.variantColorLinks.${String((product as any)?.id ?? 'new')}`;
+
+  useEffect(() => {
+    if (!activeColorKey) return;
+    const exists = colors.some((c, idx) => colorKeyOf(c, idx) === activeColorKey);
+    if (!exists) setActiveColorKey(null);
+  }, [colors, activeColorKey]);
+
+  useEffect(() => {
+    setOpenVariantLinkKey(null);
+    try {
+      const raw = localStorage.getItem(variantLinksStorageKey);
+      if (!raw) { setVariantColorLinks({}); return; }
+      const parsed = JSON.parse(raw);
+      setVariantColorLinks(parsed && typeof parsed === 'object' ? parsed : {});
+    } catch (_) {
+      setVariantColorLinks({});
+    }
+  }, [variantLinksStorageKey]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(variantLinksStorageKey, JSON.stringify(variantColorLinks || {}));
+    } catch (_) {}
+  }, [variantColorLinks, variantLinksStorageKey]);
+
+  useEffect(() => {
+    const validVariantKeys = new Set(variants.map((v, idx) => variantKeyOf(v, idx)));
+    setVariantColorLinks((prev) => {
+      const next: Record<string, string[] | null> = {};
+      for (const k of Object.keys(prev || {})) {
+        if (validVariantKeys.has(k)) next[k] = prev[k];
+      }
+      return next;
+    });
+    setOpenVariantLinkKey((prev) => (prev && validVariantKeys.has(prev) ? prev : null));
+  }, [variants]);
 
   const formatCurrency = (v: any) => {
     if (v === '' || v == null) return '';
@@ -320,6 +392,16 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
           });
           if (byId) return byId;
         }
+        const ccid = color?.clientId ?? null;
+        const vcid = variant?.clientId ?? null;
+        if (ccid != null || vcid != null) {
+          const byClientId = skus.find((s: any) => {
+            const sc = s?.colorClientId ?? null;
+            const sv = s?.variantClientId ?? null;
+            return sc === ccid && sv === vcid;
+          });
+          if (byClientId) return byClientId;
+        }
         const cn = color?.name ?? null;
         const vn = variant?.name ?? null;
         return skus.find((s: any) => (s?.colorName ?? null) === cn && (s?.variantName ?? null) === vn);
@@ -327,16 +409,48 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       
       // Caso 1: Hay colores y variantes
       if (colors.length > 0 && variants.length > 0) {
-        colors.forEach(color => {
-          variants.forEach(variant => {
+        variants.forEach((variant, vIdx) => {
+          const vKey = variantKeyOf(variant, vIdx);
+          const linked = variantColorLinks?.[vKey];
+          const allowedColors =
+            linked == null
+              ? colors
+              : colors.filter((c, cIdx) => linked.includes(colorKeyOf(c, cIdx)));
+
+          if (Array.isArray(linked) && allowedColors.length === 0) {
+            const existing = findExisting(null, variant);
+            const existingUseMainSku =
+              existing?.useMainSku ?? (existing != null && String(existing?.sku ?? '') === '');
+            newSkus.push({
+              id: existing?.id || null,
+              colorId: null,
+              colorClientId: null,
+              variantId: variant.id ?? null,
+              variantClientId: variant.clientId ?? null,
+              colorName: null,
+              variantName: variant.name,
+              sku: existingUseMainSku ? '' : (existing?.sku ?? defaultSkuFor(null, variant.name)),
+              useMainSku: existingUseMainSku,
+              stock: existing?.stock ?? '0',
+              active: existing?.active ?? true
+            });
+            return;
+          }
+
+          allowedColors.forEach((color) => {
             const existing = findExisting(color, variant);
+            const existingUseMainSku =
+              existing?.useMainSku ?? (existing != null && String(existing?.sku ?? '') === '');
             newSkus.push({
               id: existing?.id || null,
               colorId: color.id ?? null,
+              colorClientId: color.clientId ?? null,
               variantId: variant.id ?? null,
+              variantClientId: variant.clientId ?? null,
               colorName: color.name,
               variantName: variant.name,
-              sku: existing?.sku ?? defaultSkuFor(color.name, variant.name),
+              sku: existingUseMainSku ? '' : (existing?.sku ?? defaultSkuFor(color.name, variant.name)),
+              useMainSku: existingUseMainSku,
               stock: existing?.stock ?? '0',
               active: existing?.active ?? true
             });
@@ -347,14 +461,19 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       else if (colors.length > 0) {
         colors.forEach(color => {
           const existing = findExisting(color, null);
+          const existingUseMainSku =
+            existing?.useMainSku ?? (existing != null && String(existing?.sku ?? '') === '');
           newSkus.push({
             id: existing?.id || null,
             colorId: color.id ?? null,
+            colorClientId: color.clientId ?? null,
             variantId: null,
+            variantClientId: null,
             colorName: color.name,
             variantName: null,
-            sku: existing?.sku ?? defaultSkuFor(color.name, null),
-            stock: existing?.stock ?? (color.stock ?? '0'),
+            sku: existingUseMainSku ? '' : (existing?.sku ?? defaultSkuFor(color.name, null)),
+            useMainSku: existingUseMainSku,
+            stock: existing?.stock ?? '0',
             active: existing?.active ?? true
           });
         });
@@ -363,13 +482,18 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       else if (variants.length > 0) {
         variants.forEach(variant => {
           const existing = findExisting(null, variant);
+          const existingUseMainSku =
+            existing?.useMainSku ?? (existing != null && String(existing?.sku ?? '') === '');
           newSkus.push({
             id: existing?.id || null,
             colorId: null,
+            colorClientId: null,
             variantId: variant.id ?? null,
+            variantClientId: variant.clientId ?? null,
             colorName: null,
             variantName: variant.name,
-            sku: existing?.sku ?? defaultSkuFor(null, variant.name),
+            sku: existingUseMainSku ? '' : (existing?.sku ?? defaultSkuFor(null, variant.name)),
+            useMainSku: existingUseMainSku,
             stock: existing?.stock ?? '0',
             active: existing?.active ?? true
           });
@@ -378,7 +502,72 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
       setSkus(newSkus);
     }
-  }, [colors, variants, sku, autoGenerateSkus]);
+  }, [colors, variants, sku, autoGenerateSkus, variantColorLinks]);
+
+  useEffect(() => {
+    if (colors.length === 0 || variants.length === 0) return;
+    setSkus((prev) => {
+      const list = Array.isArray(prev) ? prev : [];
+      return list.filter((s: any) => {
+        const vKey =
+          s?.variantClientId ??
+          (s?.variantId != null ? `variant-${String(s.variantId)}` : null);
+        const cKey =
+          s?.colorClientId ??
+          (s?.colorId != null ? `color-${String(s.colorId)}` : null);
+        if (!vKey || !cKey) return true;
+        const linked = variantColorLinks?.[String(vKey)];
+        if (linked == null) return true;
+        return linked.includes(String(cKey));
+      });
+    });
+  }, [variantColorLinks, colors, variants]);
+
+  useEffect(() => {
+    if (autoGenerateSkus) return;
+    setSkus((prev) => {
+      const next = (Array.isArray(prev) ? prev : [])
+        .map((s: any) => {
+          const colorMatch =
+            (s?.colorId != null ? colors.find((c: any) => String(c?.id) === String(s.colorId)) : null) ||
+            (s?.colorClientId ? colors.find((c: any) => String(c?.clientId) === String(s.colorClientId)) : null) ||
+            null;
+          const variantMatch =
+            (s?.variantId != null ? variants.find((v: any) => String(v?.id) === String(s.variantId)) : null) ||
+            (s?.variantClientId ? variants.find((v: any) => String(v?.clientId) === String(s.variantClientId)) : null) ||
+            null;
+
+          const updated: any = { ...s };
+          if (colorMatch) {
+            updated.colorId = colorMatch.id ?? updated.colorId ?? null;
+            updated.colorClientId = colorMatch.clientId ?? updated.colorClientId ?? null;
+            updated.colorName = colorMatch.name ?? updated.colorName ?? null;
+          }
+          if (variantMatch) {
+            updated.variantId = variantMatch.id ?? updated.variantId ?? null;
+            updated.variantClientId = variantMatch.clientId ?? updated.variantClientId ?? null;
+            updated.variantName = variantMatch.name ?? updated.variantName ?? null;
+          }
+          return updated;
+        })
+        .filter((s: any) => {
+          const hasColor =
+            s?.colorId == null && s?.colorClientId == null && (s?.colorName == null || s?.colorName === '')
+              ? true
+              : (s?.colorId != null ? colors.some((c: any) => String(c?.id) === String(s.colorId)) : false) ||
+                (s?.colorClientId ? colors.some((c: any) => String(c?.clientId) === String(s.colorClientId)) : false) ||
+                (s?.colorName ? colors.some((c: any) => String(c?.name) === String(s.colorName)) : false);
+          const hasVariant =
+            s?.variantId == null && s?.variantClientId == null && (s?.variantName == null || s?.variantName === '')
+              ? true
+              : (s?.variantId != null ? variants.some((v: any) => String(v?.id) === String(s.variantId)) : false) ||
+                (s?.variantClientId ? variants.some((v: any) => String(v?.clientId) === String(s.variantClientId)) : false) ||
+                (s?.variantName ? variants.some((v: any) => String(v?.name) === String(s.variantName)) : false);
+          return hasColor && hasVariant;
+        });
+      return next;
+    });
+  }, [colors, variants, autoGenerateSkus]);
 
   useEffect(() => {
     const loadEditing = async () => {
@@ -436,7 +625,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
         const res = await fetch(`${apiBase}/products/${product.id}/colors/`, { headers: authHeaders(token) });
         const data = await res.json();
         const list = Array.isArray(data.results) ? data.results : data;
-        const loaded = (Array.isArray(list) ? list : []).map((c: any, idx: number) => ({ id: c.id, name: c.name, hex: c.hex, stock: String(c.stock || '0'), position: idx, images: [] }));
+        const loaded = (Array.isArray(list) ? list : []).map((c: any, idx: number) => ({ id: c.id, clientId: `color-${c.id}`, name: c.name, hex: c.hex, stock: '0', position: idx, images: [] }));
         for (let i = 0; i < loaded.length; i++) {
           const color = loaded[i];
           const imgsRes = await fetch(`${apiBase}/products/colors/${color.id}/images/`, { headers: authHeaders(token) });
@@ -451,7 +640,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
         const varsRes = await fetch(`${apiBase}/products/${product.id}/variants/`, { headers: authHeaders(token) });
         const varsData = await varsRes.json();
         const varsList = Array.isArray(varsData.results) ? varsData.results : (Array.isArray(varsData) ? varsData : []);
-        const loadedVars = varsList.map((v: any) => ({ id: v.id, name: v.name, extra_price: String(v.extra_price || '0'), position: v.position }));
+        const loadedVars = varsList.map((v: any) => ({ id: v.id, clientId: `variant-${v.id}`, name: v.name, extra_price: String(v.extra_price || '0'), position: v.position }));
         setVariants(loadedVars);
         setInitialVariants(loadedVars);
 
@@ -470,13 +659,17 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
         const loadedSkus = skusList.map((s: any) => {
           const colorObj = loaded.find(c => c.id === s.color);
           const variantObj = loadedVars.find(v => v.id === s.variant);
+          const normalizedSku = String(s?.sku ?? '');
           return {
             id: s.id,
             colorId: s.color,
+            colorClientId: colorObj?.clientId ?? null,
             variantId: s.variant,
+            variantClientId: variantObj?.clientId ?? null,
             colorName: colorObj?.name || null,
             variantName: variantObj?.name || null,
-            sku: s.sku,
+            sku: normalizedSku,
+            useMainSku: normalizedSku === '',
             stock: String(s.stock),
             active: s.active,
             price_override: s.price_override
@@ -496,6 +689,69 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
     };
     loadEditing();
   }, [product]);
+
+  useEffect(() => {
+    const focus = (product as any)?.__focusSku;
+    if (!focus || hasAppliedFocusSku) return;
+    if (activeTab !== 'variantes') return;
+    if (!Array.isArray(skus) || skus.length === 0) return;
+
+    const focusSkuId = focus?.skuId != null ? String(focus.skuId) : null;
+    const focusSku = String(focus?.sku ?? focus?.query ?? '').trim().toUpperCase();
+    const focusColorId = focus?.colorId != null ? String(focus.colorId) : null;
+    const focusVariantId = focus?.variantId != null ? String(focus.variantId) : null;
+
+    const idx = skus.findIndex((s: any) => {
+      if (focusSkuId && s?.id != null && String(s.id) === focusSkuId) return true;
+      if (focusSku && String(s?.sku ?? '').trim().toUpperCase() === focusSku) return true;
+      const sColorId = s?.colorId != null ? String(s.colorId) : null;
+      const sVariantId = s?.variantId != null ? String(s.variantId) : null;
+      if (focusColorId || focusVariantId) {
+        return sColorId === focusColorId && sVariantId === focusVariantId;
+      }
+      return false;
+    });
+    if (idx < 0) return;
+
+    const item: any = skus[idx];
+    const key = String(item?.id ?? `${item?.colorId ?? 'n'}-${item?.variantId ?? 'n'}-${idx}`);
+    setHighlightSkuKey(key);
+    setHasAppliedFocusSku(true);
+
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`sku-row-${key}`);
+      if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+
+    const t = setTimeout(() => setHighlightSkuKey(null), 2500);
+    return () => clearTimeout(t);
+  }, [product, skus, activeTab, hasAppliedFocusSku]);
+
+  useEffect(() => {
+    const focus = (product as any)?.__focusVariantName;
+    if (!focus || hasAppliedFocusVariant) return;
+    if (activeTab !== 'variantes') return;
+    if (!Array.isArray(variants) || variants.length === 0) return;
+
+    const query = String(focus?.variantName ?? focus?.query ?? '').trim().toLowerCase();
+    if (!query) return;
+
+    const idx = variants.findIndex((v: any) => String(v?.name || '').toLowerCase().includes(query));
+    if (idx < 0) return;
+
+    const item: any = variants[idx];
+    const key = variantKeyOf(item, idx);
+    setHighlightVariantKey(key);
+    setHasAppliedFocusVariant(true);
+
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`variant-row-${key}`);
+      if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+
+    const t = setTimeout(() => setHighlightVariantKey(null), 2500);
+    return () => clearTimeout(t);
+  }, [product, variants, activeTab, hasAppliedFocusVariant]);
 
   const handleGenerateSKU = () => {
     if (!name.trim()) return;
@@ -724,6 +980,10 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
   const handleSubmit = async (e: React.FormEvent, forceDraft = false) => {
     if (e) e.preventDefault();
+    if (!navigator.onLine) {
+      setErrors({ form: 'Sin conexión a internet. Conéctate para guardar el producto.' });
+      return;
+    }
     if (!forceDraft && !validateClient()) return;
     
     setLoading(true);
@@ -805,40 +1065,81 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       const updatedColors: any[] = [];
       const updatedVariants: any[] = [];
 
-      // Process Colors
-      const existing = initialColors;
-      const current = colors.map((c, idx) => ({ ...c, position: idx }));
-      const currentIds = new Set(current.filter((e) => e.id).map((e) => String(e.id)));
-      for (const eCol of existing) {
-        if (eCol.id && !currentIds.has(String(eCol.id))) {
+      const existingSkus = initialSkus;
+      const currentSkus = skus;
+      const currentSkuIds = new Set(currentSkus.filter((s) => s.id).map((s) => String(s.id)));
+
+      const existingColors = initialColors;
+      const currentColors = colors.map((c, idx) => ({ ...c, stock: '0', position: idx }));
+      const currentColorIds = new Set(currentColors.filter((e) => e.id).map((e) => String(e.id)));
+      const removedColorIds = new Set(
+        existingColors
+          .filter((c) => c.id && !currentColorIds.has(String(c.id)))
+          .map((c) => String(c.id)),
+      );
+
+      const existingVars = initialVariants;
+      const currentVars = variants.map((v, idx) => ({ ...v, position: idx }));
+      const currentVarIds = new Set(currentVars.filter((v) => v.id).map((v) => String(v.id)));
+      const removedVariantIds = new Set(
+        existingVars
+          .filter((v) => v.id && !currentVarIds.has(String(v.id)))
+          .map((v) => String(v.id)),
+      );
+
+      const skuIdsToDelete = new Set<string>();
+      for (const es of existingSkus) {
+        if (!es?.id) continue;
+        const id = String(es.id);
+        const shouldDeleteByMissing = !currentSkuIds.has(id);
+        const shouldDeleteByColor =
+          es?.colorId != null && removedColorIds.has(String(es.colorId));
+        const shouldDeleteByVariant =
+          es?.variantId != null && removedVariantIds.has(String(es.variantId));
+        if (shouldDeleteByMissing || shouldDeleteByColor || shouldDeleteByVariant) {
+          skuIdsToDelete.add(id);
+        }
+      }
+
+      for (const skuId of skuIdsToDelete) {
+        try {
+          await fetch(`${apiBase}/products/skus/${skuId}/`, { method: 'DELETE', headers: authHeaders(token) });
+        } catch (_) {}
+      }
+
+      for (const eCol of existingColors) {
+        if (eCol.id && !currentColorIds.has(String(eCol.id))) {
           await fetch(`${apiBase}/products/colors/${eCol.id}/`, { method: 'DELETE', headers: authHeaders(token) });
         }
       }
-      for (let c of current) {
+      for (let c of currentColors) {
         let finalColorId = c.id;
         if (!c.id) {
           const fdColor = new FormData();
           fdColor.append('name', c.name);
           fdColor.append('hex', c.hex);
-          fdColor.append('stock', String(Number(c.stock || 0)));
+          fdColor.append('stock', '0');
           fdColor.append('position', String(c.position));
           const createRes = await fetch(`${apiBase}/products/${productId}/colors/`, { method: 'POST', headers: authHeaders(token), body: fdColor });
           if (createRes.ok) {
             const created = await createRes.json();
             finalColorId = created.id;
-            updatedColors.push(created);
+            updatedColors.push({ ...created, clientId: c.clientId ?? null, name: created?.name ?? c.name, hex: created?.hex ?? c.hex });
           }
         } else {
-          const prev = existing.find((e) => String(e.id) === String(c.id)) || {};
-          const changed = prev.name !== c.name || prev.hex !== c.hex || String(prev.stock) !== String(c.stock) || Number(prev.position) !== Number(c.position);
+          const prev = existingColors.find((e) => String(e.id) === String(c.id)) || {};
+          const changed = prev.name !== c.name || prev.hex !== c.hex || Number(prev.position) !== Number(c.position);
           if (changed) {
             const fdColor = new FormData();
             fdColor.append('name', c.name);
             fdColor.append('hex', c.hex);
-            fdColor.append('stock', String(Number(c.stock || 0)));
+            fdColor.append('stock', '0');
             fdColor.append('position', String(c.position));
             const upRes = await fetch(`${apiBase}/products/colors/${c.id}/`, { method: 'PATCH', headers: authHeaders(token), body: fdColor });
-            if (upRes.ok) updatedColors.push(await upRes.json());
+            if (upRes.ok) {
+              const updated = await upRes.json();
+              updatedColors.push({ ...updated, clientId: c.clientId ?? `color-${updated?.id ?? c.id}`, name: updated?.name ?? c.name, hex: updated?.hex ?? c.hex });
+            }
             else updatedColors.push(c);
           } else {
             updatedColors.push(c);
@@ -870,10 +1171,6 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       }
 
       // Process Variants
-      const existingVars = initialVariants;
-      const currentVars = variants.map((v, idx) => ({ ...v, position: idx }));
-      const currentVarIds = new Set(currentVars.filter((v) => v.id).map((v) => String(v.id)));
-
       for (const ev of existingVars) {
         if (ev.id && !currentVarIds.has(String(ev.id))) {
           await fetch(`${apiBase}/products/variants/${ev.id}/`, { method: 'DELETE', headers: authHeaders(token) });
@@ -887,7 +1184,10 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
           fdV.append('extra_price', String(Number(v.extra_price || 0)));
           fdV.append('position', String(v.position));
           const resV = await fetch(`${apiBase}/products/${productId}/variants/`, { method: 'POST', headers: authHeaders(token), body: fdV });
-          if (resV.ok) updatedVariants.push(await resV.json());
+          if (resV.ok) {
+            const created = await resV.json();
+            updatedVariants.push({ ...created, clientId: v.clientId ?? null, name: created?.name ?? v.name, extra_price: created?.extra_price ?? v.extra_price });
+          }
         } else {
           const prev = existingVars.find((e) => String(e.id) === String(v.id));
           if (prev && (prev.name !== v.name || String(prev.extra_price) !== String(v.extra_price) || Number(prev.position) !== Number(v.position))) {
@@ -896,23 +1196,14 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
             fdV.append('extra_price', String(Number(v.extra_price || 0)));
             fdV.append('position', String(v.position));
             const resV = await fetch(`${apiBase}/products/variants/${v.id}/`, { method: 'PATCH', headers: authHeaders(token), body: fdV });
-            if (resV.ok) updatedVariants.push(await resV.json());
+            if (resV.ok) {
+              const updated = await resV.json();
+              updatedVariants.push({ ...updated, clientId: v.clientId ?? `variant-${updated?.id ?? v.id}`, name: updated?.name ?? v.name, extra_price: updated?.extra_price ?? v.extra_price });
+            }
             else updatedVariants.push(v);
           } else {
             updatedVariants.push(v);
           }
-        }
-      }
-
-      // Process SKUs (Combinations)
-      const existingSkus = initialSkus;
-      const currentSkus = skus;
-      const currentSkuIds = new Set(currentSkus.filter(s => s.id).map(s => String(s.id)));
-
-      // Delete removed combinations
-      for (const es of existingSkus) {
-        if (es.id && !currentSkuIds.has(String(es.id))) {
-          await fetch(`${apiBase}/products/skus/${es.id}/`, { method: 'DELETE', headers: authHeaders(token) });
         }
       }
 
@@ -977,14 +1268,20 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       for (const s of currentSkus) {
         const colorMatch =
           (s.colorId != null ? updatedColors.find((c: any) => String(c.id) === String(s.colorId)) : null) ||
+          (s.colorClientId != null ? updatedColors.find((c: any) => String(c.clientId) === String(s.colorClientId)) : null) ||
           updatedColors.find((c: any) => c.name === s.colorName);
         const variantMatch =
           (s.variantId != null ? updatedVariants.find((v: any) => String(v.id) === String(s.variantId)) : null) ||
+          (s.variantClientId != null ? updatedVariants.find((v: any) => String(v.clientId) === String(s.variantClientId)) : null) ||
           updatedVariants.find((v: any) => v.name === s.variantName);
 
+        const normalizedSku = String(s?.sku ?? '').trim().toUpperCase();
+        const useMainSkuForSave = Boolean(s?.useMainSku) || normalizedSku === '';
+        const rawStock = Number(String(s?.stock ?? '0'));
+        const normalizedStock = Number.isFinite(rawStock) ? rawStock : 0;
         const payload: any = {
-          sku: s.sku,
-          stock: Number(s.stock || 0),
+          sku: useMainSkuForSave ? '' : normalizedSku,
+          stock: Math.max(0, normalizedStock),
           active: s.active,
           color: colorMatch?.id || null,
           variant: variantMatch?.id || null,
@@ -992,21 +1289,36 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
         };
 
         if (!s.id) {
-          await fetch(`${apiBase}/products/${productId}/skus/`, {
+          const resSku = await fetch(`${apiBase}/products/${productId}/skus/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
             body: JSON.stringify(payload)
           });
+          if (!resSku.ok) {
+            const txt = await resSku.text().catch(() => '');
+            throw new Error(txt || 'No se pudo guardar el stock de las combinaciones.');
+          }
         } else {
-          await fetch(`${apiBase}/products/skus/${s.id}/`, {
+          const resSku = await fetch(`${apiBase}/products/skus/${s.id}/`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
             body: JSON.stringify(payload)
           });
+          if (!resSku.ok) {
+            const txt = await resSku.text().catch(() => '');
+            throw new Error(txt || 'No se pudo actualizar el stock de las combinaciones.');
+          }
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error in handleSubmit:", err);
+      if (!navigator.onLine || err?.message?.includes('fetch') || err?.message?.includes('network') || err?.name === 'TypeError') {
+        setErrors({ form: 'Se perdió la conexión durante el guardado. Revisa tu conexión e inténtalo de nuevo.' });
+      } else {
+        setErrors({ form: err?.message || 'Error inesperado al guardar.' });
+      }
+      setLoading(false);
+      return;
     }
     if (onSaved) onSaved();
   };
@@ -1024,6 +1336,12 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
       {/* Sticky Header - Improved for integration */}
       <div className="sticky top-[-24px] z-40 bg-white/80 dark:bg-[#0B0D14]/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 -mx-6 px-6 py-4 mb-6 transition-all">
+        {!isOnline && (
+          <div className="max-w-7xl mx-auto mb-3 flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
+            <CloudOff className="w-4 h-4 flex-shrink-0" />
+            <span><strong>Sin conexión</strong> — No podrás guardar hasta que vuelvas a tener internet.</span>
+          </div>
+        )}
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button 
@@ -1465,193 +1783,196 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
             </div>
           )}
 
-          {activeTab === 'colores' && (
+          {activeTab === 'variantes' && (
             <div className="lg:col-span-3 space-y-6">
-               <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
-                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
-                      <Palette className="w-4 h-4" />
-                      <span>Gestión de Colores</span>
-                    </div>
-                 </div>
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                  <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
+                    <Palette className="w-4 h-4" />
+                    <span>Colores</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddColor((v) => !v)}
+                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border transition-colors ${showAddColor ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700' : 'bg-blue-600 text-white border-blue-600 hover:bg-blue-500'}`}
+                  >
+                    {showAddColor ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                    <span>{showAddColor ? 'Cerrar' : 'Nuevo'}</span>
+                  </button>
+                </div>
 
-                 {/* Add Color Form */}
-                 <div className="p-5 bg-blue-50/50 dark:bg-blue-500/5 rounded-2xl border border-blue-100 dark:border-blue-500/10 mb-8">
-                    <div className="flex items-center gap-2 mb-4 text-blue-600 dark:text-blue-400">
-                      <Plus className="w-4 h-4" />
-                      <h4 className="text-sm font-bold uppercase tracking-widest">Nuevo Color</h4>
-                    </div>
-                    <div className="flex flex-wrap items-end gap-4">
+                {showAddColor && (
+                  <div className="p-4 bg-blue-50/50 dark:bg-blue-500/5 rounded-2xl border border-blue-100 dark:border-blue-500/10 mb-6">
+                    <div className="flex flex-wrap items-end gap-3">
                       <div className="flex-1 min-w-[200px]">
-                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Nombre del Color</label>
+                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Nombre</label>
                         <input 
                           type="text" 
                           value={colorName} 
                           onChange={(e) => { setColorName(e.target.value); setColorInputError(''); }} 
                           placeholder="Ej. Azul Midnight" 
-                          className={`w-full px-4 py-2.5 bg-white dark:bg-gray-900 border ${colorInputError ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:outline-none transition-all`}
+                          className={`w-full px-3 py-2 bg-white dark:bg-gray-900 border ${colorInputError ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:outline-none transition-all`}
                         />
                       </div>
-                      <div className="w-24">
-                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Color</label>
-                        <div className="relative group">
-                          <input 
-                            type="color" 
-                            value={colorHex} 
-                            onChange={(e) => setColorHex(e.target.value)} 
-                            className="h-10 w-full rounded-xl cursor-pointer bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-1"
-                          />
-                        </div>
-                      </div>
-                      <div className="w-32">
-                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Stock</label>
+                      <div className="w-20">
+                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Color</label>
                         <input 
-                          type="number" 
-                          value={colorStock} 
-                          onChange={(e) => setColorStock(e.target.value)} 
-                          min={0}
-                          className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:outline-none transition-all"
+                          type="color" 
+                          value={colorHex} 
+                          onChange={(e) => setColorHex(e.target.value)} 
+                          className="h-9 w-full rounded-xl cursor-pointer bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-1"
                         />
                       </div>
                       <button 
                         type="button" 
                         onClick={() => { 
-                            if (!colorName) { setColorInputError('Nombre requerido'); return; }
-                            setColors((cols) => [...cols, { name: colorName, hex: colorHex, stock: colorStock }]); 
-                            setColorName(''); setColorHex('#000000'); setColorStock('0'); setColorInputError('');
+                          if (!colorName) { setColorInputError('Nombre requerido'); return; }
+                          const newColor = { clientId: makeClientId('color'), name: colorName, hex: colorHex, stock: '0', images: [] as any[] };
+                          setColors((cols) => [...cols, newColor]); 
+                          setActiveColorKey(colorKeyOf(newColor, colors.length));
+                          setColorName(''); setColorHex('#000000'); setColorInputError(''); setShowAddColor(false);
                         }} 
-                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2 h-[42px]"
+                        className="h-9 w-9 inline-flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all active:scale-95"
+                        title="Añadir color"
                       >
                         <Plus className="w-4 h-4" />
-                        <span>Añadir</span>
                       </button>
                     </div>
                     {colorInputError && <p className="mt-2 text-xs text-rose-400 flex items-center gap-1 font-medium"><AlertCircle className="w-3 h-3" /> {colorInputError}</p>}
-                 </div>
+                  </div>
+                )}
 
-                 {errors.colors && (
-                    <div className="p-3 mb-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-sm text-rose-400">
-                        {errors.colors}
-                    </div>
-                 )}
+                {errors.colors && (
+                  <div className="p-3 mb-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-sm text-rose-400">
+                    {errors.colors}
+                  </div>
+                )}
 
-                 {/* Color List */}
-                 <div className="space-y-4">
-                    {colors.map((c, idx) => (
-                      <div key={`${c.id || 'new'}-${idx}`} className="bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 rounded-xl p-4 transition-all hover:border-gray-300 dark:hover:border-gray-600">
-                        <div className="flex flex-wrap items-center gap-4 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700/50">
-                          <div className="w-10 h-10 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600" style={{ backgroundColor: c.hex }} />
-                          
-                          <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <input 
-                              type="text" 
-                              value={c.name} 
-                              onChange={(e) => setColors((cols) => cols.map((x, i) => i === idx ? { ...x, name: e.target.value } : x))} 
-                              className="px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none"
-                            />
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-500 dark:text-gray-500 text-sm">Hex:</span>
-                              <input 
-                                type="text" 
-                                value={c.hex} 
-                                onChange={(e) => setColors((cols) => cols.map((x, i) => i === idx ? { ...x, hex: e.target.value } : x))} 
-                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none font-mono"
-                              />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-500 dark:text-gray-500 text-sm">Stock:</span>
-                              <input 
-                                type="number" 
-                                value={c.stock} 
-                                onChange={(e) => setColors((cols) => cols.map((x, i) => i === idx ? { ...x, stock: e.target.value } : x))} 
-                                className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none"
-                              />
-                            </div>
-                          </div>
+                {colors.length > 0 ? (
+                  <div className="flex flex-wrap gap-3">
+                    {colors.map((c, idx) => {
+                      const key = colorKeyOf(c, idx);
+                      const selected = key === activeColorKey;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => setActiveColorKey((prev) => (prev === key ? null : key))}
+                          className={`w-11 h-11 rounded-full border transition-all flex items-center justify-center ${selected ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}
+                          title={String(c?.name || 'Color')}
+                        >
+                          <div className="w-9 h-9 rounded-full border border-white/70" style={{ backgroundColor: c.hex }} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-10 text-gray-500 dark:text-gray-500">
+                    <Palette className="w-10 h-10 mx-auto mb-3 opacity-20" />
+                    <p>No hay colores agregados.</p>
+                  </div>
+                )}
 
-                          <button 
-                            type="button" 
-                            onClick={() => setColors((cols) => cols.filter((x, i) => i !== idx))} 
-                            className="p-2 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
+                {(() => {
+                  if (!activeColorKey) return null;
+                  const idx = colors.findIndex((c, i) => colorKeyOf(c, i) === activeColorKey);
+                  if (idx < 0) return null;
+                  const c = colors[idx];
+                  return (
+                    <div className="mt-6 bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 rounded-2xl p-5">
+                      <div className="flex flex-wrap items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700" style={{ backgroundColor: c.hex }} />
+                        <div className="flex-1 min-w-[220px]">
+                          <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Nombre</label>
+                          <input
+                            type="text"
+                            value={c.name}
+                            onChange={(e) => setColors((cols) => cols.map((x, i) => i === idx ? { ...x, name: e.target.value } : x))}
+                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:outline-none transition-all"
+                          />
                         </div>
+                        <div className="w-24">
+                          <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Color</label>
+                          <input
+                            type="color"
+                            value={c.hex}
+                            onChange={(e) => setColors((cols) => cols.map((x, i) => i === idx ? { ...x, hex: e.target.value } : x))}
+                            className="h-9 w-full rounded-xl cursor-pointer bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-1"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => { setColors((cols) => cols.filter((_, i) => i !== idx)); setActiveColorKey(null); }}
+                          className="h-9 w-9 inline-flex items-center justify-center rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-300 dark:hover:border-rose-500/40 transition-colors"
+                          title="Eliminar color"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
 
-                        {/* Color Images */}
-                        <div>
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Imágenes de la Variante (Máx 4)</div>
-                            <div className="w-48">
-                              <label className="flex items-center justify-center px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-500 cursor-pointer transition-all">
-                                <Plus className="w-3 h-3 mr-1.5" />
-                                Agregar Imágenes
-                                <input 
-                                  type="file" 
-                                  multiple 
-                                  accept="image/*" 
-                                  className="hidden" 
-                                  onChange={(e) => {
-                                    const files = Array.from(e.target.files || []);
-                                    setColors((cols) => cols.map((x, i) => { 
-                                      if (i !== idx) return x; 
-                                      const imgs = Array.isArray(x.images) ? x.images.slice() : []; 
-                                      for (const f of files) { 
-                                        if (imgs.length >= 4) break; 
-                                        if (['image/jpeg','image/png','image/webp'].includes(f.type)) { 
-                                          imgs.push({ file: f, preview: URL.createObjectURL(f) }); 
-                                        } 
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Imágenes (Máx 4)</div>
+                          <div className="w-44">
+                            <label className="flex items-center justify-center px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-500 cursor-pointer transition-all">
+                              <Plus className="w-3 h-3 mr-1.5" />
+                              Agregar
+                              <input 
+                                type="file" 
+                                multiple 
+                                accept="image/*" 
+                                className="hidden" 
+                                onChange={(e) => {
+                                  const files = Array.from(e.target.files || []);
+                                  setColors((cols) => cols.map((x, i) => { 
+                                    if (i !== idx) return x; 
+                                    const imgs = Array.isArray(x.images) ? x.images.slice() : []; 
+                                    for (const f of files) { 
+                                      if (imgs.length >= 4) break; 
+                                      if (['image/jpeg','image/png','image/webp'].includes(f.type)) { 
+                                        imgs.push({ file: f, preview: URL.createObjectURL(f) }); 
                                       } 
-                                      return { ...x, images: imgs }; 
-                                    }));
-                                  }}
-                                />
-                              </label>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                            {(c.images || []).map((img: any, j) => (
-                              <div key={`img-${j}`} className="relative group aspect-square rounded-lg bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 overflow-hidden">
-                                <img 
-                                  src={img.preview ? img.preview : mediaUrl(img.image)} 
-                                  alt="Color variant" 
-                                  className="w-full h-full object-cover transition-transform group-hover:scale-110" 
-                                />
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                  <button 
-                                    type="button" 
-                                    onClick={() => setColors((cols) => cols.map((x, i) => i === idx ? { ...x, images: (x.images || []).filter((_, k) => k !== j) } : x))} 
-                                    className="p-1.5 bg-rose-500 text-white rounded-full hover:bg-rose-600 transition-colors"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                            {(!c.images || c.images.length === 0) && (
-                              <div className="col-span-full py-4 text-center text-gray-500 dark:text-gray-500 text-xs border border-dashed border-gray-300 dark:border-gray-800 rounded-lg">
-                                No hay imágenes para este color
-                              </div>
-                            )}
+                                    } 
+                                    return { ...x, images: imgs }; 
+                                  }));
+                                }}
+                              />
+                            </label>
                           </div>
                         </div>
-                      </div>
-                    ))}
-                    {colors.length === 0 && (
-                      <div className="text-center py-12 text-gray-500 dark:text-gray-500">
-                        <Palette className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                        <p>No hay variantes de color agregadas.</p>
-                      </div>
-                    )}
-                 </div>
-                 {errors.colors && <p className="mt-3 text-sm text-rose-400">{errors.colors}</p>}
-               </div>
-            </div>
-          )}
 
-          {activeTab === 'variantes' && (
-            <div className="lg:col-span-3 space-y-6">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                          {(c.images || []).map((img: any, j) => (
+                            <div key={`img-${j}`} className="relative group aspect-square rounded-lg bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 overflow-hidden">
+                              <img 
+                                src={img.preview ? img.preview : mediaUrl(img.image)} 
+                                alt="Color variant" 
+                                className="w-full h-full object-cover transition-transform group-hover:scale-110" 
+                              />
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <button 
+                                  type="button" 
+                                  onClick={() => setColors((cols) => cols.map((x, i) => i === idx ? { ...x, images: (x.images || []).filter((_, k) => k !== j) } : x))} 
+                                  className="p-1.5 bg-rose-500 text-white rounded-full hover:bg-rose-600 transition-colors"
+                                  title="Eliminar imagen"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                          {(!c.images || c.images.length === 0) && (
+                            <div className="col-span-full py-4 text-center text-gray-500 dark:text-gray-500 text-xs border border-dashed border-gray-300 dark:border-gray-800 rounded-lg">
+                              No hay imágenes para este color
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
               <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
                  <div className="flex items-center gap-2 mb-6 text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
                     <Layers className="w-4 h-4" />
@@ -1689,7 +2010,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                       </div>
                       <button 
                         type="button" 
-                        onClick={() => { if (!variantName) return; setVariants([...variants, { name: variantName, extra_price: variantPrice }]); setVariantName(''); setVariantPrice('0'); }} 
+                        onClick={() => { if (!variantName) return; setVariants([...variants, { clientId: makeClientId('variant'), name: variantName, extra_price: variantPrice }]); setVariantName(''); setVariantPrice('0'); }} 
                         className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2 h-[42px]"
                       >
                         <Plus className="w-4 h-4" />
@@ -1699,17 +2020,39 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                  </div>
 
                  <div className="space-y-3">
-                    {variants.map((v, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 rounded-lg">
-                         <div className="flex items-center gap-4 flex-1">
+                    {variants.map((v, idx) => {
+                      const rowKey = variantKeyOf(v, idx);
+                      const linked = variantColorLinks?.[rowKey];
+                      const label =
+                        linked == null
+                          ? 'Todos'
+                          : linked.length === 0
+                            ? 'Solo'
+                            : `${linked.length}`;
+                      return (
+                      <div key={rowKey} id={`variant-row-${rowKey}`} className="space-y-2">
+                        <div
+                          className={`flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 rounded-lg ${highlightVariantKey === rowKey ? 'ring-2 ring-blue-500/60' : ''}`}
+                        >
+                          <div className="flex items-center gap-4 flex-1">
                             <input 
                               type="text" 
                               value={v.name} 
                               onChange={(e) => setVariants(vars => vars.map((x, i) => i === idx ? { ...x, name: e.target.value } : x))}
                               className="bg-transparent border-none text-gray-900 dark:text-white focus:ring-0 p-0 text-sm font-medium w-full"
                             />
-                         </div>
-                         <div className="flex items-center gap-4">
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setOpenVariantLinkKey((prev) => (prev === rowKey ? null : rowKey))}
+                              disabled={colors.length === 0}
+                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-700 dark:text-gray-200 hover:border-blue-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title="Vincular colores"
+                            >
+                              <Palette className="w-4 h-4 text-purple-500" />
+                              <span>{label}</span>
+                            </button>
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-gray-500">+$</span>
                               <input 
@@ -1720,11 +2063,67 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                               />
                             </div>
                             <button onClick={() => setVariants(vars => vars.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors">
-                               <Trash2 className="w-4 h-4" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
-                         </div>
+                          </div>
+                        </div>
+
+                        {openVariantLinkKey === rowKey && colors.length > 0 && (
+                          <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Colores vinculados</div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setVariantColorLinks((prev) => ({ ...(prev || {}), [rowKey]: null }))}
+                                  className="px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:border-blue-400 transition-colors"
+                                >
+                                  Todos
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setVariantColorLinks((prev) => ({ ...(prev || {}), [rowKey]: [] }))}
+                                  className="px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:border-blue-400 transition-colors"
+                                >
+                                  Ninguno
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              {colors.map((c, cIdx) => {
+                                const cKey = colorKeyOf(c, cIdx);
+                                const isOn = linked == null ? true : linked.includes(cKey);
+                                return (
+                                  <button
+                                    key={cKey}
+                                    type="button"
+                                    onClick={() => {
+                                      const allKeys = colors.map((cc, ii) => colorKeyOf(cc, ii));
+                                      setVariantColorLinks((prev) => {
+                                        const current = prev?.[rowKey];
+                                        if (current == null) {
+                                          const next = allKeys.filter((k) => k !== cKey);
+                                          return { ...(prev || {}), [rowKey]: next.length === allKeys.length ? null : next };
+                                        }
+                                        const has = current.includes(cKey);
+                                        const next = has ? current.filter((k) => k !== cKey) : [...current, cKey];
+                                        return { ...(prev || {}), [rowKey]: next.length === allKeys.length ? null : next };
+                                      });
+                                    }}
+                                    className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all ${isOn ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-200 dark:border-gray-700 opacity-50 hover:opacity-80'}`}
+                                    title={String(c?.name || 'Color')}
+                                  >
+                                    <div className="w-8 h-8 rounded-full border border-white/70" style={{ backgroundColor: c.hex }} />
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    ))}
+                      );
+                    })}
                     {variants.length === 0 && <p className="text-center text-gray-500 dark:text-gray-500 text-sm py-4">No hay variantes definidas.</p>}
                  </div>
 
@@ -1760,8 +2159,14 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                           </tr>
                         </thead>
                         <tbody>
-                          {skus.map((skuItem, idx) => (
-                            <tr key={idx} className={`bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden group ${!skuItem.active ? 'opacity-50' : ''}`}>
+                          {skus.map((skuItem, idx) => {
+                            const rowKey = String(skuItem?.id ?? `${skuItem?.colorId ?? 'n'}-${skuItem?.variantId ?? 'n'}-${idx}`);
+                            return (
+                            <tr
+                              key={rowKey}
+                              id={`sku-row-${rowKey}`}
+                              className={`bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden group ${!skuItem.active ? 'opacity-50' : ''} ${highlightSkuKey === rowKey ? 'ring-2 ring-blue-500/60' : ''}`}
+                            >
                               <td className="px-4 py-3 rounded-l-xl">
                                 <div className="flex items-center gap-2">
                                   {skuItem.colorName && (
@@ -1781,8 +2186,13 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                                 <input 
                                   type="text" 
                                   value={String(skuItem.sku ?? '')}
-                                  disabled={String(skuItem.sku ?? '') === ''}
-                                  onChange={(e) => setSkus(prev => prev.map((s, i) => i === idx ? { ...s, sku: e.target.value.toUpperCase() } : s))}
+                                  disabled={Boolean(skuItem.useMainSku)}
+                                  onChange={(e) => setSkus(prev => prev.map((s, i) => i === idx ? { ...s, sku: e.target.value.toUpperCase(), useMainSku: false } : s))}
+                                  onBlur={(e) => {
+                                    const v = String(e.target.value ?? '').trim();
+                                    if (v !== '') return;
+                                    setSkus(prev => prev.map((s, i) => i === idx ? { ...s, sku: '', useMainSku: true } : s));
+                                  }}
                                   className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs font-mono text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                                   placeholder="SKU específico"
                                 />
@@ -1791,17 +2201,17 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                                 <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 select-none cursor-pointer">
                                   <input
                                     type="checkbox"
-                                    checked={String(skuItem.sku ?? '') === ''}
+                                    checked={Boolean(skuItem.useMainSku)}
                                     onChange={(e) => {
                                       const checked = e.target.checked;
                                       setSkus(prev => prev.map((s, i) => {
                                         if (i !== idx) return s;
-                                        if (checked) return { ...s, sku: '' };
+                                        if (checked) return { ...s, sku: '', useMainSku: true };
                                         const baseSku = String(sku || '').toUpperCase();
                                         const cn = s.colorName ? String(s.colorName) : null;
                                         const vn = s.variantName ? String(s.variantName) : null;
                                         const generated = cn && vn ? `${baseSku}-${cn.substring(0,2)}-${vn.substring(0,2)}`.toUpperCase() : cn ? `${baseSku}-${cn.substring(0,3)}`.toUpperCase() : vn ? `${baseSku}-${vn.substring(0,3)}`.toUpperCase() : baseSku;
-                                        return { ...s, sku: generated };
+                                        return { ...s, sku: generated, useMainSku: false };
                                       }));
                                     }}
                                     className="rounded border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-blue-600 focus:ring-blue-500"
@@ -1828,7 +2238,8 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                                 </button>
                               </td>
                             </tr>
-                          ))}
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>

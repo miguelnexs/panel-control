@@ -18,6 +18,8 @@ import {
   X,
   Printer
 } from 'lucide-react';
+import { useOfflineSync } from '../hooks/useOfflineSync';
+import SyncStatusBanner from './SyncStatusBanner';
 
 interface Service {
   id: number;
@@ -89,6 +91,7 @@ interface ServicesPageProps {
 }
 
 const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen = false, onClose, onCreate }) => {
+  const offlineSync = useOfflineSync(token);
   const [services, setServices] = useState<Service[]>([]);
   const [catalog, setCatalog] = useState<ServiceDefinition[]>([]);
   const [viewMode, setViewMode] = useState<'tickets' | 'catalog'>('tickets');
@@ -455,12 +458,9 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       if (searchTerm) url.searchParams.set('search', searchTerm);
       url.searchParams.set('page_size', String(pageSize));
       url.searchParams.set('ordering', ordering);
-      const res = await fetch(url.toString(), { headers: authHeaders(token) });
-      const data = await res.json();
-      if (res.ok) {
-        const arr = Array.isArray(data.results) ? data.results : Array.isArray(data) ? data : [];
-        setServices(arr);
-      }
+      const data = await offlineSync.loadData('services', url.toString(), token);
+      const arr = Array.isArray(data) ? data : [];
+      setServices(arr);
     } catch (error) {
       console.error("Error loading services:", error);
     } finally {
@@ -783,14 +783,17 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     showToast('Eliminando servicio...', 'loading');
     
     try {
-      const res = await fetch(`${apiBase}/services/${id}/`, {
+      const result = await offlineSync.queueMutation({
+        token,
         method: 'DELETE',
-        headers: authHeaders(token),
+        url: `${apiBase}/services/${id}/`,
+        deleteLocalId: id,
+        store: 'services',
       });
-      if (!res.ok) throw new Error('No se pudo eliminar el servicio');
+      if (!result.ok) throw new Error('No se pudo eliminar el servicio');
       await loadServices();
       await loadStats();
-      showToast('Servicio eliminado correctamente', 'success');
+      showToast(result.queued ? 'Servicio eliminado localmente. Se sincronizará al reconectar.' : 'Servicio eliminado correctamente', 'success');
     } catch (error: any) {
       showToast(error.message || 'Error al eliminar el servicio', 'error');
     }
@@ -881,12 +884,15 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
   const handleCatalogDelete = async (id: number) => {
     if (!token || !window.confirm('¿Eliminar del catálogo?')) return;
     try {
-      const res = await fetch(`${apiBase}/services/definitions/${id}/`, {
+      const result = await offlineSync.queueMutation({
+        token,
         method: 'DELETE',
-        headers: authHeaders(token)
+        url: `${apiBase}/services/definitions/${id}/`,
+        deleteLocalId: id,
+        store: 'services',
       });
-      if (!res.ok) throw new Error('No se pudo eliminar');
-      showToast('Eliminado del catálogo', 'success');
+      if (!result.ok) throw new Error('No se pudo eliminar');
+      showToast(result.queued ? 'Eliminado localmente. Se sincronizará al reconectar.' : 'Eliminado del catálogo', 'success');
       loadCatalog();
     } catch (e: any) {
       showToast(e.message, 'error');
@@ -990,6 +996,14 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
             </button>
           </div>
         </div>
+        {/* Sync Status */}
+        <SyncStatusBanner
+          isOnline={offlineSync.isOnline}
+          pendingCount={offlineSync.pendingCount}
+          syncing={offlineSync.syncing}
+          lastError={offlineSync.lastError}
+          onSync={offlineSync.syncNow}
+        />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 transition-all hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-lg group shadow-sm">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 text-blue-500 dark:text-blue-400">

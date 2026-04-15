@@ -61,10 +61,13 @@ const SupportChatWidget: React.FC<SupportChatWidgetProps> = ({ token, apiBase: r
 
   const newestId = useMemo(() => messages.reduce((acc, m) => Math.max(acc, m.id), 0), [messages]);
 
+  const expiredRef = useRef(false);
+
   const loadChats = async (silent?: boolean) => {
-    if (!token || !canUse) return;
+    if (!token || !canUse || expiredRef.current) return;
     try {
       const res = await fetch(`${apiBase}/users/api/support/chats/`, { headers: authHeaders(token) });
+      if (res.status === 401) { expiredRef.current = true; return; }
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.detail || 'No se pudieron cargar chats');
       const items: SupportChatItem[] = Array.isArray(data?.results) ? data.results.map((c: any) => ({
@@ -103,7 +106,7 @@ const SupportChatWidget: React.FC<SupportChatWidgetProps> = ({ token, apiBase: r
   }, [role, chats, tenantId]);
 
   const load = async (opts?: { sinceId?: number; replace?: boolean; silent?: boolean }) => {
-    if (!token || !canUse) return;
+    if (!token || !canUse || expiredRef.current) return;
     if (role === 'super_admin' && !tenantId) return;
     if (!opts?.silent) {
       setErr(null);
@@ -115,6 +118,7 @@ const SupportChatWidget: React.FC<SupportChatWidgetProps> = ({ token, apiBase: r
       if (role === 'super_admin' && tenantId) qs.set('tenant_id', String(tenantId));
       if (opts?.sinceId) qs.set('since_id', String(opts.sinceId));
       const res = await fetch(`${apiBase}/users/api/support/messages/?${qs.toString()}`, { headers: authHeaders(token) });
+      if (res.status === 401) { expiredRef.current = true; if (!opts?.silent) setLoading(false); return; }
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.detail || 'No se pudieron cargar mensajes');
       const list = Array.isArray(data?.results) ? data.results : [];

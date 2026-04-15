@@ -38,3 +38,15 @@ jobs:
       - name: Build and Publish (Windows NSIS Web)
         working-directory: frontend
         run: npm run publish:win:web
+
+      - name: Build Web (dist-web)
+        working-directory: frontend
+        run: npm run build:web
+
+      - name: Upload Web Build to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            frontend/dist-web/**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

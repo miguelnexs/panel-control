@@ -13,12 +13,14 @@ export default defineConfig({
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
-          // Add other heavy dependencies here if needed
+          dndkit: ['@dnd-kit/core', '@dnd-kit/sortable', '@dnd-kit/utilities'],
+          icons: ['lucide-react'],
         }
       }
     },
-    minify: 'esbuild', // Faster and good enough
-    sourcemap: false, // Production optimization
+    minify: 'esbuild',
+    sourcemap: false,
+    chunkSizeWarningLimit: 600,
   },
   resolve: {
     alias: {

@@ -198,15 +198,19 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
   useEffect(() => {
     let active = true;
     const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    let intervalId: ReturnType<typeof setInterval>;
     const poll = () => {
       fetch(`${apiBase}/sales/notifications/count/`, { headers })
-        .then((res) => res.json())
-        .then((d) => { if (active) setOrderNotif(Number(d.unread || 0)); })
+        .then((res) => {
+          if (res.status === 401) { active = false; clearInterval(intervalId); onSignOut(); return null; }
+          return res.json();
+        })
+        .then((d) => { if (active && d) setOrderNotif(Number(d.unread || 0)); })
         .catch(() => {});
     };
     poll();
-    const id = setInterval(poll, 3000);
-    return () => { active = false; clearInterval(id); };
+    intervalId = setInterval(poll, 3000);
+    return () => { active = false; clearInterval(intervalId); };
   }, [token]);
 
   return (

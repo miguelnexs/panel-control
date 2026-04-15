@@ -22,6 +22,8 @@ import {
   Printer,
   Mail
 } from 'lucide-react';
+import { useOfflineSync } from '../hooks/useOfflineSync';
+import SyncStatusBanner from './SyncStatusBanner';
 
 interface Color {
   id: number;
@@ -115,6 +117,7 @@ interface PrinterOptions {
 }
 
 const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
+  const offlineSync = useOfflineSync(token);
   const [orders, setOrders] = useState<Order[]>([]);
   const [settings, setSettings] = useState<CompanySettings>({
     company_name: '', company_nit: '', company_phone: '', company_address: '', logo: null,
@@ -318,13 +321,11 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
       if (search) params.set('search', search);
       if (statusFilter !== 'all') params.set('status', statusFilter);
       
-      const res = await fetch(`${apiBase}/sales/list/?${params.toString()}`, { headers: authHeaders(token) });
-      const data = await res.json();
+      const url = `${apiBase}/sales/list/?${params.toString()}`;
+      const data = await offlineSync.loadData('orders', url, token);
       
-      if (!res.ok) throw new Error(data.detail || 'Error al cargar pedidos');
-      
-      setOrders(Array.isArray(data.results) ? data.results : []);
-      setTotal(Number(data.count || 0));
+      setOrders(Array.isArray(data) ? data : []);
+      setTotal(data.length);
     } catch(e: any) {
       showToast(e.message, 'error');
     } finally {
@@ -446,22 +447,21 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
     showToast('Eliminando pedido...', 'loading');
 
     try {
-      const res = await fetch(`${apiBase}/sales/status/${deletingOrder.id}/`, {
+      const result = await offlineSync.queueMutation({
+        token,
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        url: `${apiBase}/sales/status/${deletingOrder.id}/`,
+        deleteLocalId: deletingOrder.id,
+        store: 'orders',
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || 'Error al eliminar pedido');
+      if (!result.ok) {
+        throw new Error('Error al eliminar pedido');
       }
 
-      showToast('Pedido eliminado correctamente', 'success');
+      showToast(result.queued ? 'Pedido eliminado localmente. Se sincronizará al reconectar.' : 'Pedido eliminado correctamente', 'success');
       setDeletingOrder(null);
-      loadOrders(); // Recargar la lista
+      loadOrders();
     } catch (error: any) {
       showToast(error.message, 'error');
     }
@@ -494,6 +494,15 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
           </div>
         </div>
       )}
+
+      {/* Sync Status */}
+      <SyncStatusBanner
+        isOnline={offlineSync.isOnline}
+        pendingCount={offlineSync.pendingCount}
+        syncing={offlineSync.syncing}
+        lastError={offlineSync.lastError}
+        onSync={offlineSync.syncNow}
+      />
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

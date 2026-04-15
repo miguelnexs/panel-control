@@ -382,6 +382,13 @@ ipcMain.handle('ui:reset-settings', async () => {
   return { ok: true };
 });
 
+// Allow renderer to trigger update checks
+ipcMain.on('check-for-updates', () => {
+  try {
+    autoUpdater.checkForUpdatesAndNotify().catch(() => {});
+  } catch {}
+});
+
 ipcMain.handle('start-google-auth', async (_, clientId: string) => {
   return new Promise((resolve, reject) => {
     const server = http.createServer((req, res) => {

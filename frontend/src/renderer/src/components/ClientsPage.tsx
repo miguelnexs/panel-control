@@ -21,6 +21,8 @@ import {
   Briefcase,
   Phone
 } from 'lucide-react';
+import { useOfflineSync } from '../hooks/useOfflineSync';
+import SyncStatusBanner from './SyncStatusBanner';
 
 interface Client {
   id: number;
@@ -81,6 +83,7 @@ interface ClientsPageProps {
 }
 
 const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient, canCreate, canEdit, canDelete }) => {
+  const offlineSync = useOfflineSync(token);
   const canCreateSafe = typeof canCreate === 'boolean' ? canCreate : true;
   const canEditSafe = typeof canEdit === 'boolean' ? canEdit : true;
   const canDeleteSafe = typeof canDelete === 'boolean' ? canDelete : true;
@@ -113,11 +116,10 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
       const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
       if (search) params.set('search', search);
       if (ordering) params.set('ordering', ordering);
-      const res = await fetch(`${apiBase}/clients/?${params.toString()}`, { headers: authHeaders(token) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'No se pudieron cargar clientes');
-      setItems(Array.isArray(data.results) ? data.results : []);
-      setTotal(Number(data.count || 0));
+      const url = `${apiBase}/clients/?${params.toString()}`;
+      const data = await offlineSync.loadData('clients', url, token);
+      setItems(Array.isArray(data) ? data : []);
+      setTotal(data.length);
     } catch (e: any) {
       setMsg({ type: 'error', text: e.message });
     } finally {
@@ -173,12 +175,15 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
   const confirmDeleteClient = async () => {
     if (!deletingClient) return;
     try {
-      const res = await fetch(`${apiBase}/clients/${deletingClient.id}/`, {
+      const result = await offlineSync.queueMutation({
+        token,
         method: 'DELETE',
-        headers: authHeaders(token)
+        url: `${apiBase}/clients/${deletingClient.id}/`,
+        deleteLocalId: deletingClient.id,
+        store: 'clients',
       });
-      if (res.ok) {
-        setMsg({ type: 'success', text: 'Cliente eliminado' });
+      if (result.ok) {
+        setMsg({ type: 'success', text: result.queued ? 'Cliente eliminado localmente. Se sincronizará al reconectar.' : 'Cliente eliminado' });
         loadClients();
         loadStats();
       } else {
@@ -218,6 +223,15 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
           </div>
         </div>
       )}
+
+      {/* Sync Status */}
+      <SyncStatusBanner
+        isOnline={offlineSync.isOnline}
+        pendingCount={offlineSync.pendingCount}
+        syncing={offlineSync.syncing}
+        lastError={offlineSync.lastError}
+        onSync={offlineSync.syncNow}
+      />
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -16,6 +16,8 @@ import {
   CheckCircle2,
   GripVertical
 } from 'lucide-react';
+import { useOfflineSync } from '../hooks/useOfflineSync';
+import SyncStatusBanner from './SyncStatusBanner';
 import {
   DndContext,
   closestCenter,
@@ -77,6 +79,7 @@ const SortableRow = ({ category, children, disabled }: { category: any, children
   };
 
 const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, role, canCreate, canEdit, canDelete, canReorder }) => {
+  const offlineSync = useOfflineSync(token);
   const canCreateSafe = typeof canCreate === 'boolean' ? canCreate : true;
   const canEditSafe = typeof canEdit === 'boolean' ? canEdit : true;
   const canDeleteSafe = typeof canDelete === 'boolean' ? canDelete : true;
@@ -100,6 +103,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
   const [croppingImage, setCroppingImage] = useState<string | null>(null);
   const searchTimeout = useRef<any>(null);
   const [searchValue, setSearchValue] = useState('');
+  const [cardFilter, setCardFilter] = useState<'all' | 'active' | 'withImage' | 'noImage'>('all');
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -134,10 +138,12 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                const position = (page - 1) * pageSize + i;
                
                promises.push(
-                 fetch(`${apiBase}/products/categories/${item.id}/`, {
+                 offlineSync.queueMutation({
+                   token,
                    method: 'PATCH',
-                   headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
-                   body: JSON.stringify({ position })
+                   url: `${apiBase}/products/categories/${item.id}/`,
+                   body: { position },
+                   store: 'categories',
                  })
                );
             }
@@ -165,11 +171,10 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
       const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
       if (search) params.set('search', search);
       if (ordering) params.set('ordering', ordering);
-      const res = await fetch(`${apiBase}/products/categories/?${params.toString()}`, { headers: authHeaders(token) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'No se pudieron cargar categorías');
-      setItems(Array.isArray(data.results) ? data.results : []);
-      setTotal(Number(data.count || 0));
+      const url = `${apiBase}/products/categories/?${params.toString()}`;
+      const data = await offlineSync.loadData('categories', url, token);
+      setItems(Array.isArray(data) ? data : []);
+      setTotal(data.length);
     } catch (e: any) {
       setMsg({ type: 'error', text: e.message });
     } finally { setLoading(false); }
@@ -284,12 +289,15 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
     if (!deletingCategory) return;
     setMsg(null);
     try {
-      const res = await fetch(`${apiBase}/products/categories/${deletingCategory.id}/`, { method: 'DELETE', headers: authHeaders(token) });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || 'No se pudo eliminar');
-      }
-      setMsg({ type: 'success', text: 'Categoría eliminada' });
+      const result = await offlineSync.queueMutation({
+        token,
+        method: 'DELETE',
+        url: `${apiBase}/products/categories/${deletingCategory.id}/`,
+        deleteLocalId: deletingCategory.id,
+        store: 'categories',
+      });
+      if (!result.ok) throw new Error('No se pudo eliminar');
+      setMsg({ type: 'success', text: result.queued ? 'Categoría eliminada localmente. Se sincronizará al reconectar.' : 'Categoría eliminada' });
       setDeletingCategory(null);
       loadCategories();
     } catch (e: any) {
@@ -307,8 +315,25 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
 
-  const StatCard = ({ label, value, icon: Icon, color }: any) => (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-gray-300 dark:hover:border-gray-700 transition-all">
+  const displayedItems = useMemo(() => {
+    if (cardFilter === 'all') return items;
+    return items.filter((c) => {
+      if (cardFilter === 'active') return !!c.active;
+      if (cardFilter === 'withImage') return !!c.image;
+      if (cardFilter === 'noImage') return !c.image;
+      return true;
+    });
+  }, [items, cardFilter]);
+
+  const StatCard = ({ label, value, icon: Icon, color, filterKey, isActive, onClick }: any) => (
+    <div
+      onClick={onClick}
+      className={`rounded-xl p-4 flex items-center justify-between shadow-sm transition-all ${
+        isActive
+          ? 'ring-2 ring-blue-500 border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-500/10'
+          : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
+      } ${filterKey !== 'all' ? 'cursor-pointer' : ''}`}
+    >
       <div>
         <p className="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">{label}</p>
         <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
@@ -331,6 +356,15 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
         </div>
       )}
 
+      {/* Sync Status */}
+      <SyncStatusBanner
+        isOnline={offlineSync.isOnline}
+        pendingCount={offlineSync.pendingCount}
+        syncing={offlineSync.syncing}
+        lastError={offlineSync.lastError}
+        onSync={offlineSync.syncNow}
+      />
+
       {/* Header & Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
@@ -338,24 +372,36 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
           value={items.length} 
           icon={FolderOpen} 
           color={{ bg: 'bg-blue-500', text: 'text-blue-500' }} 
+          filterKey="all"
+          isActive={cardFilter === 'all'}
+          onClick={() => setCardFilter('all')}
         />
         <StatCard 
           label="Activas" 
           value={items.filter((c) => !!c.active).length} 
           icon={CheckCircle2} 
           color={{ bg: 'bg-emerald-500', text: 'text-emerald-500' }} 
+          filterKey="active"
+          isActive={cardFilter === 'active'}
+          onClick={() => setCardFilter(cardFilter === 'active' ? 'all' : 'active')}
         />
         <StatCard 
           label="Con Imagen" 
           value={items.filter((c) => !!c.image).length} 
           icon={ImageIcon} 
           color={{ bg: 'bg-purple-500', text: 'text-purple-500' }} 
+          filterKey="withImage"
+          isActive={cardFilter === 'withImage'}
+          onClick={() => setCardFilter(cardFilter === 'withImage' ? 'all' : 'withImage')}
         />
         <StatCard 
           label="Sin Imagen" 
           value={items.filter((c) => !c.image).length} 
           icon={AlertCircle} 
           color={{ bg: 'bg-amber-500', text: 'text-amber-500' }} 
+          filterKey="noImage"
+          isActive={cardFilter === 'noImage'}
+          onClick={() => setCardFilter(cardFilter === 'noImage' ? 'all' : 'noImage')}
         />
       </div>
 
@@ -437,10 +483,10 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                 <SortableContext 
-                  items={items.map((c) => c.id)}
+                  items={displayedItems.map((c) => c.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {items.map((c) => (
+                  {displayedItems.map((c) => (
                     <SortableRow key={c.id} category={c} disabled={!canReorderSafe}>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -496,7 +542,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                     </SortableRow>
                   ))}
                 </SortableContext>
-                {items.length === 0 && (
+                {displayedItems.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-500">
                       <div className="flex flex-col items-center justify-center">

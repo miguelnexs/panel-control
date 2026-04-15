@@ -39,7 +39,7 @@ export const useAutoUpdater = () => {
 
       // Check for updates immediately when hook mounts
       // @ts-ignore
-      // window.electron.ipcRenderer.send('check-for-updates');
+      window.electron.ipcRenderer.send('check-for-updates');
 
       return () => {
         // @ts-ignore

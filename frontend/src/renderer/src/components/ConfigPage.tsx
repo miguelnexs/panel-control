@@ -358,7 +358,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
       const logoSrc = printerOpts.logo_mode === 'custom' && printerOpts.logo_url ? printerOpts.logo_url : logo;
       const logoTag = printerOpts.show_logo && logoSrc ? `<div class="c"><img src="${logoSrc.startsWith('http') ? logoSrc : absUrlFn(logoSrc)}" style="width:${Number(printerOpts.logo_width_mm || 45)}mm;height:auto;object-fit:contain"/></div>` : '';
       const alignCls = printerOpts.align === 'left' ? 'l' : printerOpts.align === 'right' ? 'r' : 'c';
-      const css = `*{box-sizing:border-box} body{font-family:Arial, sans-serif;margin:0;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px;width:${paperW}mm} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px} .tab{width:100%;border-collapse:collapse} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
+      const css = `*{box-sizing:border-box} body{font-family:Arial, sans-serif;margin:0 auto;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px;width:100%} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px} .tab{width:100%;border-collapse:collapse} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
       const header = `
         ${logoTag}
         <div class="${alignCls}">
@@ -408,7 +408,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
       
       const alignCls = printerOpts.align === 'left' ? 'l' : printerOpts.align === 'right' ? 'r' : 'c';
       
-      const css = `*{box-sizing:border-box} body{font-family:Arial, sans-serif;margin:0;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px;width:${paperW}mm} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px} .tab{width:100%;border-collapse:collapse} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
+      const css = `*{box-sizing:border-box} body{font-family:Arial, sans-serif;margin:0 auto;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px;width:100%} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px} .tab{width:100%;border-collapse:collapse} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
       
       const header = `
         ${logoTag}
@@ -568,19 +568,6 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                     value={me.last_name} 
                     onChange={handleChange} 
                     className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
-                    <Phone size={14} /> Teléfono
-                  </label>
-                  <input 
-                    name="phone" 
-                    value={me.phone || ''} 
-                    onChange={handleChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
-                    placeholder="+57 300 000 0000"
                   />
                 </div>
               </div>
@@ -928,7 +915,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                     <input 
                       type="number" 
                       name="paper_width_mm" 
-                      value={settings.paper_width_mm || 58} 
+                      value={settings.paper_width_mm ?? ''} 
                       onChange={handleSettingsChange} 
                       className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                     />
@@ -989,7 +976,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                          <input 
                            type="number" 
                            value={printerOpts.logo_width_mm} 
-                           onChange={(e) => setPrinterOpts((p) => ({ ...p, logo_width_mm: Number(e.target.value || 45) }))} 
+                           onChange={(e) => setPrinterOpts((p) => ({ ...p, logo_width_mm: e.target.value === '' ? '' as any : Number(e.target.value) }))} 
                            className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 outline-none"
                          />
                       </div>
@@ -1073,7 +1060,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                     <input 
                       type="number" 
                       value={printerOpts.font_size} 
-                      onChange={(e) => setPrinterOpts((p) => ({ ...p, font_size: Number(e.target.value || 11) }))} 
+                      onChange={(e) => setPrinterOpts((p) => ({ ...p, font_size: e.target.value === '' ? '' as any : Number(e.target.value) }))} 
                       className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 outline-none"
                     />
                   </div>
@@ -1142,7 +1129,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
       {/* Print Preview Modal */}
       {previewHtml && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className={`bg-white rounded-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh] ${Number(printerOpts.font_size || 11) >= 16 ? 'max-w-4xl' : Number(printerOpts.font_size || 11) >= 13 ? 'max-w-2xl' : 'max-w-xl'}`}>
              {/* Preview Header */}
              <div className="p-4 bg-gray-100 border-b flex justify-between items-center">
                 <h3 className="font-bold text-gray-800">Vista Previa de Configuración</h3>
@@ -1153,12 +1140,12 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
              
              {/* Receipt Content - Iframe */}
              <div className="flex-1 overflow-hidden bg-gray-200 flex justify-center p-4">
-                <div className="shadow-lg bg-white overflow-hidden" style={{ width: `${settings.paper_width_mm || 58}mm`, maxHeight: '100%', overflowY: 'auto' }}>
+                <div className="shadow-lg bg-white overflow-hidden" style={{ width: `${(Number(settings.paper_width_mm) || 58) + Math.max(0, (Number(printerOpts.font_size || 11) - 11) * 5)}mm`, maxHeight: '100%', overflowY: 'auto' }}>
                   <iframe 
                     srcDoc={previewHtml} 
                     className="w-full h-full border-none bg-white"
                     title="Config Preview"
-                    style={{ minHeight: '400px' }}
+                    style={{ minHeight: `${Math.max(400, 400 + (Number(printerOpts.font_size || 11) - 11) * 30)}px` }}
                   />
                 </div>
              </div>
