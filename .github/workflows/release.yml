@@ -43,10 +43,16 @@ jobs:
         working-directory: frontend
         run: npm run build:web
 
+      - name: Pack Web Build (zip)
+        working-directory: frontend
+        run: |
+          if (Test-Path "dist-web.zip") { Remove-Item "dist-web.zip" -Force }
+          Compress-Archive -Path "dist-web\\*" -DestinationPath "dist-web.zip" -Force
+
       - name: Upload Web Build to Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            frontend/dist-web/**
+            frontend/dist-web.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
