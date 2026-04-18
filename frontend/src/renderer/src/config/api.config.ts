@@ -2,7 +2,7 @@
 // Este archivo centraliza la configuración de la API
 
 // ===== CONFIGURACIÓN DE API =====
-export const API_BASE_URL: string = 'https://softwarebycg.shop';
+export const API_BASE_URL: string = 'https://softwarebycg.shop/api';
 // ===== FIN CONFIGURACIÓN =====
 
 // Helper para construir URLs completas

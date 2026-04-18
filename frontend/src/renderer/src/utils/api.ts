@@ -1,7 +1,7 @@
 // Utilidad para centralizar la configuración de API
 // Este archivo permite cambiar fácilmente entre desarrollo y producción
 
-export const API_BASE_URL: string = 'https://softwarebycg.shop';
+export const API_BASE_URL: string = 'https://softwarebycg.shop/api';
 
 // Helper para construir URLs completas
 export const buildApiUrl = (endpoint: string): string => {
