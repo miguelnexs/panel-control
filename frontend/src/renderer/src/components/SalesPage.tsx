@@ -116,6 +116,11 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
   const [currentAvailableStock, setCurrentAvailableStock] = useState(0);
   const [selectionQty, setSelectionQty] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'mixed'>('cash');
+  const [isApartado, setIsApartado] = useState(false);
+  const [apartadoAmount, setApartadoAmount] = useState('');
+  const [cashReceived, setCashReceived] = useState('');
+  const [mixedCashPart, setMixedCashPart] = useState('');
   const [stats, setStats] = useState<{
     total_sales: number;
     total_amount: string;
@@ -283,14 +288,14 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
             setLoading(false);
             return;
         }
+        
+        // Direct add for products without variations - use fullProduct with all fields
+        setCart((c) => [...c, { product: fullProduct, colorId: null, variantId: null, quantity: 1 }]);
     } catch (e) {
         console.error("Error loading product details:", e);
     } finally {
         setLoading(false);
     }
-
-    // Direct add for products without variations
-    setCart((c) => [...c, { product, colorId: null, variantId: null, quantity: 1 }]);
     setOpenCart(true);
   };
 
@@ -342,7 +347,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
 
   const getItemPrice = (item: CartItem) => {
     let price =
-      item.product.is_sale && item.product.sale_price != null && Number(item.product.sale_price) > 0
+      item.product.sale_price != null && Number(item.product.sale_price) > 0
         ? Number(item.product.sale_price)
         : Number(item.product.price || 0);
     if (item.variantId) {
@@ -356,6 +361,23 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
   const totalAmount = useMemo(() => {
     return cart.reduce((sum, it) => sum + getItemPrice(it) * Number(it.quantity || 0), 0);
   }, [cart, variantOptions]);
+
+  const paymentSummary = useMemo(() => {
+    const total = isApartado ? Number(apartadoAmount || 0) : Number(totalAmount || 0);
+    if (paymentMethod === 'transfer') {
+      return { cashPart: 0, transferPart: total, change: 0 };
+    }
+    if (paymentMethod === 'cash') {
+      const received = Number(cashReceived || total);
+      const change = Math.max(0, received - total);
+      return { cashPart: total, transferPart: 0, change };
+    }
+    const cashPart = Math.max(0, Math.min(total, Number(mixedCashPart || 0)));
+    const transferPart = Math.max(0, total - cashPart);
+    const received = Number(cashReceived || cashPart);
+    const change = Math.max(0, received - cashPart);
+    return { cashPart, transferPart, change };
+  }, [totalAmount, isApartado, apartadoAmount, paymentMethod, cashReceived, mixedCashPart]);
 
   const validateCart = async () => {
     for (const it of cart) {
@@ -392,6 +414,28 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     
     const val = await validateCart();
     if (!val.ok) { setMsg({ type: 'error', text: val.msg }); return; }
+
+    if (paymentMethod === 'cash') {
+      const expectedTotal = isApartado ? Number(apartadoAmount || 0) : totalAmount;
+      const received = Number(cashReceived || expectedTotal);
+      if (!Number.isFinite(received) || received < expectedTotal) {
+        setMsg({ type: 'error', text: 'En efectivo, el monto recibido debe ser mayor o igual al monto pagar.' });
+        return;
+      }
+    }
+    if (paymentMethod === 'mixed') {
+      const expectedTotal = isApartado ? Number(apartadoAmount || 0) : totalAmount;
+      const cashPart = Number(mixedCashPart || 0);
+      if (!Number.isFinite(cashPart) || cashPart <= 0 || cashPart >= expectedTotal) {
+        setMsg({ type: 'error', text: 'En pago mixto, la parte en efectivo debe ser mayor a 0 y menor al monto a pagar.' });
+        return;
+      }
+      const received = Number(cashReceived || cashPart);
+      if (!Number.isFinite(received) || received < cashPart) {
+        setMsg({ type: 'error', text: 'En pago mixto, el efectivo recibido debe cubrir la parte en efectivo.' });
+        return;
+      }
+    }
     
     const payload = {
       client_id: selectedClientId || undefined,
@@ -400,6 +444,12 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
       client_email: selectedClientId ? undefined : (clientForm.email || '').trim(),
       client_phone: selectedClientId ? undefined : (clientForm.phone || '').trim(),
       client_address: selectedClientId ? undefined : (clientForm.address || '').trim(),
+      status: isApartado ? 'apartado' : 'pending',
+      payment_method: paymentMethod,
+      cash_amount: Number(paymentSummary.cashPart || 0),
+      transfer_amount: Number(paymentSummary.transferPart || 0),
+      change_amount: Number(paymentSummary.change || 0),
+      apartado_amount: isApartado ? Number(apartadoAmount || 0) : 0,
       items: cart.map((it) => ({ 
         product_id: it.product.id, 
         color_id: it.colorId ? Number(it.colorId) : null,
@@ -432,6 +482,11 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
       setOpenCart(false);
       setClientForm({ client_type: 'person', full_name: '', cedula: '', email: '', address: '', phone: '' });
       setSelectedClientId('');
+      setPaymentMethod('cash');
+      setIsApartado(false);
+      setApartadoAmount('');
+      setCashReceived('');
+      setMixedCashPart('');
       if (onSaleCreated) onSaleCreated();
     } catch (e: any) {
       setMsg({ type: 'error', text: e.message });
@@ -611,7 +666,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                     const variants = variantOptions[p.id] || [];
                     const selectedVarId = selectedVariantMap[p.id];
                     const selectedVariant = variants.find(v => String(v.id) === String(selectedVarId));
-                    const hasOffer = Boolean(p.is_sale && p.sale_price != null && Number(p.sale_price) > 0);
+                    const hasOffer = Boolean(p.sale_price != null && Number(p.sale_price) > 0);
                     const basePrice = hasOffer ? Number(p.sale_price) : Number(p.price);
                     const displayPrice = basePrice + (selectedVariant ? Number(selectedVariant.extra_price) : 0);
 
@@ -724,7 +779,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                     <div className="flex justify-between items-start mb-1">
                                         <div className="flex items-center gap-2 min-w-0 pr-2">
                                           <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">{it.product.name}</h4>
-                                          {it.product.is_sale && it.product.sale_price != null && Number(it.product.sale_price) > 0 && (
+                                          {it.product.sale_price != null && Number(it.product.sale_price) > 0 && (
                                             <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-600 text-white font-bold shrink-0">
                                               Oferta
                                             </span>
@@ -815,6 +870,125 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                     </div>
 
                     <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                        <div className="mb-4 space-y-3">
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado del Pedido</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => { setIsApartado(false); setPaymentMethod('cash'); }}
+                                    className={`py-2 rounded-lg text-xs font-semibold border transition-colors ${!isApartado ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700'}`}
+                                >
+                                    Venta Normal
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsApartado(true)}
+                                    className={`py-2 rounded-lg text-xs font-semibold border transition-colors ${isApartado ? 'bg-amber-600 text-white border-amber-600' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700'}`}
+                                >
+                                    Apartado
+                                </button>
+                            </div>
+                        </div>
+
+                        {isApartado && (
+                            <div className="mb-4 space-y-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-4">
+                                <label className="text-xs font-medium text-amber-900 dark:text-amber-200 uppercase tracking-wider">Monto de Abono (Apartado)</label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    max={Number(totalAmount || 0)}
+                                    value={apartadoAmount}
+                                    onChange={(e) => setApartadoAmount(e.target.value)}
+                                    className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-500/20 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
+                                    placeholder="0"
+                                />
+                                <div className="text-xs text-amber-900 dark:text-amber-200">
+                                    Pendiente: <span className="font-semibold">{(Number(totalAmount || 0) - Number(apartadoAmount || 0)).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
+                                </div>
+                                <div className="text-xs text-amber-700 dark:text-amber-300 bg-white dark:bg-gray-900 rounded p-2 border border-amber-100 dark:border-amber-500/20">
+                                    ℹ️ El pedido se registrará como "Apartado" con un abono inicial.
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="mb-4 space-y-3">
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Método de pago</label>
+                            <div className="grid grid-cols-3 gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setPaymentMethod('cash')}
+                                    className={`py-2 rounded-lg text-xs font-semibold border transition-colors ${paymentMethod === 'cash' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700'}`}
+                                >
+                                    Efectivo
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setPaymentMethod('transfer')}
+                                    className={`py-2 rounded-lg text-xs font-semibold border transition-colors ${paymentMethod === 'transfer' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700'}`}
+                                >
+                                    Transferencia
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setPaymentMethod('mixed')}
+                                    className={`py-2 rounded-lg text-xs font-semibold border transition-colors ${paymentMethod === 'mixed' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700'}`}
+                                >
+                                    Mixto
+                                </button>
+                            </div>
+
+                            {paymentMethod === 'cash' && (
+                                <div className="space-y-2">
+                                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Efectivo recibido</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        value={cashReceived}
+                                        onChange={(e) => setCashReceived(e.target.value)}
+                                        className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+                                        placeholder="0"
+                                    />
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                                        Cambio: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{paymentSummary.change.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {paymentMethod === 'mixed' && (
+                                <div className="space-y-2">
+                                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Parte en efectivo</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={isApartado ? Number(apartadoAmount || 0) : Number(totalAmount || 0)}
+                                        value={mixedCashPart}
+                                        onChange={(e) => setMixedCashPart(e.target.value)}
+                                        className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                        placeholder="0"
+                                    />
+                                    <label className="text-[11px] text-gray-500 dark:text-gray-400">Efectivo recibido</label>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        value={cashReceived}
+                                        onChange={(e) => setCashReceived(e.target.value)}
+                                        className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/40"
+                                        placeholder="0"
+                                    />
+                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                        <div className="text-gray-500 dark:text-gray-400">Transferencia: <span className="font-semibold text-blue-600 dark:text-blue-400">{paymentSummary.transferPart.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span></div>
+                                        <div className="text-gray-500 dark:text-gray-400 text-right">Cambio: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{paymentSummary.change.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {paymentMethod === 'transfer' && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-lg px-3 py-2">
+                                    Pago por transferencia: {(isApartado ? Number(apartadoAmount || 0) : totalAmount).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                                </div>
+                            )}
+                        </div>
+
                         <div className="flex items-center justify-between mb-4">
                             <span className="text-gray-500 dark:text-gray-400">Total a Pagar</span>
                             <span className="text-2xl font-bold text-gray-900 dark:text-white">
