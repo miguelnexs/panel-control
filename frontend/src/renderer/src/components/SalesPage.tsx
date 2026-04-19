@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { 
   ShoppingCart, 
   Search, 
@@ -83,6 +83,7 @@ interface SalesPageProps {
 
 const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) => {
   const offlineSync = useOfflineSync(token);
+  const gridRef = useRef<HTMLDivElement>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [msg, setMsg] = useState<Msg | null>(null);
@@ -229,8 +230,18 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     if (token) loadCatalog();
   }, [token, page, debouncedSearch]);
 
+  useEffect(() => {
+    if (gridRef.current) {
+        gridRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [page]);
+
   // We now use server-side results instead of local filtering
-  const filtered = products;
+  const displayed = products.length > pageSize 
+    ? products.slice((page - 1) * pageSize, page * pageSize) 
+    : products;
+
+  const filtered = displayed;
 
   useEffect(() => {
     if (selectingProduct) {
@@ -304,12 +315,12 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
         
         // Direct add for products without variations - use fullProduct with all fields
         setCart((c) => [...c, { product: fullProduct, colorId: null, variantId: null, quantity: 1 }]);
+        setMsg({ type: 'success', text: `Agregado: ${fullProduct.name}` });
     } catch (e) {
         console.error("Error loading product details:", e);
     } finally {
         setLoading(false);
     }
-    setOpenCart(true);
   };
 
   const confirmSelection = () => {
@@ -346,8 +357,8 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
         quantity: selectionQty 
     }]);
     
+    setMsg({ type: 'success', text: `Agregado: ${selectingProduct.name}` });
     setSelectingProduct(null);
-    setOpenCart(true);
   };
 
   const updateCart = (idx: number, patch: Partial<CartItem>) => {
@@ -671,9 +682,9 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
         </div>
 
         {/* Product Grid */}
-        <div className="flex-1 overflow-y-auto pr-2">
+        <div ref={gridRef} className="flex-1 overflow-y-auto no-scrollbar">
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 pb-20">
-                {filtered.slice(0, pageSize).map((p) => {
+                {filtered.map((p) => {
                     const sel = selectedColorMap[p.id];
                     const imgSrc = sel ? firstColorImage(p, sel) : (p.image ? mediaUrl(p.image) : '');
                     const variants = variantOptions[p.id] || [];

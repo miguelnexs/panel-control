@@ -6,7 +6,9 @@ import {
   Users, 
   BarChart3, 
   ShieldCheck, 
-  Globe2
+  Globe2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import logo from '../assets/logo.png';
 import { useAutoUpdater } from '../hooks/useAutoUpdater';
@@ -23,6 +25,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   
   // Custom hook for auto-updater
   const { status: updateStatus, progress: updateProgress, message: updateMessage } = useAutoUpdater();
@@ -299,13 +302,20 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
                   <input
                     id="password"
                     name="password"
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 bg-gray-900/50 border border-gray-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-white placeholder-gray-600 transition-all outline-none"
+                    className="w-full pl-10 pr-12 py-3 bg-gray-900/50 border border-gray-800 rounded-xl focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 text-white placeholder-gray-600 transition-all outline-none"
                     placeholder="••••••••"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500 hover:text-white transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
                 </div>
               </div>
 

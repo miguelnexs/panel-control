@@ -125,6 +125,15 @@
     background-color: rgba(100, 116, 139, 0.8); /* slate-500 */
   }
 
+  /* Ocultar barra de scroll pero mantener funcionalidad */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE y Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
   /* Botones morados (primario) */
   .btn-brand {
     background-color: #4f46e5; /* indigo-600 */
