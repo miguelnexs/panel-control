@@ -77,6 +77,12 @@ interface Order {
   items?: OrderItem[];
   status?: string;
   dian?: DianInfo;
+  payment_method?: string;
+  cash_amount?: number | string;
+  transfer_amount?: number | string;
+  change_amount?: number | string;
+  apartado_amount?: number | string;
+  apartado_date?: string;
 }
 
 interface Msg {
@@ -128,7 +134,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
     margin_top: 10, margin_bottom: 10, show_qr: false, logo_mode: 'company', logo_url: '', logo_width_mm: 45
   });
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(30);
   const [total, setTotal] = useState(0);
   
   const [toast, setToast] = useState<{message: string, type: ToastType, isVisible: boolean}>({
@@ -228,35 +234,81 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
     
     const alignCls = printerOpts.align === 'left' ? 'l' : printerOpts.align === 'right' ? 'r' : 'c';
     
-    const css = `*{box-sizing:border-box} body{font-family:Arial, sans-serif;margin:0;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px;width:${paperW}mm} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px} .tab{width:100%;border-collapse:collapse} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
+    const css = `@page{size:${paperW}mm auto;margin:0} *{box-sizing:border-box} html{background:#fff} html,body{margin:0;padding:0} body{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#fff;font-family:Arial, sans-serif;width:${paperW}mm;margin:0 auto;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px} img{max-width:100%;height:auto} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap} .tab{width:100%;border-collapse:collapse;table-layout:fixed} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px;vertical-align:top} .tab td{word-break:break-word} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
     
-    const itemsHtml = (order.items || []).map((it) => `<tr><td>${it.product?.name || 'Item'}</td><td class="c">${it.quantity}</td><td class="r">${Number(it.unit_price).toLocaleString('es-CO',{style:'currency',currency:'COP'})}</td><td class="r">${Number(it.line_total).toLocaleString('es-CO',{style:'currency',currency:'COP'})}</td></tr>`).join('');
+    const itemsHtml = (order.items || []).map((it) => `<tr><td>${it.product?.name || 'Item'}</td><td class="c">${it.quantity}</td><td class="r">${Number(it.unit_price).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0})}</td><td class="r">${Number(it.line_total).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0})}</td></tr>`).join('');
+    
+    // Determinar método de pago
+    const paymentMethodText = (() => {
+      if (order.payment_method === 'cash') return 'Efectivo';
+      if (order.payment_method === 'transfer') return 'Transferencia';
+      if (order.payment_method === 'mixed') return 'Mixto (Efectivo + Transferencia)';
+      return 'No especificado';
+    })();
+    
+    // Determinar si está apartado
+    const statusText = order.status === 'apartado' ? 'SEPARADO' : null;
+    
+    // Datos adicionales del cliente
+    const clientCedula = order.client?.cedula ? `CC/NIT: ${order.client.cedula}` : '';
+    const clientEmail = order.client?.email || '';
+    const clientPhone = order.client?.phone || '';
+    const clientAddress = order.client?.address || '';
+    const apartoAmountText = order.status === 'apartado' && order.apartado_amount ? Number(order.apartado_amount).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}) : null;
     
     const header = `
       ${logoTag}
       <div class="${alignCls}">
-        <div class="t">${brand}</div>
-        <div class="small">${nit}</div>
-        <div class="small">${addr}</div>
-        <div class="small">${phone}</div>
+        <div class="t" style="font-size: ${Number(printerOpts.font_size || 11) + 2}px; color: ${primary};">${brand}</div>
+        <div class="small" style="color: #666;">${nit}</div>
+        <div class="small" style="color: #666;">${addr}</div>
+        <div class="small" style="color: #666;">${phone}</div>
         ${printerOpts.header1 ? `<div class="small">${printerOpts.header1}</div>` : ''}
         ${printerOpts.header2 ? `<div class="small">${printerOpts.header2}</div>` : ''}
       </div>
       <div class="hr"></div>
-      <div class="row small"><div>Orden: ${order.order_number}</div><div>${new Date(order.created_at).toLocaleString()}</div></div>
-      <div class="row small"><div>Cliente: ${order.client?.full_name || 'Ocasional'}</div><div></div></div>
+      
+      <!-- Información del Pedido -->
+      <div style="background: #f8f9fa; border-radius: 4px; padding: 6px; margin: 6px 0;">
+        <div class="row small" style="margin-bottom: 3px;">
+          <div><strong>Orden:</strong> ${order.order_number}</div>
+          <div><strong>Fecha:</strong> ${new Date(order.created_at).toLocaleString()}</div>
+        </div>
+      </div>
+      
+      <!-- Información del Cliente -->
+      <div style="background: #f8f9fa; border-radius: 4px; padding: 6px; margin: 6px 0;">
+        <div class="small" style="color: ${primary}; font-weight: 600; margin-bottom: 4px;">👤 INFORMACIÓN DEL CLIENTE</div>
+        <div class="small" style="margin-bottom: 2px;"><strong>Nombre:</strong> ${order.client?.full_name || 'Ocasional'}</div>
+        ${clientCedula ? `<div class="small" style="margin-bottom: 2px;">${clientCedula}</div>` : ''}
+        ${clientEmail ? `<div class="small" style="margin-bottom: 2px;">📧 ${clientEmail}</div>` : ''}
+        ${clientPhone ? `<div class="small" style="margin-bottom: 2px;">📱 ${clientPhone}</div>` : ''}
+        ${clientAddress ? `<div class="small">📍 ${clientAddress}</div>` : ''}
+      </div>
+      
+      <!-- Información del Pago -->
+      <div style="background: #f8f9fa; border-radius: 4px; padding: 6px; margin: 6px 0;">
+        <div class="small" style="color: ${primary}; font-weight: 600; margin-bottom: 4px;">💳 INFORMACIÓN DEL PAGO</div>
+        <div class="row small">
+          <div><strong>Método:</strong> ${paymentMethodText}</div>
+        </div>
+        ${apartoAmountText ? `<div class="row small" style="margin-top: 4px;"><div><strong>Abono:</strong> ${apartoAmountText}</div><div></div></div>` : ''}
+        ${statusText ? `<div class="row small" style="margin-top: 4px; color: #f59e0b; font-weight: 600;"><div>⚠️ ${statusText}</div><div></div></div>` : ''}
+      </div>
+      
+      <div class="hr"></div>
     `;
     
     const table = `
       <table class="tab">
         <thead><tr><th>Producto</th><th class="c">Cant</th><th class="r">Unit</th><th class="r">Total</th></tr></thead>
         <tbody>${itemsHtml}</tbody>
-        <tfoot><tr><td colspan="3" class="t">Total</td><td class="r t">${Number(order.total_amount).toLocaleString('es-CO',{style:'currency',currency:'COP'})}</td></tr></tfoot>
+        <tfoot><tr><td colspan="3" class="t">Total</td><td class="r t">${Number(order.total_amount).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0})}</td></tr></tfoot>
       </table>
     `;
     
     const qr = printerOpts.show_qr ? `<div class="c"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(order.order_number)}" style="width:35mm;height:35mm;object-fit:contain"/></div>` : '';
-    const footer = `<div class="hr"></div><div class="${alignCls} small">${settings.receipt_footer || ''}</div>${qr}`;
+    const footer = `<div class="hr"></div>${qr}<div class="${alignCls} small">${settings.receipt_footer || ''}</div>`;
     
     return `<!doctype html><html><head><meta charset="utf-8"><title>Recibo ${order.order_number}</title><style>${css}</style></head><body>${header}${table}${footer}</body></html>`;
   };
@@ -269,36 +321,9 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
 
   const confirmSilentPrint = async () => {
     if (!printingOrder) return;
-    
-    showToast('Iniciando servicio de impresión...', 'loading');
-    
-    try {
-      const html = generateReceiptHtml(printingOrder);
-      const printerName = settings.printer_name || '';
-      
-      // @ts-ignore
-      if (window.electron && window.electron.ipcRenderer) {
-         console.log('Enviando a imprimir...', printerName);
-         // @ts-ignore
-         const result = await window.electron.ipcRenderer.invoke('print-silent', { 
-           content: html,
-           printerName: printerName
-         });
-         
-         if (!result.success) {
-           throw new Error(result.error);
-         }
-         showToast('Impresión enviada correctamente', 'success');
-         setShowPrintPreview(false);
-      } else {
-        console.warn('Electron no detectado');
-        showToast('Abriendo diálogo de impresión...', 'info');
-        handlePrint();
-      }
-    } catch (error: any) {
-      console.error('Error printing:', error);
-      showToast('Error al imprimir: ' + (error.message || 'Error desconocido'), 'error');
-    }
+
+    showToast('Abriendo diálogo de impresión...', 'info');
+    handlePrint();
   };
 
   const handlePrint = () => {
@@ -308,9 +333,24 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
     if (win) {
       win.document.write(html);
       win.document.close();
-      win.focus();
-      win.print();
-      setShowPrintPreview(false);
+      const finish = () => {
+        setShowPrintPreview(false);
+        try { win.close(); } catch {}
+      };
+      const safePrint = async () => {
+        const waitForLoad = new Promise<void>((resolve) => win.addEventListener('load', () => resolve(), { once: true }));
+        const waitTimeout = new Promise<void>((resolve) => setTimeout(() => resolve(), 1500));
+        await Promise.race([waitForLoad, waitTimeout]);
+        const imgs = Array.from(win.document.images || []);
+        const imgsDone = Promise.all(imgs.map((img) => (img.complete ? Promise.resolve() : new Promise<void>((r) => { img.onload = () => r(); img.onerror = () => r(); }))));
+        await Promise.race([imgsDone, waitTimeout]);
+        await new Promise((r) => setTimeout(r, 150));
+        win.focus();
+        win.onafterprint = finish;
+        win.print();
+        setTimeout(finish, 1200);
+      };
+      safePrint();
     }
   };
 
@@ -322,10 +362,11 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
       if (statusFilter !== 'all') params.set('status', statusFilter);
       
       const url = `${apiBase}/sales/list/?${params.toString()}`;
-      const data = await offlineSync.loadData('orders', url, token);
+      // Use loadPaginatedData to get both items and total count correctly
+      const { items, total: serverTotal } = await offlineSync.loadPaginatedData('orders', url, token);
       
-      setOrders(Array.isArray(data) ? data : []);
-      setTotal(data.length);
+      setOrders(items);
+      setTotal(serverTotal);
     } catch(e: any) {
       showToast(e.message, 'error');
     } finally {
@@ -469,6 +510,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
 
   const getStatusLabel = (status: string = 'pending') => {
     switch(status.toLowerCase()) {
+      case 'apartado': return 'Apartado';
       case 'completed':
       case 'delivered': return 'Entregado';
       case 'pending': return 'Pendiente';
@@ -567,6 +609,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
               >
                 <option value="all">Todos los estados</option>
                 <option value="pending">Pendiente</option>
+                <option value="apartado">Apartado</option>
                 <option value="processing">Procesando</option>
                 <option value="delivered">Entregado</option>
                 <option value="cancelled">Cancelado</option>
@@ -590,6 +633,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pedido</th>
                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
+                <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Método de Pago</th>
                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Fecha</th>
                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Acciones</th>
@@ -618,12 +662,44 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                     </div>
                   </td>
                   <td className="px-6 py-4">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        {o.payment_method === 'cash' && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                            Efectivo
+                          </span>
+                        )}
+                        {o.payment_method === 'transfer' && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400">
+                            Transferencia
+                          </span>
+                        )}
+                        {o.payment_method === 'mixed' && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400">
+                            Mixto
+                          </span>
+                        )}
+                        {!o.payment_method && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400">
+                            Sin especificar
+                          </span>
+                        )}
+                      </div>
+                      {o.status === 'apartado' && Number(o.apartado_amount) > 0 && (
+                        <div className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
+                          Abono: {Number(o.apartado_amount).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
                     <select
                       value={o.status || 'pending'}
                       onChange={(e) => handleStatusUpdate(o.id, e.target.value)}
                       className={`px-2.5 py-1 rounded-full text-xs font-medium border cursor-pointer outline-none transition-all dark:bg-gray-900 ${getStatusColor(o.status)}`}
                     >
                       <option value="pending">Pendiente</option>
+                      <option value="apartado">Apartado</option>
                       <option value="processing">Procesando</option>
                       <option value="shipped">Enviado</option>
                       <option value="delivered">Entregado</option>
@@ -742,6 +818,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                     className={`px-3 py-1 rounded-full text-xs font-bold border cursor-pointer outline-none transition-all dark:bg-gray-900 ${getStatusColor(viewOrder.status)}`}
                  >
                     <option value="pending">Pendiente</option>
+                    <option value="apartado">Apartado</option>
                     <option value="processing">Procesando</option>
                     <option value="shipped">Enviado</option>
                     <option value="delivered">Entregado</option>
@@ -803,6 +880,77 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                         <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
                         <span className="text-gray-900 dark:text-white">{Number(viewOrder.total_amount).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
                       </div>
+                      
+                      {/* Payment Method */}
+                      <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Método de Pago:</span>
+                          {viewOrder.payment_method === 'cash' && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                              Efectivo
+                            </span>
+                          )}
+                          {viewOrder.payment_method === 'transfer' && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400">
+                              Transferencia
+                            </span>
+                          )}
+                          {viewOrder.payment_method === 'mixed' && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400">
+                              Mixto
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Payment Details */}
+                        {viewOrder.payment_method === 'cash' && (
+                          <div className="text-xs space-y-1 ml-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-600 dark:text-gray-400">Efectivo:</span>
+                              <span className="text-gray-900 dark:text-white font-medium">{Number(viewOrder.cash_amount || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
+                            </div>
+                            {Number(viewOrder.change_amount || 0) > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-gray-600 dark:text-gray-400">Vuelto:</span>
+                                <span className="text-emerald-600 dark:text-emerald-400 font-medium">{Number(viewOrder.change_amount || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {viewOrder.payment_method === 'transfer' && (
+                          <div className="text-xs space-y-1 ml-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-gray-600 dark:text-gray-400">Transferencia:</span>
+                              <span className="text-gray-900 dark:text-white font-medium">{Number(viewOrder.transfer_amount || viewOrder.total_amount).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {viewOrder.payment_method === 'mixed' && (
+                          <div className="text-xs space-y-1 ml-0">
+                            {Number(viewOrder.cash_amount || 0) > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-gray-600 dark:text-gray-400">Efectivo:</span>
+                                <span className="text-gray-900 dark:text-white font-medium">{Number(viewOrder.cash_amount || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
+                              </div>
+                            )}
+                            {Number(viewOrder.transfer_amount || 0) > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-gray-600 dark:text-gray-400">Transferencia:</span>
+                                <span className="text-gray-900 dark:text-white font-medium">{Number(viewOrder.transfer_amount || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
+                              </div>
+                            )}
+                            {Number(viewOrder.change_amount || 0) > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-gray-600 dark:text-gray-400">Vuelto:</span>
+                                <span className="text-emerald-600 dark:text-emerald-400 font-medium">{Number(viewOrder.change_amount || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-gray-600 dark:text-gray-400">Envío</span>
                         <span className="text-gray-900 dark:text-white">$0</span>

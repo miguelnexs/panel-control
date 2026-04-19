@@ -63,11 +63,18 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
       }
 
       const meRes = await fetch(`${apiBase}/users/api/auth/me/`, {
-        headers: { Authorization: `Bearer ${data.access}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.access}` },
       });
-      const meData = await meRes.json();
+      const meRawText = await meRes.text();
+      let meData: any = {};
+      if (meRawText) {
+        try { meData = JSON.parse(meRawText); } catch { meData = {}; }
+      }
       
-      if (!meRes.ok) throw new Error('No se pudo obtener el perfil del usuario');
+      if (!meRes.ok) {
+        const detail = meData?.detail || meData?.message || `Error ${meRes.status}`;
+        throw new Error(`No se pudo obtener el perfil: ${detail}`);
+      }
 
       // Verificar si tiene plan pagado
       if (!meData.has_paid) {

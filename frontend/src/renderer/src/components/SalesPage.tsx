@@ -100,6 +100,12 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
   const [isCreatingClient, setIsCreatingClient] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(30);
+  const [total, setTotal] = useState(0);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  
   const [colorOptions, setColorOptions] = useState<Record<number, Color[]>>({});
   const [selectedColorMap, setSelectedColorMap] = useState<Record<number, string>>({});
   
@@ -174,27 +180,42 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     }
   };
 
+  // Handle search debouncing
   useEffect(() => {
-    const loadAll = async () => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // Reset to page 1 on new search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    const loadCatalog = async () => {
       setLoading(true);
       try {
-        const [prodsData, clientsData] = await Promise.all([
-          offlineSync.loadData('sales', `${apiBase}/products/`, token),
+        const params = new URLSearchParams({ 
+          page: String(page), 
+          page_size: String(pageSize),
+          active: 'true'
+        });
+        if (debouncedSearch) params.set('search', debouncedSearch);
+
+        const [prodsResult, clientsData] = await Promise.all([
+          offlineSync.loadPaginatedData('sales', `${apiBase}/products/?${params.toString()}`, token),
           offlineSync.loadData('clients', `${apiBase}/clients/?page_size=200`, token),
         ]);
-        const active = (Array.isArray(prodsData) ? prodsData : []).filter((p: Product) => !!p.active);
-        setProducts(active);
+        
+        setProducts(prodsResult.items);
+        setTotal(prodsResult.total);
         
         // Pre-fill colors if available in product data
         const cMap: Record<number, Color[]> = {};
         const cSel: Record<number, string> = {};
-        for (const p of active) {
+        for (const p of prodsResult.items) {
           if (Array.isArray(p.colors) && p.colors.length > 0) {
             cMap[p.id] = p.colors;
             cSel[p.id] = String(p.colors[0].id);
           }
-          // Pre-fetch variants for visible products
-          loadVariants(p.id);
         }
         setColorOptions(cMap);
         setSelectedColorMap(cSel);
@@ -205,19 +226,11 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
         setLoading(false);
       }
     };
-    if (token) loadAll();
-  }, [token]);
+    if (token) loadCatalog();
+  }, [token, page, debouncedSearch]);
 
-  const filtered = products.filter((p) => {
-    const q = search.trim().toLowerCase();
-    const nameMatch = String(p.name || '').toLowerCase().includes(q);
-    const catMatch = String(p.category_name || '').toLowerCase().includes(q);
-    const skuMatch = String((p as any).sku || '').toLowerCase().includes(q);
-    const skuListMatch = Array.isArray((p as any).skus)
-      ? (p as any).skus.some((s: any) => String(s?.sku || '').toLowerCase().includes(q))
-      : false;
-    return q === '' || nameMatch || catMatch || skuMatch || skuListMatch;
-  });
+  // We now use server-side results instead of local filtering
+  const filtered = products;
 
   useEffect(() => {
     if (selectingProduct) {
@@ -660,7 +673,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
         {/* Product Grid */}
         <div className="flex-1 overflow-y-auto pr-2">
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 pb-20">
-                {filtered.map((p) => {
+                {filtered.slice(0, pageSize).map((p) => {
                     const sel = selectedColorMap[p.id];
                     const imgSrc = sel ? firstColorImage(p, sel) : (p.image ? mediaUrl(p.image) : '');
                     const variants = variantOptions[p.id] || [];
@@ -737,6 +750,34 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                     );
                 })}
             </div>
+
+            {/* Pagination Controls */}
+            {total > pageSize && (
+                <div className="mt-6 mb-20 flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-2xl shadow-sm">
+                    <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                        Mostrando <span className="text-gray-900 dark:text-white">{Math.min(filtered.length, pageSize)}</span> de <span className="text-gray-900 dark:text-white">{total}</span> productos
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button 
+                            onClick={() => setPage((p) => Math.max(1, p - 1))} 
+                            disabled={page === 1}
+                            className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all border border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+                        >
+                            Anterior
+                        </button>
+                        <div className="flex items-center justify-center px-4 py-2 bg-blue-50 dark:bg-blue-500/10 rounded-xl border border-blue-100 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 font-bold text-sm min-w-[100px]">
+                            Página {page} / {Math.max(1, Math.ceil(total / pageSize))}
+                        </div>
+                        <button 
+                            onClick={() => setPage((p) => p + 1)} 
+                            disabled={page >= Math.ceil(total / pageSize)}
+                            className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all border border-transparent hover:border-gray-300 dark:hover:border-gray-600"
+                        >
+                            Siguiente
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
       </div>
 

@@ -620,10 +620,15 @@ ipcMain.handle('open-path', async (_, pathStr: string) => {
   }
 });
 
-ipcMain.handle('print-silent', async (_, { content, printerName }) => {
+ipcMain.handle('print-silent', async (_, { content, printerName, paperWidthMm }) => {
     console.log('Main: Received print-silent request');
+    const widthMm = Number(paperWidthMm || 58);
+    const widthPx = Math.max(320, Math.min(900, Math.round((widthMm / 25.4) * 203)));
     const printWindow = new BrowserWindow({
       show: false,
+      width: widthPx,
+      height: 900,
+      useContentSize: true,
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true
@@ -640,10 +645,15 @@ ipcMain.handle('print-silent', async (_, { content, printerName }) => {
       console.log('Target printer:', targetPrinter ? targetPrinter.name : 'Unknown');
 
       await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(content)}`);
-      
-      // Wait for content to render - Critical for thermal printers
-      console.log('Main: Waiting for render...');
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise<void>((resolve) => printWindow.webContents.once('did-finish-load', () => resolve()));
+      await printWindow.webContents.executeJavaScript(
+        'new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))',
+      );
+
+      const heightPx = await printWindow.webContents.executeJavaScript(
+        'Math.max(document.body?.scrollHeight||0, document.documentElement?.scrollHeight||0, document.body?.offsetHeight||0, 1)',
+      );
+      const heightMicrons = Math.max(80000, Math.min(2000000, Math.round((Number(heightPx) * 25.4 / 96) * 1000)));
 
       const options = {
         silent: true,
@@ -651,15 +661,21 @@ ipcMain.handle('print-silent', async (_, { content, printerName }) => {
         margins: {
           marginType: 'none'
         },
-        printBackground: true
+        pageSize: {
+          width: Math.round(widthMm * 1000),
+          height: heightMicrons,
+        },
+        printBackground: true,
       };
       
       console.log('Main: Printing with options:', JSON.stringify(options));
 
       await new Promise<void>((resolve, reject) => {
+        const timeoutId = setTimeout(() => reject(new Error('print-timeout')), 15000);
         // @ts-ignore
         printWindow.webContents.print(options, (success, errorType) => {
           console.log('Main: Print callback', success, errorType);
+          clearTimeout(timeoutId);
           if (!success) {
             reject(new Error(errorType));
           } else {

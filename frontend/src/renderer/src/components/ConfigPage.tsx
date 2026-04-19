@@ -358,7 +358,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
       const logoSrc = printerOpts.logo_mode === 'custom' && printerOpts.logo_url ? printerOpts.logo_url : logo;
       const logoTag = printerOpts.show_logo && logoSrc ? `<div class="c"><img src="${logoSrc.startsWith('http') ? logoSrc : absUrlFn(logoSrc)}" style="width:${Number(printerOpts.logo_width_mm || 45)}mm;height:auto;object-fit:contain"/></div>` : '';
       const alignCls = printerOpts.align === 'left' ? 'l' : printerOpts.align === 'right' ? 'r' : 'c';
-      const css = `*{box-sizing:border-box} body{font-family:Arial, sans-serif;margin:0 auto;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px;width:100%} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px} .tab{width:100%;border-collapse:collapse} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
+      const css = `@page{size:${paperW}mm auto;margin:0} *{box-sizing:border-box} html{background:#fff} html,body{margin:0;padding:0} body{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#fff;font-family:Arial, sans-serif;width:${paperW}mm;margin:0 auto;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px} img{max-width:100%;height:auto} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap} .tab{width:100%;border-collapse:collapse;table-layout:fixed} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px;vertical-align:top} .tab td{word-break:break-word} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
       const header = `
         ${logoTag}
         <div class="${alignCls}">
@@ -408,7 +408,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
       
       const alignCls = printerOpts.align === 'left' ? 'l' : printerOpts.align === 'right' ? 'r' : 'c';
       
-      const css = `*{box-sizing:border-box} body{font-family:Arial, sans-serif;margin:0 auto;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px;width:100%} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px} .tab{width:100%;border-collapse:collapse} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
+      const css = `@page{size:${paperW}mm auto;margin:0} *{box-sizing:border-box} html{background:#fff} html,body{margin:0;padding:0} body{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#fff;font-family:Arial, sans-serif;width:${paperW}mm;margin:0 auto;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px} img{max-width:100%;height:auto} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap} .tab{width:100%;border-collapse:collapse;table-layout:fixed} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px;vertical-align:top} .tab td{word-break:break-word} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
       
       const header = `
         ${logoTag}
@@ -1093,6 +1093,38 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
 
               <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-4 border-t border-gray-200 dark:border-gray-800">
                 <div className="flex gap-2 w-full md:w-auto">
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setMsg(null);
+                      setSettings((s) => ({
+                        ...s,
+                        printer_type: 'system',
+                        printer_name: '',
+                        paper_width_mm: 58,
+                        auto_print: false,
+                        receipt_footer: '',
+                      }));
+                      setPrinterOpts({
+                        show_logo: true,
+                        header1: '',
+                        header2: '',
+                        align: 'center',
+                        font_size: 11,
+                        margin_top: 10,
+                        margin_bottom: 10,
+                        show_qr: false,
+                        logo_mode: 'company',
+                        logo_url: '',
+                        logo_width_mm: 45,
+                      });
+                      setPreviewHtml(null);
+                      setMsg({ type: 'success', text: 'Impresora restablecida a valores predeterminados.' });
+                    }} 
+                    className="flex-1 md:flex-none px-4 py-3 rounded-xl bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-white font-medium border border-gray-200 dark:border-gray-700 transition-colors text-sm"
+                  >
+                    Restablecer
+                  </button>
                   <button 
                     type="button" 
                     onClick={previewPosSample} 

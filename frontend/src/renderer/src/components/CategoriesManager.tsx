@@ -41,6 +41,7 @@ interface CategoriesManagerProps {
   token: string | null;
   apiBase: string;
   role: string;
+  netInfo?: { method: string; path: string; ms: number; ok: boolean } | null;
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
@@ -78,7 +79,7 @@ const SortableRow = ({ category, children, disabled }: { category: any, children
     );
   };
 
-const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, role, canCreate, canEdit, canDelete, canReorder }) => {
+const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, role, netInfo, canCreate, canEdit, canDelete, canReorder }) => {
   const offlineSync = useOfflineSync(token);
   const canCreateSafe = typeof canCreate === 'boolean' ? canCreate : true;
   const canEditSafe = typeof canEdit === 'boolean' ? canEdit : true;
@@ -421,6 +422,11 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
               <Layers className="w-5 h-5 text-blue-500" />
             </div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Gestión de Categorías</h2>
+            {netInfo && (
+              <div className={`text-[11px] font-bold px-3 py-1 rounded-full border ${netInfo.ok ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20' : 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/20'}`}>
+                {netInfo.ms}ms
+              </div>
+            )}
           </div>
           
           <div className="flex flex-wrap items-center gap-3">

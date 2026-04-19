@@ -261,7 +261,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     
     const alignCls = printerOpts.align === 'left' ? 'l' : printerOpts.align === 'right' ? 'r' : 'c';
     
-    const css = `*{box-sizing:border-box} body{font-family:Arial, sans-serif;margin:0;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px;width:${paperW}mm} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px} .tab{width:100%;border-collapse:collapse} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
+    const css = `@page{size:${paperW}mm auto;margin:0} *{box-sizing:border-box} html{background:#fff} html,body{margin:0;padding:0} body{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#fff;font-family:Arial, sans-serif;width:${paperW}mm;margin:0 auto;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px} img{max-width:100%;height:auto} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap} .tab{width:100%;border-collapse:collapse;table-layout:fixed} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px;vertical-align:top} .tab td{word-break:break-word} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
     
     const header = `
       ${logoTag}
@@ -287,10 +287,10 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
               <div class="t">${service.name}</div>
               <div class="small">${service.description}</div>
             </td>
-            <td class="r">${Number(service.value).toLocaleString('es-CO',{style:'currency',currency:'COP'})}</td>
+            <td class="r">${Number(service.value).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0})}</td>
           </tr>
         </tbody>
-        <tfoot><tr><td class="t">Total</td><td class="r t">${Number(service.value).toLocaleString('es-CO',{style:'currency',currency:'COP'})}</td></tr></tfoot>
+        <tfoot><tr><td class="t">Total</td><td class="r t">${Number(service.value).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0})}</td></tr></tfoot>
       </table>
     `;
     
@@ -312,8 +312,21 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     if (win) {
       win.document.write(html);
       win.document.close();
-      win.focus();
-      win.print();
+      const finish = () => { try { win.close(); } catch {} };
+      const safePrint = async () => {
+        const waitForLoad = new Promise<void>((resolve) => win.addEventListener('load', () => resolve(), { once: true }));
+        const waitTimeout = new Promise<void>((resolve) => setTimeout(() => resolve(), 1500));
+        await Promise.race([waitForLoad, waitTimeout]);
+        const imgs = Array.from(win.document.images || []);
+        const imgsDone = Promise.all(imgs.map((img) => (img.complete ? Promise.resolve() : new Promise<void>((r) => { img.onload = () => r(); img.onerror = () => r(); }))));
+        await Promise.race([imgsDone, waitTimeout]);
+        await new Promise((r) => setTimeout(r, 150));
+        win.focus();
+        win.onafterprint = finish;
+        win.print();
+        setTimeout(finish, 1200);
+      };
+      safePrint();
     }
   };
 
@@ -340,7 +353,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     const logoSrc = printerOpts.logo_mode === 'custom' && printerOpts.logo_url ? printerOpts.logo_url : logo;
     const logoTag = printerOpts.show_logo && logoSrc ? `<div class="c"><img src="${logoSrc.startsWith('http') ? logoSrc : absUrlFn(logoSrc)}" onerror="this.style.display='none'" style="width:${Number(printerOpts.logo_width_mm || 45)}mm;height:auto;object-fit:contain"/></div>` : '';
     const alignCls = printerOpts.align === 'left' ? 'l' : printerOpts.align === 'right' ? 'r' : 'c';
-    const css = `*{box-sizing:border-box} body{font-family:Arial, sans-serif;margin:0;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px;width:${paperW}mm} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px} .tab{width:100%;border-collapse:collapse} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px} .tab thead th{border-bottom:1px dashed #999;text-align:left} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
+    const css = `@page{size:${paperW}mm auto;margin:0} *{box-sizing:border-box} html{background:#fff} html,body{margin:0;padding:0} body{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#fff;font-family:Arial, sans-serif;width:${paperW}mm;margin:0 auto;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px} img{max-width:100%;height:auto} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap} .tab{width:100%;border-collapse:collapse;table-layout:fixed} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px;vertical-align:top} .tab td{word-break:break-word} .tab thead th{border-bottom:1px dashed #999;text-align:left} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
     
     const header = `
       ${logoTag}
@@ -401,8 +414,21 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     if (win) {
       win.document.write(html);
       win.document.close();
-      win.focus();
-      win.print();
+      const finish = () => { try { win.close(); } catch {} };
+      const safePrint = async () => {
+        const waitForLoad = new Promise<void>((resolve) => win.addEventListener('load', () => resolve(), { once: true }));
+        const waitTimeout = new Promise<void>((resolve) => setTimeout(() => resolve(), 1500));
+        await Promise.race([waitForLoad, waitTimeout]);
+        const imgs = Array.from(win.document.images || []);
+        const imgsDone = Promise.all(imgs.map((img) => (img.complete ? Promise.resolve() : new Promise<void>((r) => { img.onload = () => r(); img.onerror = () => r(); }))));
+        await Promise.race([imgsDone, waitTimeout]);
+        await new Promise((r) => setTimeout(r, 150));
+        win.focus();
+        win.onafterprint = finish;
+        win.print();
+        setTimeout(finish, 1200);
+      };
+      safePrint();
     }
   };
 

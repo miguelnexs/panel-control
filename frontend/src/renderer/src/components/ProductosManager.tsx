@@ -45,6 +45,8 @@ import { CSS } from '@dnd-kit/utilities';
 interface ProductosManagerProps {
   token: string | null;
   apiBase: string;
+  role?: string;
+  netInfo?: { method: string; path: string; ms: number; ok: boolean } | null;
   onCreate?: () => void;
   onEdit?: (product: any) => void;
   canCreate?: boolean;
@@ -84,7 +86,7 @@ const SortableRow = ({ product, children, disabled }: { product: any, children: 
     );
   };
 
-const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onCreate, onEdit, canCreate, canEdit, canDelete, canReorder }) => {
+const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, role, netInfo, onCreate, onEdit, canCreate, canEdit, canDelete, canReorder }) => {
   const offlineSync = useOfflineSync(token);
   const [items, setItems] = useState<any[]>([]);
   const [msg, setMsg] = useState<{ type: string; text: string } | null>(null);
@@ -93,6 +95,11 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
   const [categories, setCategories] = useState<any[]>([]);
   const [viewColors, setViewColors] = useState<any[]>([]);
   const [viewVariants, setViewVariants] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(30);
+  const [total, setTotal] = useState(0);
+  const searchTimeout = useRef<any>(null);
+  const [searchValue, setSearchValue] = useState('');
   const [search, setSearch] = useState('');
   const [variantSkuMatchByProductId, setVariantSkuMatchByProductId] = useState<Record<string, any>>({});
   const variantsByProductIdRef = useRef<Record<string, any[]>>({});
@@ -106,7 +113,7 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [lowStockThreshold, setLowStockThreshold] = useState(5);
   const [deletingProduct, setDeletingProduct] = useState<any>(null);
-  const [dateSort, setDateSort] = useState<'off' | 'desc' | 'asc'>('off');
+  const [dateSort, setDateSort] = useState<'desc' | 'asc'>('desc');
   const [cardFilter, setCardFilter] = useState<'all' | 'low' | 'active' | 'drafts'>('all');
   const canCreateSafe = typeof canCreate === 'boolean' ? canCreate : true;
   const canEditSafe = typeof canEdit === 'boolean' ? canEdit : true;
@@ -172,14 +179,33 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
     setMsg(null);
     setLoading(true);
     try {
-      const products = await offlineSync.loadProducts(token, apiBase);
-      setItems(Array.isArray(products) ? products : []);
+      const params = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+      if (search) params.set('search', search);
+      if (categoryFilter) params.set('category', categoryFilter);
+      if (activeFilter !== 'all') params.set('active', activeFilter === 'active' ? 'true' : 'false');
+      params.set('ordering', dateSort === 'desc' ? '-created_at' : 'created_at');
+      
+      const url = `${apiBase}/products/?${params.toString()}`;
+      const data = await offlineSync.loadPaginatedData('products', url, token);
+      setItems(data.items);
+      setTotal(data.total);
     } catch (e: any) {
       setMsg({ type: 'error', text: e.message });
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { if (token) loadProducts(); }, [token]);
+  useEffect(() => { if (token) loadProducts(); }, [token, page, pageSize, search, categoryFilter, activeFilter, dateSort]);
+
+  const handleSearchChange = (val: string) => {
+    setSearchValue(val);
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      setPage(1);
+      setSearch(val);
+    }, 500);
+  };
+  
+  const totalPages = React.useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
 
   useEffect(() => {
     const loadCats = async () => {
@@ -256,73 +282,7 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
     return () => clearTimeout(id);
   }, [search, token, apiBase]);
 
-  useEffect(() => {
-    const q = search.trim();
-    if (!token || !navigator.onLine) return;
-    if (q.length < 2) return;
-
-    if (variantsAbortRef.current) variantsAbortRef.current.abort();
-    const controller = new AbortController();
-    variantsAbortRef.current = controller;
-
-    const toFetch = (Array.isArray(items) ? items : [])
-      .filter((p) => variantsByProductIdRef.current[String(p?.id)] === undefined)
-      .slice(0, 500);
-
-    if (toFetch.length === 0) return;
-
-    let active = true;
-    (async () => {
-      const batchSize = 6;
-      for (let i = 0; i < toFetch.length && active; i += batchSize) {
-        const batch = toFetch.slice(i, i + batchSize);
-        await Promise.all(
-          batch.map(async (p: any) => {
-            const pid = String(p?.id);
-            try {
-              const res = await fetch(`${apiBase}/products/${pid}/variants/`, {
-                headers: authHeaders(token),
-                signal: controller.signal,
-              });
-              if (!res.ok) {
-                setVariantsByProductId((prev) => {
-                  if (prev[pid] !== undefined) return prev;
-                  const next = { ...prev, [pid]: [] };
-                  variantsByProductIdRef.current = next;
-                  return next;
-                });
-                return;
-              }
-              const data = await res.json();
-              const list = Array.isArray(data?.results)
-                ? data.results
-                : (Array.isArray(data) ? data : []);
-              setVariantsByProductId((prev) => {
-                if (prev[pid] !== undefined) return prev;
-                const next = { ...prev, [pid]: list };
-                variantsByProductIdRef.current = next;
-                return next;
-              });
-            } catch (_) {
-              setVariantsByProductId((prev) => {
-                if (prev[pid] !== undefined) return prev;
-                const next = { ...prev, [pid]: [] };
-                variantsByProductIdRef.current = next;
-                return next;
-              });
-            }
-          }),
-        );
-      }
-    })();
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [search, token, apiBase, items]);
-  
-  
+  // The variants are now handled mostly by the backend, no need to poll network individually for every search hit here
   const formatCurrency = (v: any) => {
     if (v === '' || v == null) return '';
     const n = Number(v);
@@ -360,70 +320,20 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
       (cardFilter === 'low' && s < Number(lowStockThreshold || 0)) ||
       (cardFilter === 'active' && !!p.active) ||
       (cardFilter === 'drafts' && !!p.is_draft);
-    return matchesSearch && matchesCategory && matchesActive && matchesLowStock && matchesCardFilter;
+    return matchesLowStock && matchesCardFilter;
   });
-  const displayed = dateSort === 'off'
-    ? filtered
-    : [...filtered].sort((a, b) => {
-        const ta = a?.created_at ? new Date(a.created_at).getTime() : 0;
-        const tb = b?.created_at ? new Date(b.created_at).getTime() : 0;
-        return dateSort === 'desc' ? tb - ta : ta - tb;
-      });
 
-  useEffect(() => {
-    if (!token || !navigator.onLine) return;
-    if (skuStockAbortRef.current) skuStockAbortRef.current.abort();
-    const controller = new AbortController();
-    skuStockAbortRef.current = controller;
+  // Frontend-side pagination enforcement
+  // If we have more items than the page size, slice them to only show the current page
+  const displayed = filtered.length > pageSize 
+    ? filtered.slice((page - 1) * pageSize, page * pageSize) 
+    : filtered;
 
-    const toFetch = displayed
-      .map((p) => String(p?.id))
-      .filter((id) => id && skuStockByProductIdRef.current[id] === undefined)
-      .slice(0, 80);
+  // SKU Stock is also now sent natively from API ('total_stock')
 
-    if (toFetch.length === 0) return;
-
-    let active = true;
-    (async () => {
-      const batchSize = 6;
-      for (let i = 0; i < toFetch.length && active; i += batchSize) {
-        const batch = toFetch.slice(i, i + batchSize);
-        await Promise.all(
-          batch.map(async (pid) => {
-            try {
-              const res = await fetch(`${apiBase}/products/${pid}/skus/?page_size=500`, {
-                headers: authHeaders(token),
-                signal: controller.signal,
-              });
-              if (!res.ok) return;
-              const data = await res.json();
-              const list = Array.isArray(data?.results) ? data.results : (Array.isArray(data) ? data : []);
-              const total = (Array.isArray(list) ? list : []).reduce((acc: number, s: any) => {
-                const isActive = s?.active !== false;
-                const n = Number(s?.stock ?? 0);
-                return acc + (isActive && Number.isFinite(n) ? n : 0);
-              }, 0);
-              setSkuStockByProductId((prev) => {
-                if (prev[pid] !== undefined) return prev;
-                const next = { ...prev, [pid]: total };
-                skuStockByProductIdRef.current = next;
-                return next;
-              });
-            } catch (_) {}
-          }),
-        );
-      }
-    })();
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [token, apiBase, displayed]);
-  const statsTotal = items.length;
-  const statsLow = items.filter((p) => totalStockOf(p) < Number(lowStockThreshold || 0)).length;
+  const statsTotal = total; // Global total from server count
+  const statsLow = items.filter((p) => (p.total_stock ?? 0) < Number(lowStockThreshold || 0)).length;
   const statsActive = items.filter((p) => !!p.active).length;
-  const statsInactive = items.filter((p) => !p.active).length;
   const statsDrafts = items.filter((p) => !!p.is_draft).length;
 
   const removeProduct = async (id: number) => {
@@ -509,8 +419,8 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
-          label="Total Productos" 
-          value={statsTotal} 
+          label="Total (Búsqueda)" 
+          value={total} 
           icon={Package} 
           color={{ bg: 'bg-blue-100 dark:bg-blue-500', text: 'text-blue-600 dark:text-blue-200' }} 
           filterKey="all"
@@ -562,6 +472,11 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
               <Package className="w-5 h-5 text-indigo-600 dark:text-indigo-500" />
             </div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Inventario</h2>
+            {netInfo && (
+              <div className={`text-[11px] font-bold px-3 py-1 rounded-full border ${netInfo.ok ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20' : 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/20'}`}>
+                {netInfo.ms}ms
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col md:flex-row gap-3">
@@ -570,8 +485,8 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 group-focus-within:text-blue-500 transition-colors" />
               <input
                 type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchValue}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Buscar por nombre o SKU..."
                 className="pl-9 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all w-full md:w-64"
               />
@@ -623,9 +538,9 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
                 <RefreshCw className="w-4 h-4" />
               </button>
               <button
-                onClick={() => setDateSort((s) => (s === 'off' ? 'desc' : s === 'desc' ? 'asc' : 'off'))}
-                className={`p-2 rounded-lg transition-colors ${dateSort === 'off' ? 'text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800' : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20'}`}
-                title={dateSort === 'off' ? 'Ordenar por fecha de subida (más reciente)' : dateSort === 'desc' ? 'Ordenando por fecha (más reciente) - click para (más antiguo)' : 'Ordenando por fecha (más antiguo) - click para quitar'}
+                onClick={() => setDateSort((s) => (s === 'desc' ? 'asc' : 'desc'))}
+                className={`p-2 rounded-lg transition-colors ${dateSort === 'desc' ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20' : 'text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800'}`}
+                title={dateSort === 'desc' ? 'Recientes primero' : 'Antiguos primero'}
               >
                 <span className="sr-only">Ordenar por fecha</span>
                 <div className="flex items-center gap-1">
@@ -693,23 +608,6 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
                               )}
                             </div>
                             {p.sku && <div className="text-xs text-gray-500">SKU: {p.sku}</div>}
-                            {variantSkuMatchByProductId[String(p.id)]?.sku && (
-                              <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                                SKU variante: {variantSkuMatchByProductId[String(p.id)].sku}
-                              </div>
-                            )}
-                            {(() => {
-                              const q = search.trim().toLowerCase();
-                              if (!q) return null;
-                              const list = variantsByProductId[String(p.id)] || [];
-                              const found = list.find((v: any) => String(v?.name || '').toLowerCase().includes(q));
-                              if (!found) return null;
-                              return (
-                                <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                                  Variante: {String(found?.name || '')}
-                                </div>
-                              );
-                            })()}
                           </div>
                         </div>
                       </td>
@@ -735,8 +633,8 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
                         )}
                       </td>
                       <td className="px-6 py-4">
-                        <div className={`font-medium ${totalStockOf(p) < lowStockThreshold ? 'text-amber-600 dark:text-amber-500' : 'text-emerald-600 dark:text-emerald-500'}`}>
-                          {totalStockOf(p)} u.
+                        <div className={`font-medium ${p.total_stock < lowStockThreshold ? 'text-amber-600 dark:text-amber-500' : 'text-emerald-600 dark:text-emerald-500'}`}>
+                          {p.total_stock} u.
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -776,19 +674,7 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
                           <button 
                             onClick={() => {
                               if (!onEdit || !canEditSafe) return;
-                              const hit = variantSkuMatchByProductId[String(p.id)];
-                              if (hit) {
-                                const enriched = { ...p, __focusSku: { ...hit, query: search.trim() } };
-                                onEdit(enriched);
-                                return;
-                              }
-                              const q = search.trim().toLowerCase();
-                              const list = variantsByProductId[String(p.id)] || [];
-                              const found = q ? list.find((v: any) => String(v?.name || '').toLowerCase().includes(q)) : null;
-                              const enriched = found
-                                ? { ...p, __focusVariantName: { query: search.trim(), variantName: String(found?.name || '') } }
-                                : p;
-                              onEdit(enriched);
+                              onEdit(p);
                             }} 
                             disabled={!canEditSafe}
                             className="p-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/10 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
@@ -823,6 +709,29 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, onC
             </table>
           </div>
         </DndContext>
+
+        {/* Pagination */}
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between bg-gray-50 dark:bg-gray-900/50">
+          <div className="text-sm text-gray-500 dark:text-gray-500">
+            Mostrando página <span className="font-medium text-gray-900 dark:text-white">{page}</span> de <span className="font-medium text-gray-900 dark:text-white">{totalPages}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setPage((p) => Math.max(1, p - 1))} 
+              disabled={page === 1}
+              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Anterior
+            </button>
+            <button 
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))} 
+              disabled={page === totalPages}
+              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Product Details Modal */}

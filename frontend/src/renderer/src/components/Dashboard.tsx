@@ -44,6 +44,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
   const [orderNotif, setOrderNotif] = useState(0);
   const [navLoading, setNavLoading] = useState(false);
   const [productEditing, setProductEditing] = useState<any>(null);
+  const [lastNet, setLastNet] = useState<{ method: string; path: string; ms: number; ok: boolean } | null>(null);
   const [stats, setStats] = useState({ usersCount: 0, productsCount: 0, productsActive: 0, categoriesCount: 0, clientsTotal: 0, ordersTotal: 0, clientsNewMonth: 0, salesToday: 0, salesTotal: 0, salesAmount: 0, statusCounts: { pending: 0, shipped: 0, delivered: 0, canceled: 0 } });
   const [seriesA, setSeriesA] = useState<number[]>([0,0,0,0,0,0,0]);
   const [chartLabels, setChartLabels] = useState<string[]>(['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']);
@@ -143,12 +144,13 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
     Promise.all([
       fetch(`${apiBase}/users/api/auth/me/`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: null })),
       fetch(`${apiBase}/users/api/users/`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: [] })),
-      fetch(`${apiBase}/products/`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: [] })),
+      fetch(`${apiBase}/products/?page_size=1`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: { count: 0 } })),
+      fetch(`${apiBase}/products/?active=true&page_size=1`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: { count: 0 } })),
       fetch(`${apiBase}/products/categories/?page_size=1`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: { count: 0 } })),
       fetch(`${apiBase}/clients/stats/`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: { total: 0 } })),
       fetch(`${apiBase}/sales/list/?page_size=5`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: { results: [] } })),
       fetch(`${apiBase}/sales/stats/`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: { today_sales: 0 } })),
-    ]).then(([meRes, usersRes, productsRes, catsRes, clientsStats, ordersRes, salesStats]) => {
+    ]).then(([meRes, usersRes, productsRes, productsActiveRes, catsRes, clientsStats, ordersRes, salesStats]) => {
       if (meRes.ok && meRes.d && meRes.d.subscription) {
         setSubscription(meRes.d.subscription);
       }
@@ -157,9 +159,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
         setPermissions(Array.isArray(meRes.d.permissions) ? meRes.d.permissions : []);
       }
       const usersCount = usersRes.ok && Array.isArray(usersRes.d) ? usersRes.d.length : 0;
-      const products = productsRes.ok && Array.isArray(productsRes.d) ? productsRes.d : [];
-      const productsCount = products.length;
-      const productsActive = products.filter((p: any) => !!p.active).length;
+      const productsCount = productsRes.ok ? Number(productsRes.d.count ?? 0) : 0;
+      const productsActive = productsActiveRes.ok ? Number(productsActiveRes.d.count || 0) : 0;
       const categoriesCount = catsRes.ok ? Number(catsRes.d.count || 0) : 0;
       const clientsTotal = clientsStats.ok ? Number(clientsStats.d.total || 0) : 0;
       const clientsNewMonth = clientsStats.ok ? Number(clientsStats.d.new_this_month || 0) : 0;
@@ -212,6 +213,45 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
     intervalId = setInterval(poll, 3000);
     return () => { active = false; clearInterval(intervalId); };
   }, [token]);
+
+  useEffect(() => {
+
+    const originalFetch = window.fetch.bind(window);
+    const ignore = (url: string, method: string) => {
+      if (method === 'GET' && url.includes('/sales/notifications/count/')) return true;
+      if (method === 'POST' && url.includes('/sales/notifications/read/')) return true;
+      if (url.includes('/users/api/support/')) return true;
+      if (url.includes('/health/')) return true;
+      return false;
+    };
+
+    window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const started = performance.now();
+      const method = String(init?.method || 'GET').toUpperCase();
+      const url = typeof input === 'string' ? input : (input as any)?.url ? String((input as any).url) : String(input);
+
+      try {
+        const res = await originalFetch(input as any, init);
+        const ms = Math.round(performance.now() - started);
+        if (!ignore(url, method)) {
+          const path = url.replace(apiBase, '');
+          setLastNet({ method, path, ms, ok: res.ok });
+        }
+        return res;
+      } catch (e) {
+        const ms = Math.round(performance.now() - started);
+        if (!ignore(url, method)) {
+          const path = url.replace(apiBase, '');
+          setLastNet({ method, path, ms, ok: false });
+        }
+        throw e;
+      }
+    }) as any;
+
+    return () => {
+      window.fetch = originalFetch as any;
+    };
+  }, [role, apiBase]);
 
   return (
     <div className="h-full bg-gradient-to-br from-blue-100 via-blue-50/50 to-blue-100 dark:bg-none dark:bg-[#0B0D14] flex overflow-hidden transition-colors duration-300">
@@ -275,7 +315,14 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
                view === 'client_details' ? 'Detalle del Cliente' :
                'Pedidos'}
             </h1>
-            <div className="text-sm text-gray-500 dark:text-gray-400 font-medium px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">Rol: <span className="text-gray-900 dark:text-white ml-1">{role}</span></div>
+            <div className="flex items-center gap-2">
+              {lastNet && (
+                <div className={`text-[11px] font-bold px-3 py-1 rounded-full border ${lastNet.ok ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/20' : 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/20'}`}>
+                  {lastNet.ms}ms
+                </div>
+              )}
+              <div className="text-sm text-gray-500 dark:text-gray-400 font-medium px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">Rol: <span className="text-gray-900 dark:text-white ml-1">{role}</span></div>
+            </div>
           </div>
           {view === 'dashboard' && (
             <DashboardView stats={stats} seriesA={seriesA} seriesB={seriesB} recentOrders={recentOrders} topProducts={topProducts} chartLabels={chartLabels} />
@@ -300,6 +347,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
             <ProductosManager
               token={token}
               apiBase={apiBase}
+              role={role}
+              netInfo={lastNet}
               canCreate={permsUi.products.create}
               canEdit={permsUi.products.edit}
               canDelete={permsUi.products.del}
@@ -322,6 +371,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
               token={token}
               apiBase={apiBase}
               role={role}
+              netInfo={lastNet}
               canCreate={permsUi.categories.create}
               canEdit={permsUi.categories.edit}
               canDelete={permsUi.categories.del}

@@ -43,6 +43,11 @@ interface UseOfflineSyncReturn extends OfflineSyncState {
    */
   loadData: (store: StoreName, url: string, token: string | null) => Promise<any[]>;
   /**
+   * Generic loader for paginated entity types. Tries server first, falls back to local cache.
+   * Caches successful server responses locally. Returns items and total count.
+   */
+  loadPaginatedData: (store: StoreName, url: string, token: string | null) => Promise<{ items: any[]; total: number }>;
+  /**
    * Queue a mutation for sync. If online it fires immediately; if offline, it is
    * persisted to IndexedDB and replayed on reconnect.
    *
@@ -262,6 +267,30 @@ export function useOfflineSync(token: string | null): UseOfflineSyncReturn {
     [],
   );
 
+  // ─── Public: loadPaginatedData (generic) ───────────────────────
+  const loadPaginatedData = useCallback(
+    async (store: StoreName, url: string, tkn: string | null): Promise<{ items: any[]; total: number }> => {
+      if (navigator.onLine) {
+        try {
+          const res = await fetch(url, { headers: authHeaders(tkn) });
+          if (res.ok) {
+            const data = await res.json();
+            // In DRF pagination, results are in data.results and total in data.count
+            const items = Array.isArray(data) ? data : (data.results || []);
+            const total = data.count !== undefined ? data.count : items.length;
+            await cacheItems(store, items);
+            return { items, total };
+          }
+        } catch {
+          // Network error case
+        }
+      }
+      const cached = await getCachedItems(store);
+      return { items: cached, total: cached.length };
+    },
+    [],
+  );
+
   // ─── Public: queueMutation ─────────────────────────────────────
   const queueMutation = useCallback(
     async (opts: {
@@ -372,6 +401,7 @@ export function useOfflineSync(token: string | null): UseOfflineSyncReturn {
     queue,
     loadProducts,
     loadData,
+    loadPaginatedData,
     queueMutation,
     syncNow,
   };
