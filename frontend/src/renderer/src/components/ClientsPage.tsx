@@ -489,133 +489,139 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
 
       {/* New Client Modal */}
       {open && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 dark:bg-blue-500/10 rounded-lg">
-                  <User className="w-5 h-5 text-blue-600 dark:text-blue-500" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[2.5rem] w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+            <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/30">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
+                  <User className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Nuevo Cliente</h3>
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900 dark:text-white">Nuevo Cliente</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Registra los datos básicos del cliente</p>
+                </div>
               </div>
-              <button onClick={() => setOpen(false)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
-                <X className="w-5 h-5" />
+              <button 
+                onClick={() => setOpen(false)} 
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all active:scale-90"
+              >
+                <X className="w-6 h-6" />
               </button>
             </div>
             
-            <form onSubmit={async (e) => { e.preventDefault(); setLoading(true); setErrors({}); try { const res = await fetch(`${apiBase}/clients/`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders(token) }, body: JSON.stringify(form) }); const data = await res.json(); if (res.ok) { setMsg({ type: 'success', text: 'Cliente registrado' }); setForm({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '' }); setOpen(false); loadClients(); loadStats(); } else { setErrors(data); } } catch(_) { setMsg({ type: 'error', text: 'Error de red' }); } finally { setLoading(false); } }} className="p-6 space-y-4">
+            <form onSubmit={async (e) => { e.preventDefault(); setLoading(true); setErrors({}); try { const res = await fetch(`${apiBase}/clients/`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders(token) }, body: JSON.stringify(form) }); const data = await res.json(); if (res.ok) { setMsg({ type: 'success', text: 'Cliente registrado' }); setForm({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '' }); setOpen(false); loadClients(); loadStats(); } else { setErrors(data); } } catch(_) { setMsg({ type: 'error', text: 'Error de red' }); } finally { setLoading(false); } }} className="p-8 space-y-6">
               {/* Client Type Selector */}
-              <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+              <div className="flex bg-gray-100 dark:bg-gray-800 p-1.5 rounded-2xl shadow-inner">
                 <button
                   type="button"
                   onClick={() => setForm(f => ({ ...f, client_type: 'person' }))}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${form.client_type === 'person' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                  className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${form.client_type === 'person' ? 'bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  Persona Natural
+                  Persona
                 </button>
                 <button
                   type="button"
                   onClick={() => setForm(f => ({ ...f, client_type: 'company' }))}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${form.client_type === 'company' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-500'}`}
+                  className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${form.client_type === 'company' ? 'bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  Empresa (NIT)
+                  Empresa
                 </button>
               </div>
 
               <div>
-                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">
                   {form.client_type === 'person' ? 'Nombre Completo' : 'Razón Social'}
                 </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                <div className="relative group">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
                   <input 
                     type="text" 
                     value={form.full_name} 
                     onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))} 
-                    className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.full_name ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
-                    placeholder={form.client_type === 'person' ? "Ej. Juan Pérez" : "Ej. Mi Empresa S.A.S"}
+                    className={`w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border ${errors.full_name ? 'border-rose-500' : 'border-gray-100 dark:border-gray-700'} rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 shadow-inner`}
+                    placeholder={form.client_type === 'person' ? "Nombre y apellidos" : "Nombre legal de la empresa"}
                   />
                 </div>
                 {errors.full_name && <p className="mt-1 text-xs text-rose-400">{errors.full_name}</p>}
               </div>
 
               <div>
-                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">
                   {form.client_type === 'person' ? 'Cédula' : 'NIT'}
                 </label>
-                <div className="relative">
-                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                <div className="relative group">
+                  <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
                   <input 
                     type="text" 
                     value={form.cedula} 
-                    onChange={(e) => {
-                      setForm((f) => ({ ...f, cedula: e.target.value }));
-                    }} 
-                    className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.cedula ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
-                    placeholder={form.client_type === 'person' ? "Ej. 12345678" : "Ej. 900123456-1"}
+                    onChange={(e) => setForm((f) => ({ ...f, cedula: e.target.value }))} 
+                    className={`w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border ${errors.cedula ? 'border-rose-500' : 'border-gray-100 dark:border-gray-700'} rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 shadow-inner`}
+                    placeholder={form.client_type === 'person' ? "C.C / Pasaporte" : "NIT (Incluir dígito verif.)"}
                   />
                 </div>
                 {errors.cedula && <p className="mt-1 text-xs text-rose-400">{errors.cedula}</p>}
               </div>
 
-              <div>
-                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Correo Electrónico</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  <input 
-                    type="email" 
-                    value={form.email} 
-                    onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} 
-                    className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.email ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
-                    placeholder="juan@ejemplo.com"
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Email</label>
+                  <div className="relative group">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                    <input 
+                      type="email" 
+                      value={form.email} 
+                      onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} 
+                      className={`w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border ${errors.email ? 'border-rose-500' : 'border-gray-100 dark:border-gray-700'} rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 shadow-inner`}
+                      placeholder="cliente@ejemplo.com"
+                    />
+                  </div>
+                  {errors.email && <p className="mt-1 text-xs text-rose-400">{errors.email}</p>}
                 </div>
-                {errors.email && <p className="mt-1 text-xs text-rose-400">{errors.email}</p>}
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Teléfono</label>
+                  <div className="relative group">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                    <input 
+                      type="tel" 
+                      value={form.phone} 
+                      onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} 
+                      className={`w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border ${errors.phone ? 'border-rose-500' : 'border-gray-100 dark:border-gray-700'} rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 shadow-inner`}
+                      placeholder="Ej. +57 300 123 4567"
+                    />
+                  </div>
+                  {errors.phone && <p className="mt-1 text-xs text-rose-400">{errors.phone}</p>}
+                </div>
               </div>
 
               <div>
-                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Teléfono</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  <input 
-                    type="tel" 
-                    value={form.phone} 
-                    onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} 
-                    className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.phone ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
-                    placeholder="Ej. +57 300 123 4567"
-                  />
-                </div>
-                {errors.phone && <p className="mt-1 text-xs text-rose-400">{errors.phone}</p>}
-              </div>
-
-              <div>
-                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Dirección</label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Dirección</label>
+                <div className="relative group">
+                  <MapPin className="absolute left-4 top-4 w-4 h-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
                   <textarea 
                     value={form.address} 
                     onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} 
-                    className={`w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.address ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all min-h-[100px] resize-none`}
-                    placeholder="Dirección completa"
+                    className={`w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800/50 border ${errors.address ? 'border-rose-500' : 'border-gray-100 dark:border-gray-700'} rounded-[1.5rem] text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 shadow-inner min-h-[100px] resize-none`}
+                    placeholder="Dirección completa de residencia u oficina"
                   />
                 </div>
                 {errors.address && <p className="mt-1 text-xs text-rose-400">{errors.address}</p>}
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="pt-6 flex gap-4">
                 <button 
                   type="button" 
                   onClick={() => setOpen(false)} 
-                  className="px-4 py-2 rounded-xl bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-white font-medium transition-colors"
+                  className="flex-1 px-6 py-4 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all active:scale-95"
                 >
-                  Cancelar
+                  Descartar
                 </button>
                 <button 
                   type="submit" 
                   disabled={loading} 
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-[2] px-6 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-600/30 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Guardando...' : 'Registrar Cliente'}
+                  {loading ? 'Procesando...' : 'Guardar Cliente'}
                 </button>
               </div>
             </form>
@@ -794,128 +800,161 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
 
       {/* Edit Client Modal */}
       {editClient && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-amber-100 dark:bg-amber-500/10 rounded-lg">
-                  <Edit className="w-5 h-5 text-amber-600 dark:text-amber-500" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[2.5rem] w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+            <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/30">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-2xl bg-amber-500 text-white shadow-lg shadow-amber-500/30">
+                  <Edit className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Editar Cliente</h3>
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900 dark:text-white">Editar Cliente</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Actualiza la información del perfil</p>
+                </div>
               </div>
-              <button onClick={() => setEditClient(null)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
-                <X className="w-5 h-5" />
+              <button 
+                onClick={() => setEditClient(null)} 
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all active:scale-90"
+              >
+                <X className="w-6 h-6" />
               </button>
             </div>
             
             <form onSubmit={async (e) => { 
               e.preventDefault(); 
+              if (!editClient) return;
+              setLoading(true); 
+              setErrors({}); 
               try { 
-                const fd = new FormData();
-                fd.append('client_type', editForm.client_type);
-                fd.append('full_name', editForm.full_name);
-                fd.append('cedula', editForm.cedula);
-                fd.append('email', editForm.email);
-                fd.append('phone', editForm.phone);
-                fd.append('address', editForm.address);
-
                 const res = await fetch(`${apiBase}/clients/${editClient.id}/`, { 
                   method: 'PATCH', 
-                  headers: authHeaders(token), 
-                  body: fd 
+                  headers: { 'Content-Type': 'application/json', ...authHeaders(token) }, 
+                  body: JSON.stringify(editForm) 
                 }); 
+                const data = await res.json(); 
                 if (res.ok) { 
+                  setMsg({ type: 'success', text: 'Cliente actualizado' }); 
                   setEditClient(null); 
                   loadClients(); 
-                  setMsg({ type: 'success', text: 'Cliente actualizado' });
+                  loadStats(); 
+                } else { 
+                  setErrors(data); 
                 } 
-              } catch(_){} 
-            }} className="p-6 space-y-4">
+              } catch(_) { 
+                setMsg({ type: 'error', text: 'Error de red' }); 
+              } finally { 
+                setLoading(false); 
+              } 
+            }} className="p-8 space-y-6">
               {/* Client Type Selector */}
-              <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+              <div className="flex bg-gray-100 dark:bg-gray-800 p-1.5 rounded-2xl shadow-inner">
                 <button
                   type="button"
                   onClick={() => setEditForm(f => ({ ...f, client_type: 'person' }))}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${editForm.client_type === 'person' ? 'bg-white dark:bg-gray-700 text-amber-600 shadow-sm' : 'text-gray-500'}`}
+                  className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${editForm.client_type === 'person' ? 'bg-white dark:bg-amber-500 text-amber-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  Persona Natural
+                  Persona
                 </button>
                 <button
                   type="button"
                   onClick={() => setEditForm(f => ({ ...f, client_type: 'company' }))}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${editForm.client_type === 'company' ? 'bg-white dark:bg-gray-700 text-amber-600 shadow-sm' : 'text-gray-500'}`}
+                  className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${editForm.client_type === 'company' ? 'bg-white dark:bg-amber-500 text-amber-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  Empresa (NIT)
+                  Empresa
                 </button>
               </div>
-
               <div>
-                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5 uppercase tracking-wide">
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">
                   {editForm.client_type === 'person' ? 'Nombre Completo' : 'Razón Social'}
                 </label>
-                <input 
-                  value={editForm.full_name} 
-                  onChange={(e)=>setEditForm((f)=>({...f, full_name: e.target.value}))} 
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all" 
-                  placeholder={editForm.client_type === 'person' ? "Nombre del cliente" : "Nombre de la empresa"} 
-                />
+                <div className="relative group">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-amber-500 transition-colors" />
+                  <input 
+                    type="text" 
+                    value={editForm.full_name} 
+                    onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))} 
+                    className={`w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border ${errors.full_name ? 'border-rose-500' : 'border-gray-100 dark:border-gray-700'} rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 shadow-inner`}
+                    placeholder={editForm.client_type === 'person' ? "Nombre y apellidos" : "Nombre legal de la empresa"}
+                  />
+                </div>
+                {errors.full_name && <p className="mt-1 text-xs text-rose-400">{errors.full_name}</p>}
               </div>
               <div>
-                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5 uppercase tracking-wide">
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">
                   {editForm.client_type === 'person' ? 'Cédula' : 'NIT'}
                 </label>
-                <input 
-                  value={editForm.cedula} 
-                  onChange={(e)=>{
-                    setEditForm((f)=>({...f, cedula: e.target.value}));
-                  }} 
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all" 
-                  placeholder={editForm.client_type === 'person' ? "Cédula" : "900123456-1"} 
-                />
+                <div className="relative group">
+                  <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-amber-500 transition-colors" />
+                  <input 
+                    type="text" 
+                    value={editForm.cedula} 
+                    onChange={(e) => setEditForm((f) => ({ ...f, cedula: e.target.value }))} 
+                    className={`w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border ${errors.cedula ? 'border-rose-500' : 'border-gray-100 dark:border-gray-700'} rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 shadow-inner`}
+                    placeholder={editForm.client_type === 'person' ? "C.C / Pasaporte" : "NIT (Incluir dígito verif.)"}
+                  />
+                </div>
+                {errors.cedula && <p className="mt-1 text-xs text-rose-400">{errors.cedula}</p>}
               </div>
-              <div>
-                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Correo</label>
-                <input 
-                  type="email"
-                  value={editForm.email} 
-                  onChange={(e)=>setEditForm((f)=>({...f, email: e.target.value}))} 
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all" 
-                  placeholder="Correo" 
-                />
-              </div>
-              <div>
-                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Teléfono</label>
-                <input 
-                  type="tel"
-                  value={editForm.phone} 
-                  onChange={(e)=>setEditForm((f)=>({...f, phone: e.target.value}))} 
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all" 
-                  placeholder="Teléfono" 
-                />
-              </div>
-              <div>
-                <label className="block text-gray-500 dark:text-gray-400 text-sm font-medium mb-1.5">Dirección</label>
-                <textarea 
-                  value={editForm.address} 
-                  onChange={(e)=>setEditForm((f)=>({...f, address: e.target.value}))} 
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all min-h-[100px] resize-none" 
-                  placeholder="Dirección" 
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Email</label>
+                  <div className="relative group">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-amber-500 transition-colors" />
+                    <input 
+                      type="email" 
+                      value={editForm.email} 
+                      onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} 
+                      className={`w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border ${errors.email ? 'border-rose-500' : 'border-gray-100 dark:border-gray-700'} rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 shadow-inner`}
+                      placeholder="cliente@ejemplo.com"
+                    />
+                  </div>
+                  {errors.email && <p className="mt-1 text-xs text-rose-400">{errors.email}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Teléfono</label>
+                  <div className="relative group">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-amber-500 transition-colors" />
+                    <input 
+                      type="tel" 
+                      value={editForm.phone} 
+                      onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))} 
+                      className={`w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border ${errors.phone ? 'border-rose-500' : 'border-gray-100 dark:border-gray-700'} rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 shadow-inner`}
+                      placeholder="Ej. +57 300 123 4567"
+                    />
+                  </div>
+                  {errors.phone && <p className="mt-1 text-xs text-rose-400">{errors.phone}</p>}
+                </div>
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Dirección</label>
+                <div className="relative group">
+                  <MapPin className="absolute left-4 top-4 w-4 h-4 text-gray-400 group-focus-within:text-amber-500 transition-colors" />
+                  <textarea 
+                    value={editForm.address} 
+                    onChange={(e) => setEditForm((f) => ({ ...f, address: e.target.value }))} 
+                    className={`w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800/50 border ${errors.address ? 'border-rose-500' : 'border-gray-100 dark:border-gray-700'} rounded-[1.5rem] text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 shadow-inner min-h-[100px] resize-none`}
+                    placeholder="Dirección completa de residencia u oficina"
+                  />
+                </div>
+                {errors.address && <p className="mt-1 text-xs text-rose-400">{errors.address}</p>}
+              </div>
+
+              <div className="pt-6 flex gap-4">
                 <button 
                   type="button" 
                   onClick={() => setEditClient(null)} 
-                  className="px-4 py-2 rounded-xl bg-gray-200 dark:bg-gray-800 hover:bg-gray-300 dark:hover:bg-gray-700 text-gray-700 dark:text-white font-medium transition-colors"
+                  className="flex-1 px-6 py-4 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all active:scale-95"
                 >
-                  Cancelar
+                  Descartar
                 </button>
                 <button 
                   type="submit" 
-                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-medium transition-all shadow-lg shadow-amber-900/20"
+                  disabled={loading} 
+                  className="flex-[2] px-6 py-4 bg-amber-600 hover:bg-amber-500 text-white rounded-2xl text-sm font-black shadow-xl shadow-amber-900/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Guardar Cambios
+                  {loading ? 'Guardando...' : 'Actualizar Cliente'}
                 </button>
               </div>
             </form>

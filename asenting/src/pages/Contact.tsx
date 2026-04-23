@@ -29,25 +29,25 @@ const Contact = () => {
     {
       icon: Mail,
       title: "Email",
-      value: "hola@localix.com",
+      value: "contacto@asenting.cloud",
       description: "Respuesta en 24h"
     },
     {
       icon: Phone,
       title: "Teléfono",
-      value: "+34 900 123 456",
-      description: "Lun-Vie 9:00-18:00"
+      value: "314 329 1149",
+      description: "Lun-Vie 9:00-19:00"
     },
     {
       icon: MapPin,
       title: "Oficina",
-      value: "Madrid, España",
-      description: "Visitas con cita previa"
+      value: "Colombia, Pereira",
+      description: "Risaralda - Visitas con cita previa"
     },
     {
       icon: Clock,
       title: "Horario",
-      value: "9:00 - 18:00 CET",
+      value: "9:00 AM - 7:00 PM",
       description: "Soporte 24/7 para Enterprise"
     }
   ];
@@ -142,15 +142,18 @@ const Contact = () => {
                 ))}
               </div>
 
-              {/* Map placeholder */}
+              {/* Map */}
               <div className="glass-card p-1 rounded-xl border border-border/50 overflow-hidden">
-                <div className="aspect-video bg-muted/50 rounded-lg flex items-center justify-center">
-                  <div className="text-center text-muted-foreground">
-                    <MapPin className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>Mapa interactivo</p>
-                    <p className="text-sm">Madrid, España</p>
-                  </div>
-                </div>
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d127406.85770380077!2d-75.7639576!3d4.8047987!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e388748c0f7e6c3%3A0x7c2e3a3e5e5e5e5e!2sPereira%2C%20Risaralda%2C%20Colombia!5e0!3m2!1ses!2sco!4v1704067200000!5m2!1ses!2sco"
+                  width="100%"
+                  height="300"
+                  style={{ border: 0, borderRadius: '0.75rem' }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Ubicación Asenting - Pereira, Risaralda"
+                />
               </div>
             </div>
           </div>

@@ -315,7 +315,7 @@ function createWindow(): BrowserWindow {
     titleBarOverlay: {
       color: '#030712', // gray-950
       symbolColor: '#9ca3af', // gray-400
-      height: 32
+      height: 56
     },
     autoHideMenuBar: true,
   });

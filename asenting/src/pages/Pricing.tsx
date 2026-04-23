@@ -84,7 +84,6 @@ const Pricing = () => {
               else features.push("Soporte por Email");
 
               if (plan.enable_whatsapp_notifications) features.push("Notificaciones WhatsApp");
-              if (plan.enable_electronic_invoicing) features.push("Facturación Electrónica");
 
               let icon = Zap;
               if (plan.code === 'medium') icon = Crown;

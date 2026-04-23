@@ -102,7 +102,7 @@ const Features = () => {
               Todas las <span className="text-gradient">Funcionalidades</span>
             </h1>
             <p className="text-xl text-muted-foreground">
-              Descubre todas las herramientas que Localix pone a tu disposición para 
+              Descubre todas las herramientas que Asenting pone a tu disposición para 
               gestionar tu negocio de forma eficiente.
             </p>
           </div>

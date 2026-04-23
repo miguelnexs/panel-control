@@ -7,10 +7,14 @@ const Footer = () => {
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">L</span>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <img 
+                src="/src/assets/logo.png" 
+                alt="Asenting Logo" 
+                className="h-6 w-6 rounded object-contain bg-white/10" 
+              />
             </div>
-            <span className="text-xl font-bold">Localix</span>
+            <span className="text-xl font-bold tracking-tight">Asenting</span>
           </Link>
 
           {/* Links */}
@@ -23,7 +27,7 @@ const Footer = () => {
 
           {/* Copyright */}
           <p className="text-sm text-muted-foreground">
-            © 2024 Localix. Todos los derechos reservados.
+            © 2024 Asenting. Todos los derechos reservados.
           </p>
         </div>
       </div>

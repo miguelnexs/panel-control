@@ -32,7 +32,7 @@ const Terms = () => {
               </div>
               <div className="text-muted-foreground space-y-4">
                 <p>
-                  Al acceder y utilizar Localix Dashboard, aceptas estar legalmente vinculado por estos términos y condiciones. 
+                  Al acceder y utilizar Asenting Dashboard, aceptas estar legalmente vinculado por estos términos y condiciones. 
                   Si no estás de acuerdo con alguna parte de estos términos, no debes utilizar nuestros servicios.
                 </p>
                 <p>
@@ -50,7 +50,7 @@ const Terms = () => {
                 <h2 className="text-2xl font-semibold">Descripción del Servicio</h2>
               </div>
               <div className="text-muted-foreground space-y-4">
-                <p>Localix proporciona una plataforma de dashboard administrativo que incluye:</p>
+                <p>Asenting proporciona una plataforma de dashboard administrativo que incluye:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>Gestión de productos, categorías y clientes</li>
                   <li>Seguimiento de ventas y pedidos en tiempo real</li>
@@ -70,7 +70,7 @@ const Terms = () => {
               </div>
               <div className="text-muted-foreground space-y-4">
                 <p>
-                  Localix ofrece diferentes planes de suscripción. Al suscribirte a un plan de pago:
+                  Asenting ofrece diferentes planes de suscripción. Al suscribirte a un plan de pago:
                 </p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>Los pagos se procesan de forma segura a través de proveedores certificados</li>
@@ -89,7 +89,7 @@ const Terms = () => {
                 <h2 className="text-2xl font-semibold">Uso Prohibido</h2>
               </div>
               <div className="text-muted-foreground space-y-4">
-                <p>No está permitido utilizar Localix para:</p>
+                <p>No está permitido utilizar Asenting para:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>Actividades ilegales o fraudulentas</li>
                   <li>Violar derechos de propiedad intelectual de terceros</li>
@@ -109,7 +109,7 @@ const Terms = () => {
               </div>
               <div className="text-muted-foreground space-y-4">
                 <p>
-                  Localix se proporciona "tal cual" sin garantías de ningún tipo. No garantizamos que:
+                  Asenting se proporciona "tal cual" sin garantías de ningún tipo. No garantizamos que:
                 </p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>El servicio estará disponible de forma ininterrumpida</li>
@@ -133,7 +133,7 @@ const Terms = () => {
               <p className="text-muted-foreground">
                 Podemos suspender o terminar tu acceso al servicio en cualquier momento si violas estos términos. 
                 También puedes cancelar tu cuenta en cualquier momento contactándonos en{" "}
-                <a href="mailto:soporte@localix.app" className="text-primary hover:underline">soporte@localix.app</a>
+                <a href="mailto:soporte@asenting.app" className="text-primary hover:underline">soporte@asenting.app</a>
               </p>
             </section>
           </div>

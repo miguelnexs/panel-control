@@ -1,10 +1,10 @@
 // Configuración de API
 export const API_CONFIG = {
-  baseURL: 'https://softwarebycg.shop',
-  
+  baseURL: 'http://localhost:8000',
+
   // Timeout para peticiones (en milisegundos)
   timeout: 30000,
-  
+
   // Headers por defecto
   headers: {
     'Content-Type': 'application/json',
@@ -17,25 +17,25 @@ export const buildUrl = (endpoint: string): string => {
   if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
     return endpoint;
   }
-  
+
   // Si el endpoint empieza con /, quitarlo para evitar dobles barras
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint.slice(1) : endpoint;
-  
+
   return `${API_CONFIG.baseURL}/${cleanEndpoint}`;
 };
 
 // Helper para headers de autenticación
 export const authHeaders = (token: string | null | undefined, includeContentType: boolean = true): Record<string, string> => {
   const headers: Record<string, string> = {};
-  
+
   if (includeContentType) {
     headers['Content-Type'] = 'application/json';
   }
-  
+
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  
+
   return headers;
 };
 
@@ -43,7 +43,7 @@ export const authHeaders = (token: string | null | undefined, includeContentType
 export const handleApiError = async (response: Response): Promise<Response> => {
   if (!response.ok) {
     let errorMessage = `Error ${response.status}: ${response.statusText}`;
-    
+
     try {
       const errorData = await response.json();
       if (errorData.message || errorData.error) {
@@ -52,9 +52,9 @@ export const handleApiError = async (response: Response): Promise<Response> => {
     } catch (e) {
       // Si no puede parsear JSON, usar el mensaje por defecto
     }
-    
+
     throw new Error(errorMessage);
   }
-  
+
   return response;
 };

@@ -110,7 +110,7 @@ const Cookies = () => {
                 <p>Puedes controlar y eliminar las cookies de varias formas:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>Configuración del navegador: la mayoría de navegadores permiten bloquear o eliminar cookies</li>
-                  <li>Panel de configuración: dentro de Localix puedes ajustar tus preferencias de cookies</li>
+                  <li>Panel de configuración: dentro de Asenting puedes ajustar tus preferencias de cookies</li>
                   <li>Herramientas de terceros: extensiones de navegador para gestión de privacidad</li>
                 </ul>
                 <p className="text-sm mt-4">

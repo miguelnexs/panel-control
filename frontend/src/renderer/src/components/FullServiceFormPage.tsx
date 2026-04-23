@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Toast, ToastType } from './Toast';
+import ClientFormModal from './ClientFormModal';
 import { 
   ArrowLeft, 
   Save, 
@@ -11,7 +12,14 @@ import {
   DollarSign, 
   CheckCircle,
   Search,
-  Grid
+  Grid,
+  X,
+  Clock,
+  Phone,
+  Mail,
+  MapPin,
+  CreditCard,
+  Printer
 } from 'lucide-react';
 
 interface FullServiceFormPageProps {
@@ -49,14 +57,15 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
     clientId: '',
   });
 
-  const [isNewClient, setIsNewClient] = useState(false);
-  const [newClientData, setNewClientData] = useState({
-    client_type: 'person' as 'person' | 'company',
-    full_name: '',
-    cedula: '',
-    phone: '',
-    email: '',
-    address: ''
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+
+  const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
+  const [catalogFormData, setCatalogFormData] = useState({
+    name: '',
+    description: '',
+    price: '0',
+    estimated_duration: '',
+    image: null as File | null
   });
 
   const [serviceItems, setServiceItems] = useState<Array<{ id: string, name: string, description: string, value: string, third_party_provider: string, third_party_cost: string, worker: string }>>([
@@ -79,21 +88,30 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
 
   const authHeaders = (tkn: string | null) => ({ 'Content-Type': 'application/json', ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) });
 
+  const loadClients = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${apiBase}/clients/?page_size=100`, { headers: authHeaders(token) });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.results)) setClients(data.results);
+      }
+    } catch (e) {
+      console.error("Error loading clients", e);
+    }
+  };
+
   // Load Data
   useEffect(() => {
     const loadData = async () => {
       if (!token) return;
       try {
-        const [clientsRes, employeesRes, catalogRes] = await Promise.all([
-          fetch(`${apiBase}/clients/?page_size=100`, { headers: authHeaders(token) }),
+        const [employeesRes, catalogRes] = await Promise.all([
           fetch(`${apiBase}/users/api/users/?scope=tenant`, { headers: authHeaders(token) }),
           fetch(`${apiBase}/services/definitions/`, { headers: authHeaders(token) })
         ]);
 
-        if (clientsRes.ok) {
-          const data = await clientsRes.json();
-          if (Array.isArray(data.results)) setClients(data.results);
-        }
+        await loadClients();
 
         if (employeesRes.ok) {
           const data = await employeesRes.json();
@@ -114,8 +132,62 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
     loadData();
   }, [token, apiBase]);
 
+  const loadCatalog = async () => {
+    if (!token) return;
+    try {
+      const res = await fetch(`${apiBase}/services/definitions/`, { headers: authHeaders(token) });
+      if (res.ok) {
+        const data = await res.json();
+        const arr = Array.isArray(data.results) ? data.results : Array.isArray(data) ? data : [];
+        setCatalog(arr);
+      }
+    } catch (e) {
+      console.error("Error loading catalog", e);
+    }
+  };
+
+  const handleCatalogSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) return;
+
+    if (!catalogFormData.name || !catalogFormData.description) {
+      showToast('Nombre y descripción son obligatorios', 'error');
+      return;
+    }
+
+    showToast('Guardando en catálogo...', 'loading');
+
+    try {
+      const fd = new FormData();
+      fd.append('name', catalogFormData.name);
+      fd.append('description', catalogFormData.description);
+      fd.append('price', catalogFormData.price);
+      fd.append('estimated_duration', catalogFormData.estimated_duration);
+      if (catalogFormData.image) {
+        fd.append('image', catalogFormData.image);
+      }
+
+      const res = await fetch(`${apiBase}/services/definitions/`, {
+        method: 'POST',
+        headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: fd
+      });
+
+      if (!res.ok) throw new Error('Error al guardar en catálogo');
+      
+      await loadCatalog();
+      setIsCatalogModalOpen(false);
+      setCatalogFormData({ name: '', description: '', price: '0', estimated_duration: '', image: null });
+      showToast('Servicio agregado al catálogo', 'success');
+      
+    } catch (e: any) {
+      showToast(e.message, 'error');
+    }
+  };
+
+
   const addServiceItem = () => {
-    setServiceItems(prev => [...prev, { id: String(Date.now()), name: '', description: '', value: '', third_party_provider: '', third_party_cost: '', worker: '' }]);
+    setServiceItems(prev => [...prev, { id: String(Date.now()), name: '', description: '', value: '0', third_party_provider: '', third_party_cost: '', worker: '' }]);
   };
 
   const removeServiceItem = (id: string) => {
@@ -137,14 +209,14 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
       if (emptyItem) {
           updateServiceItem(emptyItem.id, 'name', catItem.name);
           updateServiceItem(emptyItem.id, 'description', catItem.description);
-          updateServiceItem(emptyItem.id, 'value', String(catItem.price));
+          updateServiceItem(emptyItem.id, 'value', '0');
           showToast(`Agregado: ${catItem.name}`, 'success');
       } else {
           setServiceItems(prev => [...prev, {
               id: String(Date.now()),
               name: catItem.name,
               description: catItem.description,
-              value: String(catItem.price),
+              value: '0',
               third_party_provider: '',
               third_party_cost: '',
               worker: ''
@@ -156,16 +228,9 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
   const handleSubmit = async () => {
       if (!token) return;
 
-      if (!isNewClient && !formData.clientId) {
-        showToast("Seleccione un cliente", 'error');
+      if (!formData.clientId) {
+        showToast("Seleccione un cliente", 'warning');
         return;
-      }
-
-      if (isNewClient) {
-          if (!newClientData.full_name || !newClientData.cedula) {
-              showToast("Nombre y Cédula son obligatorios para el nuevo cliente", 'error');
-              return;
-          }
       }
 
       for (const item of serviceItems) {
@@ -179,7 +244,12 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
       showToast('Creando servicios...', 'loading');
 
       try {
-        const promises = serviceItems.map(item => {
+        if (!formData.clientId) {
+          showToast('Por favor seleccione un cliente antes de continuar', 'warning');
+          return;
+        }
+
+        const savePromises = serviceItems.map(item => {
           const payload: any = {
             name: item.name,
             description: item.description,
@@ -191,29 +261,32 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
             entry_date: new Date().toISOString().split('T')[0],
           };
 
-          if (isNewClient) {
-              payload.client_type = newClientData.client_type;
-              payload.client_full_name = newClientData.full_name;
-              payload.client_cedula = newClientData.cedula;
-              payload.client_phone = newClientData.phone;
-              payload.client_email = newClientData.email;
-              payload.client_address = newClientData.address;
-          } else {
-              payload.client = Number(formData.clientId);
-          }
+          payload.client = Number(formData.clientId);
 
           return fetch(`${apiBase}/services/`, {
             method: 'POST',
             headers: authHeaders(token),
             body: JSON.stringify(payload),
           }).then(async res => {
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.detail || 'Error creando servicio');
-            return data;
+            if (!res.ok) {
+              let errorMsg = `Error ${res.status}: ${res.statusText}`;
+              try {
+                const data = await res.json();
+                errorMsg = data.detail || data.message || errorMsg;
+              } catch (e) {
+                // If not JSON, get text
+                try {
+                  const text = await res.text();
+                  if (text && text.length < 500) errorMsg = text;
+                } catch(e2) {}
+              }
+              throw new Error(errorMsg);
+            }
+            return res.json();
           });
         });
 
-        await Promise.all(promises);
+        await Promise.all(savePromises);
         
         showToast('Servicios creados correctamente', 'success');
         setTimeout(() => {
@@ -273,238 +346,160 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
             
             {/* Left Column: Form */}
             <div className="flex-1 overflow-y-auto p-6 lg:p-8 border-r border-gray-800">
-                <div className="max-w-3xl mx-auto space-y-8">
+                <div className="space-y-8">
                     
                     {/* Client Selection */}
-                    <div className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700/50">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                                <User className="w-5 h-5 text-indigo-400" />
+                    <div className="bg-gray-800/50 rounded-2xl p-8 border border-gray-700/50">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                                <div className="p-2 rounded-xl bg-indigo-500/10">
+                                    <User className="w-6 h-6 text-indigo-400" />
+                                </div>
                                 Información del Cliente
                             </h2>
                             <button 
-                                onClick={() => setIsNewClient(!isNewClient)}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                                    isNewClient 
-                                    ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20' 
-                                    : 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 hover:bg-indigo-500/20'
-                                }`}
+                                onClick={() => setIsClientModalOpen(true)}
+                                className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-black shadow-lg shadow-indigo-600/30 transition-all active:scale-95"
                             >
-                                {isNewClient ? (
-                                    <> <ArrowLeft className="w-3.5 h-3.5" /> Seleccionar Existente </>
-                                ) : (
-                                    <> <Plus className="w-3.5 h-3.5" /> Nuevo Cliente </>
-                                )}
+                                <Plus className="w-4 h-4" />
+                                Nuevo Cliente
                             </button>
                         </div>
                         
-                        {!isNewClient ? (
-                            <div>
-                                <label className="block text-xs font-medium text-gray-400 mb-1.5 uppercase tracking-wide">Seleccionar Cliente</label>
-                                <div className="relative">
-                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="md:col-span-2">
+                                <label className="block text-xs font-black text-gray-500 mb-3 uppercase tracking-widest">Seleccionar Cliente Existente</label>
+                                <div className="relative group">
+                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-indigo-400 transition-colors" />
                                     <select 
                                         value={formData.clientId}
                                         onChange={(e) => setFormData({...formData, clientId: e.target.value})}
-                                        className="w-full bg-gray-900 border border-gray-700 rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all"
+                                        className="w-full bg-gray-900 border border-gray-700 rounded-2xl pl-12 pr-12 py-4 text-sm text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none appearance-none transition-all shadow-inner font-medium"
                                     >
-                                        <option value="">Buscar cliente...</option>
+                                        <option value="">Busca un cliente por nombre o documento...</option>
                                         {clients.map(client => (
-                                        <option key={client.id} value={client.id}>{client.full_name} - {client.cedula}</option>
+                                        <option key={client.id} value={client.id}>{client.full_name} — {client.cedula}</option>
                                         ))}
                                     </select>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                {/* Client Type Selector */}
-                                <div className="flex bg-gray-900 p-1 rounded-xl border border-gray-700">
-                                    <button
-                                        type="button"
-                                        onClick={() => setNewClientData(prev => ({ ...prev, client_type: 'person' }))}
-                                        className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${newClientData.client_type === 'person' ? 'bg-gray-800 text-indigo-400 shadow-sm' : 'text-gray-500'}`}
-                                    >
-                                        Persona Natural
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => setNewClientData(prev => ({ ...prev, client_type: 'company' }))}
-                                        className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${newClientData.client_type === 'company' ? 'bg-gray-800 text-indigo-400 shadow-sm' : 'text-gray-500'}`}
-                                    >
-                                        Empresa (NIT)
-                                    </button>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                                            {newClientData.client_type === 'person' ? 'Nombre Completo *' : 'Razón Social *'}
-                                        </label>
-                                        <input 
-                                            type="text" 
-                                            value={newClientData.full_name}
-                                            onChange={(e) => setNewClientData({...newClientData, full_name: e.target.value})}
-                                            placeholder={newClientData.client_type === 'person' ? "Ej. Juan Pérez" : "Ej. Mi Empresa S.A.S"}
-                                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-400 mb-1.5">
-                                            {newClientData.client_type === 'person' ? 'Cédula *' : 'NIT *'}
-                                        </label>
-                                        <input 
-                                            type="text" 
-                                            value={newClientData.cedula}
-                                            onChange={(e) => {
-                                                setNewClientData({...newClientData, cedula: e.target.value});
-                                            }}
-                                            placeholder={newClientData.client_type === 'person' ? "Ej. 123456789" : "Ej. 900123456-1"}
-                                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-400 mb-1.5">Teléfono</label>
-                                        <input 
-                                            type="text" 
-                                            value={newClientData.phone}
-                                            onChange={(e) => setNewClientData({...newClientData, phone: e.target.value})}
-                                            placeholder="Ej. 3001234567"
-                                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-400 mb-1.5">Email</label>
-                                        <input 
-                                            type="email" 
-                                            value={newClientData.email}
-                                            onChange={(e) => setNewClientData({...newClientData, email: e.target.value})}
-                                            placeholder="Ej. juan@correo.com"
-                                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none"
-                                        />
-                                    </div>
-                                    <div className="md:col-span-2">
-                                        <label className="block text-xs font-medium text-gray-400 mb-1.5">Dirección</label>
-                                        <input 
-                                            type="text" 
-                                            value={newClientData.address}
-                                            onChange={(e) => setNewClientData({...newClientData, address: e.target.value})}
-                                            placeholder="Ej. Calle 123 #45-67"
-                                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none"
-                                        />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                                        <Search className="w-5 h-5" />
                                     </div>
                                 </div>
                             </div>
-                        )}
+                        </div>
                     </div>
 
                     {/* Service Items */}
                     <div className="space-y-6">
                         <div className="flex items-center justify-between">
-                            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-                                <Briefcase className="w-5 h-5 text-indigo-400" />
+                            <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                                <div className="p-2 rounded-xl bg-indigo-500/10">
+                                    <Briefcase className="w-6 h-6 text-indigo-400" />
+                                </div>
                                 Servicios a Realizar
                             </h2>
                             <button 
                                 onClick={addServiceItem}
-                                className="text-sm text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1"
+                                className="px-4 py-2 rounded-xl bg-gray-800 border border-gray-700 text-indigo-400 hover:text-indigo-300 hover:border-indigo-500/30 font-bold text-xs uppercase tracking-widest transition-all flex items-center gap-2"
                             >
                                 <Plus className="w-4 h-4" /> Agregar otro ítem
                             </button>
                         </div>
 
                         {serviceItems.map((item, index) => (
-                            <div key={item.id} className="bg-gray-800/50 rounded-2xl p-6 border border-gray-700/50 relative group animate-in slide-in-from-bottom-4 duration-300">
+                            <div key={item.id} className="bg-gray-800/50 rounded-3xl p-8 border border-gray-700/50 relative group animate-in slide-in-from-bottom-4 duration-300">
                                 {serviceItems.length > 1 && (
                                     <button 
                                         onClick={() => removeServiceItem(item.id)}
-                                        className="absolute top-4 right-4 text-gray-500 hover:text-rose-400 p-2 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                        className="absolute top-6 right-6 text-gray-500 hover:text-rose-400 p-2.5 hover:bg-rose-500/10 rounded-2xl transition-all active:scale-90"
                                     >
-                                        <Trash className="w-4 h-4" />
+                                        <Trash className="w-5 h-5" />
                                     </button>
                                 )}
                                 
-                                <div className="mb-4 text-xs font-medium text-gray-500 uppercase tracking-wide">
-                                    Ítem #{index + 1}
+                                <div className="mb-6 flex items-center gap-3">
+                                    <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 text-sm font-black">
+                                        {index + 1}
+                                    </span>
+                                    <span className="text-xs font-black text-gray-500 uppercase tracking-widest">Configuración del Servicio</span>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    <div className="col-span-2">
-                                        <label className="block text-xs font-medium text-gray-400 mb-1.5">Nombre del Servicio</label>
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                                    {/* Name - 8 cols */}
+                                    <div className="md:col-span-8">
+                                        <label className="block text-xs font-black text-gray-500 mb-2 uppercase tracking-widest">Nombre del Servicio</label>
                                         <input 
                                             type="text" 
                                             value={item.name}
                                             onChange={(e) => updateServiceItem(item.id, 'name', e.target.value)}
-                                            placeholder="Ej. Reparación General"
-                                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none"
+                                            placeholder="Ej. Reparación de Monitor"
+                                            className="w-full bg-gray-950/50 border border-gray-800 rounded-xl px-4 py-3.5 text-sm text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-700"
                                         />
                                     </div>
 
-                                    <div className="col-span-2">
-                                        <label className="block text-xs font-medium text-gray-400 mb-1.5">Descripción Detallada</label>
+                                    {/* Worker - 4 cols */}
+                                    <div className="md:col-span-4">
+                                        <label className="block text-xs font-black text-gray-500 mb-2 uppercase tracking-widest">Asignar Empleado</label>
+                                        <div className="relative group">
+                                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-indigo-400 transition-colors" />
+                                            <select 
+                                                value={item.worker}
+                                                onChange={(e) => updateServiceItem(item.id, 'worker', e.target.value)}
+                                                className="w-full bg-gray-950/50 border border-gray-800 rounded-xl pl-10 pr-10 py-3.5 text-sm text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none appearance-none transition-all"
+                                            >
+                                                <option value="">Sin Asignar</option>
+                                                {employees.map(emp => {
+                                                    const name = emp.first_name || emp.last_name ? `${emp.first_name} ${emp.last_name}`.trim() : emp.username;
+                                                    return <option key={emp.id} value={emp.id}>{name}</option>;
+                                                })}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Description - Full Width */}
+                                    <div className="md:col-span-12">
+                                        <label className="block text-xs font-black text-gray-500 mb-2 uppercase tracking-widest">Descripción Detallada y Notas</label>
                                         <textarea 
                                             value={item.description}
                                             onChange={(e) => updateServiceItem(item.id, 'description', e.target.value)}
-                                            placeholder="Describe el trabajo a realizar..."
+                                            placeholder="Especifica el problema, piezas a cambiar o detalles técnicos..."
                                             rows={3}
-                                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none resize-none"
+                                            className="w-full bg-gray-950/50 border border-gray-800 rounded-2xl px-4 py-4 text-sm text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all resize-none placeholder:text-gray-700 shadow-inner"
                                         />
                                     </div>
 
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-400 mb-1.5">Valor Estimado</label>
-                                        <div className="relative">
-                                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                                            <input 
-                                                type="number" 
-                                                value={item.value}
-                                                onChange={(e) => updateServiceItem(item.id, 'value', e.target.value)}
-                                                placeholder="0.00"
-                                                min="0"
-                                                className="w-full bg-gray-900 border border-gray-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-400 mb-1.5">Asignar Empleado</label>
-                                        <select 
-                                            value={item.worker}
-                                            onChange={(e) => updateServiceItem(item.id, 'worker', e.target.value)}
-                                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none"
-                                        >
-                                            <option value="">Sin Asignar</option>
-                                            {employees.map(emp => {
-                                                const name = emp.first_name || emp.last_name ? `${emp.first_name} ${emp.last_name}`.trim() : emp.username;
-                                                return <option key={emp.id} value={emp.id}>{name}</option>;
-                                            })}
-                                        </select>
-                                    </div>
-                                    
-                                    {/* Advanced/Optional Fields Toggle could go here, keeping it simple for now */}
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-400 mb-1.5">Proveedor Externo (Opcional)</label>
-                                        <input 
-                                            type="text" 
-                                            value={item.third_party_provider}
-                                            onChange={(e) => updateServiceItem(item.id, 'third_party_provider', e.target.value)}
-                                            placeholder="Nombre del tercero"
-                                            className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none"
-                                        />
-                                    </div>
-                                    
-                                    {item.third_party_provider && (
+                                    {/* Advanced/Third Party - Conditional Section */}
+                                    <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-gray-800/50">
                                         <div>
-                                            <label className="block text-xs font-medium text-gray-400 mb-1.5">Costo Tercero</label>
-                                            <input 
-                                                type="number" 
-                                                value={item.third_party_cost}
-                                                onChange={(e) => updateServiceItem(item.id, 'third_party_cost', e.target.value)}
-                                                placeholder="0.00"
-                                                className="w-full bg-gray-900 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none"
-                                            />
+                                            <label className="block text-xs font-black text-gray-500 mb-2 uppercase tracking-widest">Proveedor Externo (Si aplica)</label>
+                                            <div className="relative group">
+                                                <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-indigo-400 transition-colors" />
+                                                <input 
+                                                    type="text" 
+                                                    value={item.third_party_provider}
+                                                    onChange={(e) => updateServiceItem(item.id, 'third_party_provider', e.target.value)}
+                                                    placeholder="Nombre del taller o proveedor externo"
+                                                    className="w-full bg-gray-950/50 border border-gray-800 rounded-xl pl-12 pr-4 py-3.5 text-sm text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-700"
+                                                />
+                                            </div>
                                         </div>
-                                    )}
-
+                                        
+                                        {item.third_party_provider && (
+                                            <div className="animate-in slide-in-from-right-4 duration-300">
+                                                <label className="block text-xs font-black text-gray-500 mb-2 uppercase tracking-widest">Costo de Tercero</label>
+                                                <div className="relative group">
+                                                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-rose-400 transition-colors" />
+                                                    <input 
+                                                        type="number" 
+                                                        value={item.third_party_cost}
+                                                        onChange={(e) => updateServiceItem(item.id, 'third_party_cost', e.target.value)}
+                                                        placeholder="Costo para el negocio"
+                                                        className="w-full bg-gray-950/50 border border-gray-800 rounded-xl pl-12 pr-4 py-3.5 text-sm text-white focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500/50 focus:outline-none transition-all placeholder:text-gray-700"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -515,10 +510,19 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
             {/* Right Column: Catalog Quick Access */}
             <div className="w-full lg:w-96 border-l border-gray-800 bg-gray-900/50 p-6 overflow-hidden flex flex-col">
                 <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-2">
-                        <Grid className="w-5 h-5 text-indigo-400" />
-                        Catálogo Rápido
-                    </h3>
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                            <Grid className="w-5 h-5 text-indigo-400" />
+                            Catálogo Rápido
+                        </h3>
+                        <button 
+                            onClick={() => setIsCatalogModalOpen(true)}
+                            className="p-2 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white rounded-xl transition-all active:scale-90"
+                            title="Nuevo servicio al catálogo"
+                        >
+                            <Plus className="w-4 h-4" />
+                        </button>
+                    </div>
                     <p className="text-xs text-gray-400 mb-4">Haz clic para agregar servicios predefinidos al formulario.</p>
                     
                     <div className="relative">
@@ -543,9 +547,6 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
                             >
                                 <div className="flex justify-between items-start mb-1">
                                     <div className="font-medium text-white group-hover:text-indigo-400 transition-colors">{catItem.name}</div>
-                                    <div className="text-xs font-semibold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded">
-                                        ${Number(catItem.price).toLocaleString()}
-                                    </div>
                                 </div>
                                 <div className="text-xs text-gray-500 line-clamp-2">{catItem.description}</div>
                             </button>
@@ -560,6 +561,109 @@ const FullServiceFormPage: React.FC<FullServiceFormPageProps> = ({ token, apiBas
             </div>
         </div>
       </div>
+
+      {/* Reusable Client Modal */}
+      <ClientFormModal 
+        isOpen={isClientModalOpen}
+        onClose={() => setIsClientModalOpen(false)}
+        token={token}
+        apiBase={apiBase}
+        themeColor="indigo"
+        onSuccess={(newClient) => {
+          setClients(prev => [newClient, ...prev]);
+          setFormData(prev => ({ ...prev, clientId: String(newClient.id) }));
+          showToast('Cliente registrado exitosamente', 'success');
+        }}
+      />
+
+      {/* Modal Nuevo Servicio en Catálogo */}
+      {isCatalogModalOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-gray-900 border border-gray-800 rounded-[2.5rem] w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+            <div className="p-8 border-b border-gray-800 flex justify-between items-center bg-gray-900/50">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
+                  <Plus className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-white">Nuevo al Catálogo</h2>
+                  <p className="text-sm text-gray-400 font-medium">Define un servicio reutilizable</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsCatalogModalOpen(false)} 
+                className="p-2 hover:bg-white/10 rounded-2xl text-gray-400 hover:text-white transition-all active:scale-90"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleCatalogSubmit} className="p-8 space-y-6">
+              <div>
+                <label className="block text-xs font-black text-gray-500 mb-2 uppercase tracking-widest">Nombre del Servicio</label>
+                <input 
+                  type="text" 
+                  value={catalogFormData.name}
+                  onChange={(e) => setCatalogFormData({...catalogFormData, name: e.target.value})}
+                  placeholder="Ej. Limpieza Química de Placa"
+                  className="w-full bg-white/5 border border-gray-800 rounded-xl px-4 py-3.5 text-sm text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-600"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-gray-500 mb-2 uppercase tracking-widest">Descripción</label>
+                <textarea 
+                  value={catalogFormData.description}
+                  onChange={(e) => setCatalogFormData({...catalogFormData, description: e.target.value})}
+                  placeholder="Describe en qué consiste el servicio..."
+                  rows={3}
+                  className="w-full bg-white/5 border border-gray-800 rounded-2xl px-4 py-4 text-sm text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all resize-none placeholder:text-gray-600"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-xs font-black text-gray-500 mb-2 uppercase tracking-widest">Duración Estimada</label>
+                  <input 
+                    type="text" 
+                    value={catalogFormData.estimated_duration}
+                    onChange={(e) => setCatalogFormData({...catalogFormData, estimated_duration: e.target.value})}
+                    placeholder="Ej. 2 horas"
+                    className="w-full bg-white/5 border border-gray-800 rounded-xl px-4 py-3.5 text-sm text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-600"
+                  />
+                </div>
+                <div>
+                   <label className="block text-xs font-black text-gray-500 mb-2 uppercase tracking-widest">Imagen (Opcional)</label>
+                   <input 
+                     type="file" 
+                     onChange={(e) => setCatalogFormData({...catalogFormData, image: e.target.files?.[0] || null})}
+                     className="w-full text-xs text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 transition-all cursor-pointer"
+                   />
+                </div>
+              </div>
+
+              <div className="pt-6 flex gap-4">
+                <button 
+                  type="button" 
+                  onClick={() => setIsCatalogModalOpen(false)}
+                  className="flex-1 px-6 py-4 border border-gray-800 rounded-2xl text-sm font-bold text-gray-500 hover:bg-white/5 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-[2] px-6 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-600/30 transition-all active:scale-95"
+                >
+                  Guardar en Catálogo
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

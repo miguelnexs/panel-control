@@ -8,9 +8,8 @@ import {
   ArrowUpRight, 
   ArrowDownRight,
   MonitorCheck,
-  Server,
-  Database,
-  Globe
+  Globe,
+  X
 } from 'lucide-react';
 
 interface Stats {
@@ -42,7 +41,6 @@ interface DashboardViewProps {
   stats: Stats;
   seriesA: number[]; // Used for general activity
   seriesB: number[]; // Used for performance
-  recentOrders: any[];
   topProducts: TopProduct[];
   chartLabels: string[];
 }
@@ -96,10 +94,6 @@ const SystemHealthCard: React.FC<{ label: string; status: 'healthy' | 'warning' 
 );
 
 const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, topProducts, chartLabels }) => {
-  // Mock data calculations for "Estadísticas clave de uso"
-  const activeSessions = Math.floor(stats.usersCount * 0.8) + 2; 
-  const avgSessionTime = "24m";
-
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       
@@ -166,7 +160,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, 
               <SystemHealthCard label="Pendientes" status="warning" value={stats.statusCounts.pending.toString()} icon={Clock} />
               <SystemHealthCard label="Enviados" status="healthy" value={stats.statusCounts.shipped.toString()} icon={Globe} />
               <SystemHealthCard label="Entregados" status="healthy" value={stats.statusCounts.delivered.toString()} icon={MonitorCheck} />
-              <SystemHealthCard label="Cancelados" status="error" value={stats.statusCounts.canceled.toString()} icon={Server} />
+              <SystemHealthCard label="Cancelados" status="error" value={stats.statusCounts.canceled.toString()} icon={X} />
             </div>
             
             <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">

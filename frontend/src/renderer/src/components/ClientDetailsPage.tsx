@@ -278,7 +278,11 @@ const ClientDetailsPage: React.FC<ClientDetailsPageProps> = ({ token, apiBase, c
                           )}
                         </div>
                         <div className="text-lg font-bold text-white">
-                          {Number(service.value).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                          {service.status === 'entregado' ? (
+                            Number(service.value).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
+                          ) : (
+                            <span className="text-amber-500 text-sm">Pendiente</span>
+                          )}
                         </div>
                       </div>
                     </div>

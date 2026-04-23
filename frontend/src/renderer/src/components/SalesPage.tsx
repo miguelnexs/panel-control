@@ -17,11 +17,14 @@ import {
   TrendingUp, 
   Calendar,
   Package,
-  Palette
+  Palette,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useOfflineSync } from '../hooks/useOfflineSync';
 import SyncStatusBanner from './SyncStatusBanner';
+import ClientFormModal from './ClientFormModal';
+import SafeImage from './SafeImage';
 
 interface Color {
   id: number;
@@ -68,10 +71,11 @@ interface CartItem {
   colorId: string | null;
   variantId: string | null;
   quantity: number;
+  manualPrice?: number;
 }
 
 interface Msg {
-  type: 'success' | 'error';
+  type: 'success' | 'error' | 'warning';
   text: string;
 }
 
@@ -89,16 +93,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
   const [msg, setMsg] = useState<Msg | null>(null);
   const [search, setSearch] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
-  const [clientForm, setClientForm] = useState({ 
-    client_type: 'person',
-    full_name: '', 
-    cedula: '', 
-    email: '', 
-    address: '', 
-    phone: '' 
-  });
   const [openClientModal, setOpenClientModal] = useState(false);
-  const [isCreatingClient, setIsCreatingClient] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   
   // Pagination State
@@ -128,11 +123,12 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
   const [apartadoAmount, setApartadoAmount] = useState('');
   const [cashReceived, setCashReceived] = useState('');
   const [mixedCashPart, setMixedCashPart] = useState('');
-  const [stats, setStats] = useState<{
-    total_sales: number;
-    total_amount: string;
-    today_sales: number;
-    month_sales: number;
+
+  // Discount modal state (replaces unsupported prompt())
+  const [discountModal, setDiscountModal] = useState<{
+    idx: number;
+    originalPrice: number;
+    pct: string;
   } | null>(null);
 
   const mediaUrl = (path?: string) => {
@@ -154,32 +150,6 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     return imgUrl ? mediaUrl(imgUrl) : (product.image ? mediaUrl(product.image) : '');
   };
 
-  const loadVariants = async (productId: number) => {
-    if (variantOptions[productId]) return;
-    try {
-      const res = await fetch(`${apiBase}/products/${productId}/variants/`, { headers: authHeaders(token) });
-      const data = await res.json();
-      const list = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
-      setVariantOptions((m) => ({ ...m, [productId]: list }));
-    } catch (_) {
-      setVariantOptions((m) => ({ ...m, [productId]: [] }));
-    }
-  };
-
-  const loadColors = async (productId: number) => {
-    if (colorOptions[productId]) return;
-    try {
-      const res = await fetch(`${apiBase}/products/${productId}/colors/`, { headers: authHeaders(token) });
-      const data = await res.json();
-      const list = Array.isArray(data.results) ? data.results : [];
-      setColorOptions((m) => ({ ...m, [productId]: list }));
-      if (list.length > 0 && !selectedColorMap[productId]) {
-        setSelectedColorMap((m) => ({ ...m, [productId]: String(list[0].id) }));
-      }
-    } catch (_) {
-      setColorOptions((m) => ({ ...m, [productId]: [] }));
-    }
-  };
 
   // Handle search debouncing
   useEffect(() => {
@@ -236,12 +206,6 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     }
   }, [page]);
 
-  // We now use server-side results instead of local filtering
-  const displayed = products.length > pageSize 
-    ? products.slice((page - 1) * pageSize, page * pageSize) 
-    : products;
-
-  const filtered = displayed;
 
   useEffect(() => {
     if (selectingProduct) {
@@ -272,17 +236,6 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     }
   }, [selectingProduct, selectedColor, selectedVariant, useStandardColor]);
 
-  const loadSkus = async (productId: number) => {
-    try {
-      const res = await fetch(`${apiBase}/products/${productId}/skus/`, { headers: authHeaders(token) });
-      const data = await res.json();
-      const list = Array.isArray(data.results) ? data.results : (Array.isArray(data) ? data : []);
-      setProducts(prev => prev.map(p => p.id === productId ? { ...p, skus: list } : p));
-      if (selectingProduct?.id === productId) {
-        setSelectingProduct(prev => prev ? { ...prev, skus: list } : null);
-      }
-    } catch (_) {}
-  };
 
   const addToCart = async (product: Product) => {
     // Load full data including SKUs and full product details before opening modal
@@ -346,7 +299,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     }
 
     if (selectionQty > stock) {
-        alert(`Solo hay ${stock} unidades disponibles para esta selección.`);
+        alert(`Solo hay ${stock} unidades disponibles para esta selecciÃ³n.`);
         return;
     }
     
@@ -370,6 +323,8 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
   };
 
   const getItemPrice = (item: CartItem) => {
+    if (item.manualPrice !== undefined) return item.manualPrice;
+    
     let price =
       item.product.sale_price != null && Number(item.product.sale_price) > 0
         ? Number(item.product.sale_price)
@@ -406,7 +361,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
   const validateCart = async () => {
     for (const it of cart) {
       const qty = Number(it.quantity || 0);
-      if (!qty || qty < 1) return { ok: false, msg: 'Cantidad inválida' };
+      if (!qty || qty < 1) return { ok: false, msg: 'Cantidad invÃ¡lida' };
       if (it.colorId) {
         const list = (colorOptions[it.product.id] || it.product.colors || []);
         const col = Array.isArray(list) ? list.find((c) => String(c.id) === String(it.colorId)) : null;
@@ -420,19 +375,10 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
 
   const submitSale = async () => {
     setMsg(null);
-    if (!token) { setMsg({ type: 'error', text: 'Sesión no válida' }); return; }
+    if (!token) { setMsg({ type: 'error', text: 'SesiÃ³n no vÃ¡lida' }); return; }
     
-    const clientOk = (() => {
-      if (selectedClientId) return true;
-      const nameOk = (clientForm.full_name || '').trim().length >= 3;
-      const cedOk = /^[0-9]{6,12}$/.test((clientForm.cedula || '').trim());
-      // Email and address are optional or less strict for quick sales often, but keeping validation
-      const mailOk = !clientForm.email || /^\S+@\S+\.\S+$/.test((clientForm.email || '').trim());
-      return nameOk && cedOk && mailOk;
-    })();
-
-    if (!clientOk && !selectedClientId) { 
-        setMsg({ type: 'error', text: 'Seleccione un cliente o complete Nombre y Cédula del nuevo cliente' }); 
+    if (!selectedClientId) { 
+        setMsg({ type: 'warning', text: 'Seleccione un cliente para continuar con la venta' }); 
         return; 
     }
     
@@ -462,12 +408,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     }
     
     const payload = {
-      client_id: selectedClientId || undefined,
-      client_full_name: selectedClientId ? undefined : (clientForm.full_name || '').trim(),
-      client_cedula: selectedClientId ? undefined : (clientForm.cedula || '').trim(),
-      client_email: selectedClientId ? undefined : (clientForm.email || '').trim(),
-      client_phone: selectedClientId ? undefined : (clientForm.phone || '').trim(),
-      client_address: selectedClientId ? undefined : (clientForm.address || '').trim(),
+      client_id: selectedClientId,
       status: isApartado ? 'apartado' : 'pending',
       payment_method: paymentMethod,
       cash_amount: Number(paymentSummary.cashPart || 0),
@@ -478,7 +419,8 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
         product_id: it.product.id, 
         color_id: it.colorId ? Number(it.colorId) : null,
         variant_id: it.variantId ? Number(it.variantId) : null,
-        quantity: Number(it.quantity) 
+        quantity: Number(it.quantity),
+        manual_price: it.manualPrice !== undefined ? Number(it.manualPrice) : null
       })),
     };
 
@@ -499,12 +441,11 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
       setMsg({
         type: 'success',
         text: result.queued
-          ? 'Venta guardada localmente. Se sincronizará al reconectar.'
+          ? 'Venta guardada localmente. Se sincronizarÃ¡ al reconectar.'
           : 'Venta registrada exitosamente',
       });
       setCart([]);
       setOpenCart(false);
-      setClientForm({ client_type: 'person', full_name: '', cedula: '', email: '', address: '', phone: '' });
       setSelectedClientId('');
       setPaymentMethod('cash');
       setIsApartado(false);
@@ -517,57 +458,6 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     }
   };
 
-  const createPermanentClient = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setMsg(null);
-    setIsCreatingClient(true);
-
-    try {
-      const res = await fetch(`${apiBase}/clients/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...authHeaders(token)
-        },
-        body: JSON.stringify(clientForm)
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        // Mejorar la extracción de errores de validación de Django REST Framework
-        let errorMessage = 'Error al crear cliente';
-        if (typeof data === 'object') {
-          if (data.detail) {
-            errorMessage = data.detail;
-          } else {
-            // Recoger todos los errores de validación del objeto (ej. { "cedula": ["..."] })
-            errorMessage = Object.entries(data)
-              .map(([key, val]) => {
-                const fieldName = key.charAt(0).toUpperCase() + key.slice(1);
-                const errors = Array.isArray(val) ? val.join(', ') : String(val);
-                return `${fieldName}: ${errors}`;
-              })
-              .join('\n');
-          }
-        }
-        throw new Error(errorMessage);
-      }
-
-      // Añadir el nuevo cliente a la lista y seleccionarlo
-      const newClient = data;
-      setClients(prev => [newClient, ...prev]);
-      setSelectedClientId(String(newClient.id));
-      setOpenClientModal(false);
-      setMsg({ type: 'success', text: 'Cliente creado y seleccionado correctamente' });
-      
-      // Limpiar el formulario
-      setClientForm({ client_type: 'person', full_name: '', cedula: '', email: '', address: '', phone: '' });
-    } catch (e: any) {
-      setMsg({ type: 'error', text: e.message });
-    } finally {
-      setIsCreatingClient(false);
-    }
-  };
 
   const formatCurrency = (v: any) => {
     if (v === '' || v == null) return '';
@@ -576,17 +466,6 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     return n.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
   };
 
-  const StatCard = ({ label, value, icon: Icon, color }: any) => (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-gray-300 dark:hover:border-gray-700 transition-all group">
-      <div>
-        <p className="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">{label}</p>
-        <p className="text-2xl font-bold text-gray-900 dark:text-white group-hover:scale-105 transition-transform origin-left">{value}</p>
-      </div>
-      <div className={`p-3 rounded-lg bg-opacity-10 ${color.bg}`}>
-        <Icon className={`w-6 h-6 ${color.text}`} />
-      </div>
-    </div>
-  );
 
   return (
     <div className="space-y-6 relative animate-in fade-in duration-500">
@@ -599,47 +478,19 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
         onSync={offlineSync.syncNow}
       />
 
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard 
-            label="Ventas Hoy" 
-            value={stats.today_sales} 
-            icon={Calendar} 
-            color={{ bg: 'bg-blue-500', text: 'text-blue-500' }} 
-          />
-          <StatCard 
-            label="Ventas Mes" 
-            value={stats.month_sales} 
-            icon={TrendingUp} 
-            color={{ bg: 'bg-emerald-500', text: 'text-emerald-500' }} 
-          />
-          <StatCard 
-            label="Total Ventas" 
-            value={stats.total_sales} 
-            icon={ShoppingCart} 
-            color={{ bg: 'bg-purple-500', text: 'text-purple-500' }} 
-          />
-          <StatCard 
-            label="Ingresos Totales" 
-            value={formatCurrency(stats.total_amount)} 
-            icon={DollarSign} 
-            color={{ bg: 'bg-amber-500', text: 'text-amber-500' }} 
-          />
-        </div>
-      )}
 
       {loading && !products.length && (
         <div className="absolute inset-0 z-50 bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm flex items-center justify-center rounded-2xl">
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
             <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4" />
-            <div className="text-gray-900 dark:text-white font-medium">Cargando catálogo...</div>
+            <div className="text-gray-900 dark:text-white font-medium">Cargando catÃ¡logo...</div>
           </div>
         </div>
       )}
 
       {msg && (
-        <div className={`fixed top-4 right-4 z-[60] p-4 rounded-xl text-sm flex items-center gap-3 border shadow-2xl animate-in slide-in-from-right duration-300 ${msg.type === 'success' ? 'bg-emerald-100 dark:bg-emerald-900/90 text-emerald-800 dark:text-emerald-100 border-emerald-200 dark:border-emerald-500/50' : 'bg-rose-100 dark:bg-rose-900/90 text-rose-800 dark:text-rose-100 border-rose-200 dark:border-rose-500/50'}`}>
-          {msg.type === 'success' ? <CheckCircle2 size={20} /> : <X size={20} />}
+        <div className={`fixed bottom-8 right-8 z-[9999] p-4 rounded-xl text-sm flex items-center gap-3 border shadow-2xl animate-in slide-in-from-right duration-300 ${msg.type === 'success' ? 'bg-emerald-100 dark:bg-emerald-900/90 text-emerald-800 dark:text-emerald-100 border-emerald-200 dark:border-emerald-500/50' : msg.type === 'warning' ? 'bg-amber-100 dark:bg-amber-900/90 text-amber-800 dark:text-amber-100 border-amber-200 dark:border-amber-500/50' : 'bg-rose-100 dark:bg-rose-900/90 text-rose-800 dark:text-rose-100 border-rose-200 dark:border-rose-500/50'}`}>
+          {msg.type === 'success' ? <CheckCircle2 size={20} /> : msg.type === 'warning' ? <AlertTriangle size={20} /> : <X size={20} />}
           {msg.text}
           <button onClick={() => setMsg(null)} className="ml-2 opacity-70 hover:opacity-100"><X size={14}/></button>
         </div>
@@ -684,7 +535,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
         {/* Product Grid */}
         <div ref={gridRef} className="flex-1 overflow-y-auto no-scrollbar">
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 pb-20">
-                {filtered.map((p) => {
+                {products.map((p) => {
                     const sel = selectedColorMap[p.id];
                     const imgSrc = sel ? firstColorImage(p, sel) : (p.image ? mediaUrl(p.image) : '');
                     const variants = variantOptions[p.id] || [];
@@ -697,13 +548,12 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                     return (
                         <div key={p.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden hover:border-gray-300 dark:hover:border-gray-600 transition-all group flex flex-col shadow-sm dark:shadow-none">
                             <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative overflow-hidden">
-                                {imgSrc ? (
-                                    <img src={imgSrc} alt={p.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600">
-                                        <ShoppingCart className="w-8 h-8 opacity-20" />
-                                    </div>
-                                )}
+                                <SafeImage 
+                                    src={imgSrc} 
+                                    alt={p.name} 
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                                    fallbackIcon={<Package className="w-8 h-8 opacity-20" />}
+                                />
                                 {hasOffer && (
                                   <div className="absolute top-3 left-3">
                                     <span className="text-[10px] px-2 py-1 rounded-full bg-rose-600 text-white font-bold shadow">
@@ -766,7 +616,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
             {total > pageSize && (
                 <div className="mt-6 mb-20 flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-2xl shadow-sm">
                     <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                        Mostrando <span className="text-gray-900 dark:text-white">{Math.min(filtered.length, pageSize)}</span> de <span className="text-gray-900 dark:text-white">{total}</span> productos
+                        Mostrando <span className="text-gray-900 dark:text-white">{Math.min(products.length, pageSize)}</span> de <span className="text-gray-900 dark:text-white">{total}</span> productos
                     </div>
                     <div className="flex items-center gap-2">
                         <button 
@@ -777,7 +627,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                             Anterior
                         </button>
                         <div className="flex items-center justify-center px-4 py-2 bg-blue-50 dark:bg-blue-500/10 rounded-xl border border-blue-100 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 font-bold text-sm min-w-[100px]">
-                            Página {page} / {Math.max(1, Math.ceil(total / pageSize))}
+                            PÃ¡gina {page} / {Math.max(1, Math.ceil(total / pageSize))}
                         </div>
                         <button 
                             onClick={() => setPage((p) => p + 1)} 
@@ -818,13 +668,12 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                         return (
                             <div key={idx} className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-3 flex gap-3 group hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
                                 <div className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
-                                    {imgSrc ? (
-                                        <img src={imgSrc} alt={it.product.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600">
-                                            <ShoppingCart className="w-6 h-6 opacity-30" />
-                                        </div>
-                                    )}
+                                <SafeImage 
+                                    src={imgSrc} 
+                                    alt={it.product.name} 
+                                    className="w-full h-full object-cover" 
+                                    fallbackIcon={<ShoppingCart className="w-6 h-6 opacity-30" />}
+                                />
                                 </div>
                                 
                                 <div className="flex-1 min-w-0">
@@ -875,8 +724,55 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                                 <Plus size={12} />
                                             </button>
                                         </div>
-                                        <div className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">
-                                            {(itemPrice * it.quantity).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                                        
+                                        <div className="flex flex-col items-end gap-1">
+                                            <div className="flex items-center gap-2">
+                                                <div className="relative">
+                                                    <DollarSign className="absolute left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                                                    <input 
+                                                        type="number"
+                                                        value={it.manualPrice ?? ''}
+                                                        onChange={(e) => {
+                                                            const val = e.target.value === '' ? undefined : Number(e.target.value);
+                                                            updateCart(idx, { manualPrice: val });
+                                                        }}
+                                                        className="w-24 pl-5 pr-2 py-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded text-xs font-bold text-emerald-600 dark:text-emerald-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                                                        placeholder={String(itemPrice)}
+                                                    />
+                                                </div>
+                                                <button 
+                                                    onClick={() => {
+                                                        const originalPrice = (() => {
+                                                            let p = it.product.sale_price != null && Number(it.product.sale_price) > 0
+                                                                ? Number(it.product.sale_price)
+                                                                : Number(it.product.price || 0);
+                                                            if (it.variantId) {
+                                                                const vars = variantOptions[it.product.id] || [];
+                                                                const v = vars.find(v => String(v.id) === String(it.variantId));
+                                                                if (v) p += Number(v.extra_price || 0);
+                                                            }
+                                                            return p;
+                                                        })();
+                                                        setDiscountModal({ idx, originalPrice, pct: '' });
+                                                    }}
+                                                    className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                                                    title="Aplicar porcentaje de descuento"
+                                                >
+                                                    <TrendingUp size={14} />
+                                                </button>
+                                                {it.manualPrice !== undefined && (
+                                                    <button 
+                                                        onClick={() => updateCart(idx, { manualPrice: undefined })}
+                                                        className="p-1 text-rose-400 hover:text-rose-600 transition-colors"
+                                                        title="Restablecer precio original"
+                                                    >
+                                                        <X size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="text-[10px] font-bold text-gray-500 dark:text-gray-400">
+                                                Subtotal: {(getItemPrice(it) * it.quantity).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -886,7 +782,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                     {cart.length === 0 && (
                         <div className="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500">
                             <ShoppingCart className="w-16 h-16 mb-4 opacity-20" />
-                            <p>Tu carrito está vacío</p>
+                            <p>Tu carrito estÃ¡ vacÃ­o</p>
                             <button onClick={() => setOpenCart(false)} className="mt-4 text-blue-500 dark:text-blue-400 text-sm hover:underline">
                                 Explorar productos
                             </button>
@@ -912,7 +808,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                 </select>
                             </div>
                             <button 
-                                onClick={() => { setClientForm({ client_type: 'person', full_name: '', cedula: '', email: '', address: '', phone: '' }); setOpenClientModal(true); }} 
+                                onClick={() => { setOpenClientModal(true); }} 
                                 className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-blue-500 dark:text-blue-400 hover:text-white hover:bg-blue-600 hover:border-blue-600 transition-all"
                                 title="Nuevo Cliente"
                             >
@@ -958,13 +854,13 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                     Pendiente: <span className="font-semibold">{(Number(totalAmount || 0) - Number(apartadoAmount || 0)).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
                                 </div>
                                 <div className="text-xs text-amber-700 dark:text-amber-300 bg-white dark:bg-gray-900 rounded p-2 border border-amber-100 dark:border-amber-500/20">
-                                    ℹ️ El pedido se registrará como "Apartado" con un abono inicial.
+                                    â„¹ï¸ El pedido se registrarÃ¡ como "Apartado" con un abono inicial.
                                 </div>
                             </div>
                         )}
 
                         <div className="mb-4 space-y-3">
-                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Método de pago</label>
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">MÃ©todo de pago</label>
                             <div className="grid grid-cols-3 gap-2">
                                 <button
                                     type="button"
@@ -1061,144 +957,19 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
         </div>
       )}
 
-      {/* New Client Modal */}
-      {openClientModal && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 dark:bg-blue-500/10 rounded-lg">
-                  <UserPlus className="w-5 h-5 text-blue-600 dark:text-blue-500" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Nuevo Cliente</h3>
-              </div>
-              <button onClick={() => setOpenClientModal(false)} className="text-gray-400 hover:text-gray-900 dark:text-gray-500 dark:hover:text-white transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <form onSubmit={createPermanentClient} className="p-6 space-y-4">
-              {/* Client Type Selector */}
-              <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setClientForm(f => ({ ...f, client_type: 'person' }))}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${clientForm.client_type === 'person' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-500'}`}
-                >
-                  Persona Natural
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setClientForm(f => ({ ...f, client_type: 'company' }))}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${clientForm.client_type === 'company' ? 'bg-white dark:bg-gray-700 text-blue-600 shadow-sm' : 'text-gray-500'}`}
-                >
-                  Empresa (NIT)
-                </button>
-              </div>
-
-              <div>
-                <label className="block text-gray-600 dark:text-gray-400 text-sm font-medium mb-1.5">
-                  {clientForm.client_type === 'person' ? 'Nombre Completo' : 'Razón Social'}
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  <input 
-                    type="text" 
-                    value={clientForm.full_name} 
-                    onChange={(e) => setClientForm((f) => ({ ...f, full_name: e.target.value }))} 
-                    className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                    placeholder={clientForm.client_type === 'person' ? "Ej. Juan Pérez" : "Ej. Mi Empresa S.A.S"}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-gray-600 dark:text-gray-400 text-sm font-medium mb-1.5">
-                  {clientForm.client_type === 'person' ? 'Cédula' : 'NIT'}
-                </label>
-                <div className="relative">
-                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  <input 
-                    type="text" 
-                    value={clientForm.cedula} 
-                    onChange={(e) => {
-                      setClientForm((f) => ({ ...f, cedula: e.target.value }));
-                    }} 
-                    className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                    placeholder={clientForm.client_type === 'person' ? "Ej. 12345678" : "Ej. 900123456-1"}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-gray-600 dark:text-gray-400 text-sm font-medium mb-1.5">Teléfono (Opcional)</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  <input 
-                    type="tel" 
-                    value={clientForm.phone} 
-                    onChange={(e) => setClientForm((f) => ({ ...f, phone: e.target.value }))} 
-                    className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                    placeholder="Ej. 3018645967"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-gray-600 dark:text-gray-400 text-sm font-medium mb-1.5">Correo (Opcional)</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  <input 
-                    type="email" 
-                    value={clientForm.email} 
-                    onChange={(e) => setClientForm((f) => ({ ...f, email: e.target.value }))} 
-                    className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                    placeholder="juan@ejemplo.com"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-gray-600 dark:text-gray-400 text-sm font-medium mb-1.5">Dirección (Opcional)</label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  <textarea 
-                    value={clientForm.address} 
-                    onChange={(e) => setClientForm((f) => ({ ...f, address: e.target.value }))} 
-                    className="w-full pl-9 pr-4 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all min-h-[80px] resize-none"
-                    placeholder="Dirección completa"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button 
-                  type="button" 
-                  disabled={isCreatingClient}
-                  onClick={() => setOpenClientModal(false)} 
-                  className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-medium transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={isCreatingClient}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2"
-                >
-                  {isCreatingClient ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Guardando...
-                    </>
-                  ) : 'Guardar y Seleccionar'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Reusable Client Modal */}
+      <ClientFormModal 
+        isOpen={openClientModal}
+        onClose={() => setOpenClientModal(false)}
+        token={token}
+        apiBase={apiBase}
+        themeColor="blue"
+        onSuccess={(newClient) => {
+          setClients(prev => [newClient, ...prev]);
+          setSelectedClientId(String(newClient.id));
+          setMsg({ type: 'success', text: 'Cliente creado y seleccionado' });
+        }}
+      />
 
       {/* Product Selection Modal (Step-by-Step) */}
       {selectingProduct && (
@@ -1208,15 +979,11 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
             <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50">
                 <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
-                        {selectedColor && firstColorImage(selectingProduct, selectedColor.id) ? (
-                            <img src={firstColorImage(selectingProduct, selectedColor.id)} className="w-full h-full object-cover" />
-                        ) : selectingProduct.image ? (
-                            <img src={mediaUrl(selectingProduct.image)} className="w-full h-full object-cover" />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400">
-                                <Package className="w-6 h-6" />
-                            </div>
-                        )}
+                        <SafeImage 
+                            src={selectedColor && firstColorImage(selectingProduct, selectedColor.id) ? firstColorImage(selectingProduct, selectedColor.id) : (selectingProduct.image ? mediaUrl(selectingProduct.image) : '')} 
+                            className="w-full h-full object-cover" 
+                            fallbackIcon={<Package className="w-6 h-6 opacity-20" />}
+                        />
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{selectingProduct.name}</h3>
@@ -1258,7 +1025,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                 <div className="min-h-[200px] animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {selectionStep === 'initial' && (
                         <div className="space-y-8 py-4">
-                            <h4 className="text-center font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest text-xs">¿Cómo deseas el producto?</h4>
+                            <h4 className="text-center font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest text-xs">Â¿CÃ³mo deseas el producto?</h4>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <button
                                     onClick={() => {
@@ -1271,7 +1038,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                         <Package size={32} />
                                     </div>
                                     <div className="text-center">
-                                        <span className="block font-bold text-gray-900 dark:text-white uppercase tracking-wider">Estándar</span>
+                                        <span className="block font-bold text-gray-900 dark:text-white uppercase tracking-wider">EstÃ¡ndar</span>
                                         <span className="text-[10px] text-gray-500 font-medium">Usa el stock global</span>
                                     </div>
                                 </button>
@@ -1287,7 +1054,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                         <Palette size={32} />
                                     </div>
                                     <div className="text-center">
-                                        <span className="block font-bold text-gray-900 dark:text-white uppercase tracking-wider">Color Específico</span>
+                                        <span className="block font-bold text-gray-900 dark:text-white uppercase tracking-wider">Color EspecÃ­fico</span>
                                         <span className="text-[10px] text-gray-500 font-medium">Elige un tono de la lista</span>
                                     </div>
                                 </button>
@@ -1365,7 +1132,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                             );
                                             stock = variantSkus.reduce((sum, s) => sum + Number(s.stock || 0), 0);
                                         } else {
-                                            // Si no hay SKUs, asumimos stock global o permitimos selección
+                                            // Si no hay SKUs, asumimos stock global o permitimos selecciÃ³n
                                             stock = selectingProduct.inventory_qty || 0;
                                         }
 
@@ -1409,7 +1176,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                         selectedVariant === null ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-500/5 shadow-lg' : 'border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30'
                                     }`}
                                 >
-                                    <span className="font-bold text-gray-900 dark:text-white uppercase tracking-wider">Estándar</span>
+                                    <span className="font-bold text-gray-900 dark:text-white uppercase tracking-wider">EstÃ¡ndar</span>
                                     <span className="text-[10px] text-gray-400 font-medium">Sin cargo extra</span>
                                 </button>
                             </div>
@@ -1479,7 +1246,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                     }}
                     className="px-6 py-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
                 >
-                    Atrás
+                    AtrÃ¡s
                 </button>
                 <button 
                     onClick={() => {
@@ -1494,12 +1261,93 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                     {selectionStep === 'quantity' ? (
                         <>
                             <ShoppingCart size={18} />
-                            <span>{currentAvailableStock === 0 ? 'Agotado' : 'Añadir al Carrito'}</span>
+                            <span>{currentAvailableStock === 0 ? 'Agotado' : 'AÃ±adir al Carrito'}</span>
                         </>
                     ) : (
                         <span>Siguiente</span>
                     )}
                 </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Discount Percentage Modal */}
+      {discountModal && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={() => setDiscountModal(null)}
+        >
+          <div
+            className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-gray-900 dark:text-white">Aplicar Descuento</h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Precio original: {discountModal.originalPrice.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                </p>
+              </div>
+              <button onClick={() => setDiscountModal(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-gray-400">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Porcentaje de Descuento</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={discountModal.pct}
+                    onChange={e => setDiscountModal({ ...discountModal, pct: e.target.value })}
+                    autoFocus
+                    placeholder="Ej: 10"
+                    className="w-full pr-10 pl-4 py-4 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl font-bold text-lg"
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        const p = parseFloat(discountModal.pct);
+                        if (!isNaN(p) && p >= 0 && p <= 100) {
+                          updateCart(discountModal.idx, { manualPrice: Math.round(discountModal.originalPrice * (1 - p / 100)) });
+                          setDiscountModal(null);
+                        }
+                      }
+                    }}
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-lg">%</span>
+                </div>
+              </div>
+              {discountModal.pct !== '' && !isNaN(parseFloat(discountModal.pct)) && (
+                <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-2xl p-4 flex items-center justify-between">
+                  <span className="text-sm text-blue-700 dark:text-blue-300 font-medium">Precio resultante</span>
+                  <span className="text-lg font-black text-blue-700 dark:text-blue-300 tabular-nums">
+                    {Math.round(discountModal.originalPrice * (1 - parseFloat(discountModal.pct) / 100)).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                  </span>
+                </div>
+              )}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDiscountModal(null)}
+                  className="flex-1 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    const p = parseFloat(discountModal.pct);
+                    if (!isNaN(p) && p >= 0 && p <= 100) {
+                      updateCart(discountModal.idx, { manualPrice: Math.round(discountModal.originalPrice * (1 - p / 100)) });
+                      setDiscountModal(null);
+                    }
+                  }}
+                  disabled={discountModal.pct === '' || isNaN(parseFloat(discountModal.pct)) || parseFloat(discountModal.pct) < 0 || parseFloat(discountModal.pct) > 100}
+                  className="flex-1 py-3 rounded-2xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-bold transition-colors"
+                >
+                  Aplicar Descuento
+                </button>
+              </div>
             </div>
           </div>
         </div>

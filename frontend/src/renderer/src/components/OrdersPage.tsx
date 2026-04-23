@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 import SyncStatusBanner from './SyncStatusBanner';
+import SafeImage from './SafeImage';
 
 interface Color {
   id: number;
@@ -975,13 +976,12 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                     {(viewOrder.items || []).map((it, idx) => (
                       <div key={idx} className="bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 rounded-xl p-3 flex gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
                         <div className="w-20 h-20 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
-                          {it.product?.image ? (
-                            <img src={mediaUrl(it.product.image)} alt={it.product?.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600">
-                              <Package className="w-8 h-8 opacity-50" />
-                            </div>
-                          )}
+                          <SafeImage 
+                            src={mediaUrl(it.product?.image)} 
+                            alt={it.product?.name} 
+                            className="w-full h-full object-cover" 
+                            fallbackIcon={<Package className="w-8 h-8 opacity-50" />}
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-start">

@@ -22,17 +22,17 @@ const DownloadPage = () => {
               ¡Gracias por tu compra!
             </h1>
             <p className="text-xl text-muted-foreground">
-              Tu suscripción está activa. Ya puedes descargar Localix Admin Suite y empezar a gestionar tu negocio.
+              Tu suscripción está activa. Ya puedes descargar Asenting Dashboard y empezar a gestionar tu negocio.
             </p>
           </div>
 
           <div className="p-8 border rounded-2xl bg-card shadow-lg space-y-6">
             <div className="space-y-2">
               <h2 className="text-2xl font-semibold">Versión de Escritorio</h2>
-              <p className="text-sm text-muted-foreground">Versión 0.8.6 • Windows 10/11 • 64-bit</p>
+              <p className="text-sm text-muted-foreground">Versión 1.0.44 • Windows 10/11 • 64-bit</p>
             </div>
             
-            <a href="/LocalixDashboardSetup-0.8.6.exe" download className="block w-full sm:w-auto">
+            <a href="/Assent Dashboard Setup 1.0.44.exe" download className="block w-full sm:w-auto">
               <Button size="lg" className="w-full gap-2 text-lg px-8 py-6 h-auto">
                 <Download className="h-6 w-6" />
                 Descargar para Windows

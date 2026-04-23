@@ -47,8 +47,8 @@ const Navbar = () => {
   };
 
   const navLinks = [
+    { label: "Inicio", href: "/", isAnchor: false },
     { label: "Funcionalidades", href: isHome ? "#features" : "/funcionalidades", isAnchor: isHome },
-    { label: "Descargar", href: "/download", isAnchor: false },
     { label: "Precios", href: "/precios", isAnchor: false },
     { label: "Nosotros", href: "/nosotros", isAnchor: false },
     { label: "Contacto", href: "/contacto", isAnchor: false },
@@ -60,10 +60,14 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">L</span>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <img 
+                src="/src/assets/logo.png" 
+                alt="Asenting Logo" 
+                className="h-6 w-6 rounded object-contain bg-white/10" 
+              />
             </div>
-            <span className="text-xl font-bold">Localix</span>
+            <span className="text-xl font-bold tracking-tight">Asenting</span>
           </div>
 
           {/* Desktop Nav */}
@@ -113,8 +117,8 @@ const Navbar = () => {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate('/download')}>
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    <span>Dashboard</span>
+                    <Download className="mr-2 h-4 w-4" />
+                    <span>Descargar</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate('/configuracion')}>
                     <Settings className="mr-2 h-4 w-4" />

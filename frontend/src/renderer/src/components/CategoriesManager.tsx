@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   GripVertical
 } from 'lucide-react';
+import SafeImage from './SafeImage';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 import SyncStatusBanner from './SyncStatusBanner';
 import {
@@ -189,7 +190,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
     searchTimeout.current = setTimeout(() => {
       setPage(1);
       setSearch(val);
-    }, 500);
+    }, 600);
   };
 
   const handleImageCropComplete = async (croppedBlob: Blob) => {
@@ -513,7 +514,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                       <td className="px-6 py-4">
                         {c.image ? (
                           <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 relative group/img shadow-sm hover:shadow-md transition-all">
-                            <img src={mediaUrl(c.image)} alt={c.name} className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-300" />
+                            <SafeImage src={mediaUrl(c.image)} alt={c.name} className="w-full h-full object-cover group-hover/img:scale-110 transition-transform duration-300" />
                             <div 
                               onClick={() => window.open(mediaUrl(c.image), '_blank')}
                               className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity cursor-zoom-in"
@@ -667,7 +668,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
 
                 {(imageFile || (editing && editing.image)) && (
                   <div className="mt-2 relative w-full h-32 bg-gray-100 dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-                    <img 
+                    <SafeImage 
                       src={imageFile ? URL.createObjectURL(imageFile) : mediaUrl(editing.image)} 
                       alt="Preview" 
                       className="w-full h-full object-cover" 

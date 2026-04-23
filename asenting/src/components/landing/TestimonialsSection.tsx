@@ -4,7 +4,7 @@ const testimonials = [
   {
     name: "Carlos Mendoza",
     role: "CEO, TechStore MX",
-    content: "Localix transformó completamente nuestra gestión de inventario. Las métricas en tiempo real nos ayudaron a tomar decisiones más rápidas y acertadas.",
+    content: "Asenting transformó completamente nuestra gestión de inventario. Las métricas en tiempo real nos ayudaron a tomar decisiones más rápidas y acertadas.",
     rating: 5,
     avatar: "CM"
   },
@@ -35,7 +35,7 @@ const TestimonialsSection = () => {
             <span className="gradient-text">clientes</span>
           </h2>
           <p className="text-lg text-muted-foreground">
-            Empresas que ya confían en Localix para gestionar sus operaciones.
+            Empresas que ya confían en Asenting para gestionar sus operaciones.
           </p>
         </div>
         

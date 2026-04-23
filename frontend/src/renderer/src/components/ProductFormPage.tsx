@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import SafeImage from './SafeImage';
 import { 
   ArrowLeft, 
   Save, 
@@ -66,7 +67,7 @@ const SortableImage = ({ id, src, onRemove, onCrop, isMain = false }: any) => {
         isMain ? 'border-blue-500/50 ring-2 ring-blue-500/20' : 'border-gray-200 dark:border-gray-700'
       }`}
     >
-      <img src={src} alt="Product" className="w-full h-full object-cover select-none pointer-events-none" />
+      <SafeImage src={src} alt="Product" className="w-full h-full object-cover select-none pointer-events-none" />
       
       {/* Drag Handle Overlay - Captures the drag action */}
       <div 
@@ -120,7 +121,6 @@ interface Color {
   clientId?: string;
   name: string;
   hex: string;
-  stock: string | number;
   position?: number;
   images?: any[];
 }
@@ -970,8 +970,8 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       }
     }
     
-    if (colors.some((c) => !c.name || !/^#[0-9A-Fa-f]{6}$/.test(c.hex) || Number(c.stock) < 0 || !Number.isInteger(Number(c.stock)))) {
-      errs.colors = 'Verifique nombre, HEX (#RRGGBB) y stock entero positivo de los colores.';
+    if (colors.some((c) => !c.name || !/^#[0-9A-Fa-f]{6}$/.test(c.hex))) {
+      errs.colors = 'Verifique nombre y HEX (#RRGGBB) de los colores.';
     }
     
     setErrors(errs);
@@ -1070,7 +1070,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       const currentSkuIds = new Set(currentSkus.filter((s) => s.id).map((s) => String(s.id)));
 
       const existingColors = initialColors;
-      const currentColors = colors.map((c, idx) => ({ ...c, stock: '0', position: idx }));
+      const currentColors = colors.map((c, idx) => ({ ...c, position: idx }));
       const currentColorIds = new Set(currentColors.filter((e) => e.id).map((e) => String(e.id)));
       const removedColorIds = new Set(
         existingColors
@@ -1508,7 +1508,12 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                       </select>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Inventario Global</label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-400">Inventario Base / Standalone</label>
+                        {(colors.length > 0 || variants.length > 0) && (
+                          <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-500/20">Tiene Variantes</span>
+                        )}
+                      </div>
                       <input 
                         type="number" 
                         value={inventoryQty} 
@@ -1516,8 +1521,31 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                         min={0}
                         className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.inventoryQty ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
                       />
+                      <p className="text-[10px] text-gray-500 mt-1">Stock que no depende de variantes específicas.</p>
                     </div>
                   </div>
+                  
+                  {/* Total Stock Summary */}
+                  {(colors.length > 0 || variants.length > 0) && (
+                    <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/10 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-emerald-100 dark:border-emerald-500/20">
+                          <Package className="w-4 h-4 text-emerald-500" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-widest font-bold">Stock Total Consolidado</p>
+                          <p className="text-lg font-bold text-gray-900 dark:text-white">
+                            {(() => {
+                              const base = Number(inventoryQty || 0);
+                              const skuTotal = skus.reduce((acc, s) => acc + Number(s.stock || 0), 0);
+                              return base + skuTotal;
+                            })()}
+                            <span className="ml-2 text-xs font-medium text-gray-400">unidades</span>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Row 3: Prices */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -1827,7 +1855,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                         type="button" 
                         onClick={() => { 
                           if (!colorName) { setColorInputError('Nombre requerido'); return; }
-                          const newColor = { clientId: makeClientId('color'), name: colorName, hex: colorHex, stock: '0', images: [] as any[] };
+                          const newColor = { clientId: makeClientId('color'), name: colorName, hex: colorHex, images: [] as any[] };
                           setColors((cols) => [...cols, newColor]); 
                           setActiveColorKey(colorKeyOf(newColor, colors.length));
                           setColorName(''); setColorHex('#000000'); setColorInputError(''); setShowAddColor(false);
@@ -1944,7 +1972,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
                           {(c.images || []).map((img: any, j) => (
                             <div key={`img-${j}`} className="relative group aspect-square rounded-lg bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 overflow-hidden">
-                              <img 
+                              <SafeImage 
                                 src={img.preview ? img.preview : mediaUrl(img.image)} 
                                 alt="Color variant" 
                                 className="w-full h-full object-cover transition-transform group-hover:scale-110" 

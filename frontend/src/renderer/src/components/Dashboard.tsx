@@ -45,11 +45,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
   const [navLoading, setNavLoading] = useState(false);
   const [productEditing, setProductEditing] = useState<any>(null);
   const [lastNet, setLastNet] = useState<{ method: string; path: string; ms: number; ok: boolean } | null>(null);
-  const [stats, setStats] = useState({ usersCount: 0, productsCount: 0, productsActive: 0, categoriesCount: 0, clientsTotal: 0, ordersTotal: 0, clientsNewMonth: 0, salesToday: 0, salesTotal: 0, salesAmount: 0, statusCounts: { pending: 0, shipped: 0, delivered: 0, canceled: 0 } });
+  const [stats, setStats] = useState({ usersCount: 0, clientsNewMonth: 0, ordersTotal: 0, salesAmount: 0, statusCounts: { pending: 0, shipped: 0, delivered: 0, canceled: 0 } });
   const [seriesA, setSeriesA] = useState<number[]>([0,0,0,0,0,0,0]);
   const [chartLabels, setChartLabels] = useState<string[]>(['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']);
   const [seriesB, setSeriesB] = useState<number[]>([0,0,0,0,0,0]);
-  const [recentOrders, setRecentOrders] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
   const [subscription, setSubscription] = useState<any>(null);
   const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -144,13 +143,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
     Promise.all([
       fetch(`${apiBase}/users/api/auth/me/`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: null })),
       fetch(`${apiBase}/users/api/users/`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: [] })),
-      fetch(`${apiBase}/products/?page_size=1`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: { count: 0 } })),
-      fetch(`${apiBase}/products/?active=true&page_size=1`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: { count: 0 } })),
-      fetch(`${apiBase}/products/categories/?page_size=1`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: { count: 0 } })),
       fetch(`${apiBase}/clients/stats/`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: { total: 0 } })),
-      fetch(`${apiBase}/sales/list/?page_size=5`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: { results: [] } })),
       fetch(`${apiBase}/sales/stats/`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: { today_sales: 0 } })),
-    ]).then(([meRes, usersRes, productsRes, productsActiveRes, catsRes, clientsStats, ordersRes, salesStats]) => {
+    ]).then(([meRes, usersRes, clientsStats, salesStats]) => {
       if (meRes.ok && meRes.d && meRes.d.subscription) {
         setSubscription(meRes.d.subscription);
       }
@@ -159,17 +154,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
         setPermissions(Array.isArray(meRes.d.permissions) ? meRes.d.permissions : []);
       }
       const usersCount = usersRes.ok && Array.isArray(usersRes.d) ? usersRes.d.length : 0;
-      const productsCount = productsRes.ok ? Number(productsRes.d.count ?? 0) : 0;
-      const productsActive = productsActiveRes.ok ? Number(productsActiveRes.d.count || 0) : 0;
-      const categoriesCount = catsRes.ok ? Number(catsRes.d.count || 0) : 0;
-      const clientsTotal = clientsStats.ok ? Number(clientsStats.d.total || 0) : 0;
       const clientsNewMonth = clientsStats.ok ? Number(clientsStats.d.new_this_month || 0) : 0;
-      const ordersTotal = ordersRes.ok ? Number(ordersRes.d.count || 0) : 0;
-      const salesToday = salesStats.ok ? Number(salesStats.d.today_sales || 0) : 0;
-      const salesTotal = salesStats.ok ? Number(salesStats.d.total_sales || 0) : 0;
+      const ordersTotal = salesStats.ok && salesStats.d.status_counts ? Object.values(salesStats.d.status_counts).reduce((a: any, b: any) => a + b, 0) as number : 0;
       const salesAmount = salesStats.ok ? Number(salesStats.d.total_amount || 0) : 0;
-      
-      setRecentOrders(ordersRes.ok && Array.isArray(ordersRes.d.results) ? ordersRes.d.results : []);
       
       if (salesStats.ok && salesStats.d.top_products) {
         setTopProducts(salesStats.d.top_products);
@@ -189,8 +176,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
       }
 
       setStats({ 
-        usersCount, productsCount, productsActive, categoriesCount, clientsTotal, ordersTotal, 
-        clientsNewMonth, salesToday, salesTotal, salesAmount,
+        usersCount, clientsNewMonth, ordersTotal, salesAmount,
         statusCounts: statusCounts
       });
     }).catch(() => {});
@@ -325,7 +311,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
             </div>
           </div>
           {view === 'dashboard' && (
-            <DashboardView stats={stats} seriesA={seriesA} seriesB={seriesB} recentOrders={recentOrders} topProducts={topProducts} chartLabels={chartLabels} />
+            <DashboardView stats={stats} seriesA={seriesA} seriesB={seriesB} topProducts={topProducts} chartLabels={chartLabels} />
           )}
         <React.Suspense fallback={<div className="text-gray-500 dark:text-gray-400 text-sm flex items-center gap-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"/> Cargando módulo...</div>}>
           {view === 'users' && (

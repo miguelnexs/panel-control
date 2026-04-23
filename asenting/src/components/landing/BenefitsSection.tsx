@@ -42,7 +42,7 @@ const BenefitsSection = () => {
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">
             Por qué elegir{" "}
-            <span className="gradient-text">Localix Dashboard</span>
+            <span className="gradient-text">Asenting Dashboard</span>
           </h2>
           <p className="text-lg text-muted-foreground">
             Beneficios que transformarán la forma en que administras tu negocio.

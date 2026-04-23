@@ -211,9 +211,9 @@ const Auth = () => {
             throw new Error(JSON.stringify(data));
         }
         
-        toast.success("Registro exitoso.");
+        toast.success("¡Registro exitoso! Tienes 15 días de prueba del Plan Intermedio.");
         
-        // Auto Login para proceder al pago o dashboard
+        // Auto Login para proceder al área de descarga o dashboard
         const loginRes = await fetch(buildApiUrl('users/api/auth/login/'), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -234,7 +234,15 @@ const Auth = () => {
         localStorage.setItem("token", loginData.access);
         localStorage.setItem("user", JSON.stringify(loginData.user));
 
-        // Iniciar flujo de Mercado Pago para todos los planes
+        // En lugar de iniciar flujo de Mercado Pago, redirigir directo al área de descarga
+        // ya que el usuario tiene 15 días de prueba activados automáticamente
+        toast.info("Redirigiendo a descargas...");
+        setTimeout(() => {
+            navigate('/download');
+        }, 1500);
+        
+        // El flujo de pago se comenta para permitir el trial inmediato
+        /*
         const createPreference = async () => {
              try {
                  toast.info("Generando enlace de pago...");
@@ -270,6 +278,7 @@ const Auth = () => {
         };
 
         await createPreference();
+        */
       }
     } catch (err: any) {
       console.error(err);
@@ -291,10 +300,14 @@ const Auth = () => {
         <div className="relative z-10 flex flex-col justify-center items-center w-full p-12">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3 mb-12">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30">
-              <span className="text-primary-foreground font-bold text-2xl">L</span>
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <img 
+                src="/src/assets/logo.png" 
+                alt="Asenting Logo" 
+                className="h-10 w-10 rounded object-contain bg-white/10" 
+              />
             </div>
-            <span className="text-4xl font-bold">Localix</span>
+            <span className="text-4xl font-bold">Asenting</span>
           </Link>
           
           {/* Tagline */}
@@ -331,10 +344,14 @@ const Auth = () => {
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <Link to="/" className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <span className="text-primary-foreground font-bold">L</span>
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+              <img 
+                src="/src/assets/logo.png" 
+                alt="Asenting Logo" 
+                className="h-7 w-7 rounded object-contain bg-white/10" 
+              />
             </div>
-            <span className="text-2xl font-bold">Localix</span>
+            <span className="text-2xl font-bold">Asenting</span>
           </Link>
 
           {/* Form Header */}
@@ -345,7 +362,7 @@ const Auth = () => {
             <p className="text-muted-foreground">
               {isLogin 
                 ? "Ingresa tus credenciales para acceder al dashboard" 
-                : "Regístrate para comenzar a usar Localix"
+                : "Regístrate para comenzar a usar Asenting"
               }
             </p>
           </div>

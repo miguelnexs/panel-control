@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Download, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, Shield, Users, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const CTASection = () => {
@@ -26,28 +26,38 @@ const CTASection = () => {
             </h2>
             
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10">
-              Únete a cientos de empresas que ya optimizan sus operaciones con Localix Dashboard. 
+              Únete a cientos de empresas que ya optimizan sus operaciones con Asenting Dashboard. 
               Sin tarjeta de crédito requerida.
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex flex-col items-center justify-center gap-6">
               <Link to="/auth?mode=register">
-                <Button variant="hero" size="xl">
+                <Button variant="hero" size="xl" className="px-12 py-6 text-lg">
                   Registrarse ahora
-                  <ArrowRight className="w-5 h-5" />
+                  <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
               </Link>
-              <a href="/LocalixDashboardSetup-0.8.6.exe" download>
-                <Button variant="heroOutline" size="xl">
-                  <Download className="w-5 h-5" />
-                  Descargar Desktop
-                </Button>
-              </a>
+              
+              {/* Trust indicators */}
+              <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-emerald-500" />
+                  <span>Seguro y confiable</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-blue-500" />
+                  <span>500+ empresas</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-amber-500" />
+                  <span>Configuración en minutos</span>
+                </div>
+              </div>
             </div>
             
             {/* Trust badges */}
             <div className="mt-12 pt-8 border-t border-border/50">
-              <p className="text-sm text-muted-foreground mb-4">Tecnologías que impulsan Localix</p>
+              <p className="text-sm text-muted-foreground mb-4">Tecnologías que impulsan Asenting</p>
               <div className="flex items-center justify-center gap-8 flex-wrap opacity-60">
                 <span className="text-lg font-semibold">React</span>
                 <span className="text-lg font-semibold">Django</span>

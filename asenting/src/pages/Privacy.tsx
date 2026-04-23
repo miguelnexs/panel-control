@@ -31,7 +31,7 @@ const Privacy = () => {
                 <h2 className="text-2xl font-semibold">Información que Recopilamos</h2>
               </div>
               <div className="text-muted-foreground space-y-4">
-                <p>En Localix, recopilamos la siguiente información para proporcionar nuestros servicios:</p>
+                <p>En Asenting, recopilamos la siguiente información para proporcionar nuestros servicios:</p>
                 <ul className="list-disc list-inside space-y-2 ml-4">
                   <li>Información de cuenta: nombre, correo electrónico y contraseña encriptada</li>
                   <li>Datos de uso: métricas de navegación y uso del dashboard</li>
@@ -107,7 +107,7 @@ const Privacy = () => {
               </div>
               <p className="text-muted-foreground">
                 Si tienes preguntas sobre nuestra política de privacidad o deseas ejercer tus derechos, 
-                contáctanos en <a href="mailto:privacidad@localix.app" className="text-primary hover:underline">privacidad@localix.app</a>
+                contáctanos en <a href="mailto:privacidad@asenting.app" className="text-primary hover:underline">privacidad@asenting.app</a>
               </p>
             </section>
           </div>

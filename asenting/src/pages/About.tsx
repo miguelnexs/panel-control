@@ -72,23 +72,97 @@ const About = () => {
 
         {/* Story */}
         <section className="container px-4 sm:px-6 lg:px-8 mb-20">
-          <div className="glass-card p-8 md:p-12 rounded-2xl border border-border/50 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6">Nuestra Historia</h2>
-            <div className="space-y-4 text-muted-foreground">
-              <p>
-                Localix nació en 2023 de una frustración común: la falta de herramientas de gestión 
-                accesibles y modernas para pequeños y medianos negocios. Mientras las grandes empresas 
-                tenían acceso a sofisticados sistemas ERP, los negocios más pequeños quedaban relegados 
-                a hojas de cálculo y procesos manuales.
-              </p>
-              <p>
-                Decidimos cambiar eso. Con un equipo de desarrolladores experimentados y una visión 
-                clara, creamos un dashboard administrativo que combina la potencia de las soluciones 
-                enterprise con la simplicidad que los negocios modernos necesitan.
-              </p>
-              <p>
-                Hoy, más de 500 negocios confían en Localix para gestionar sus operaciones diarias, 
-                y estamos apenas comenzando.
+          <div className="glass-card p-8 md:p-12 rounded-2xl border border-border/50 max-w-5xl mx-auto">
+            <h2 className="text-3xl font-bold mb-8 text-center">Nuestra Historia</h2>
+            
+            {/* Timeline */}
+            <div className="space-y-12">
+              {/* 2022 - El Problema */}
+              <div className="relative pl-8 border-l-2 border-primary/30">
+                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary" />
+                <div className="mb-2">
+                  <span className="text-sm font-semibold text-primary">2022</span>
+                  <h3 className="text-xl font-bold mt-1">El Problema que Nos Unió</h3>
+                </div>
+                <p className="text-muted-foreground leading-relaxed">
+                  Todo comenzó en un pequeño café en Bogotá. Carlos Mendoza, entonces consultor de software, 
+                  observaba cómo su hermano luchaba por gestionar su tienda de ropa con múltiples hojas de Excel 
+                  desorganizadas. "¿Por qué no existe una solución simple y asequible para negocios como el tuyo?" 
+                  se preguntó. Esa misma semana, reunió a tres amigos desarrolladores y nació la idea de Asenting.
+                </p>
+              </div>
+
+              {/* 2023 - Los Primeros Pasos */}
+              <div className="relative pl-8 border-l-2 border-primary/30">
+                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary" />
+                <div className="mb-2">
+                  <span className="text-sm font-semibold text-primary">Enero 2023</span>
+                  <h3 className="text-xl font-bold mt-1">Construyendo el Fundamento</h3>
+                </div>
+                <p className="text-muted-foreground leading-relaxed">
+                  Durante seis meses, el equipo trabajó desde el garaje de Carlos, codificando día y noche. 
+                  María García, recién llegada de Silicon Valley, aportó su experiencia en arquitectura de sistemas 
+                  escalables. Andrés López diseñó más de 50 prototipos hasta encontrar la interfaz perfecta. 
+                  Queríamos algo que cualquier persona pudiera usar sin manual de instrucciones.
+                </p>
+              </div>
+
+              {/* 2023 - Primer Cliente */}
+              <div className="relative pl-8 border-l-2 border-primary/30">
+                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-accent" />
+                <div className="mb-2">
+                  <span className="text-sm font-semibold text-accent">Agosto 2023</span>
+                  <h3 className="text-xl font-bold mt-1">El Primer Cliente y el Momento "Eureka"</h3>
+                </div>
+                <p className="text-muted-foreground leading-relaxed">
+                  La tienda de ropa del hermano de Carlos fue nuestro primer cliente. Cuando vimos cómo 
+                  redujo su tiempo de gestión de 4 horas diarias a solo 30 minutos, supimos que estábamos 
+                  creando algo especial. "Esto me ha devuelto mi vida", nos dijo. Esa frase se convirtió 
+                  en nuestro mantra.
+                </p>
+              </div>
+
+              {/* 2024 - Crecimiento */}
+              <div className="relative pl-8 border-l-2 border-primary/30">
+                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary" />
+                <div className="mb-2">
+                  <span className="text-sm font-semibold text-primary">2024</span>
+                  <h3 className="text-xl font-bold mt-1">De 1 a 500 Negocios</h3>
+                </div>
+                <p className="text-muted-foreground leading-relaxed">
+                  El crecimiento fue orgánico. Cada cliente satisfecho recomendaba a otro. En marzo de 2024 
+                  alcanzamos los 100 negocios. Para diciembre, superamos los 500. Contratamos a Laura Martínez 
+                  como Lead Developer y ampliamos nuestra infraestructura para soportar miles de transacciones 
+                  diarias. Pasamos de ser 4 amigos a un equipo de 15 personas apasionadas.
+                </p>
+              </div>
+
+              {/* 2025 - Presente */}
+              <div className="relative pl-8">
+                <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-gradient-to-r from-primary to-accent animate-pulse" />
+                <div className="mb-2">
+                  <span className="text-sm font-semibold text-primary">Hoy</span>
+                  <h3 className="text-xl font-bold mt-1">Una Comunidad en Crecimiento</h3>
+                </div>
+                <p className="text-muted-foreground leading-relaxed">
+                  Asenting ya no es solo un software; es una comunidad de emprendedores que creen en el poder 
+                  de la tecnología para transformar negocios. Hemos procesado más de 10 millones de transacciones 
+                  y ahorrado a nuestros clientes colectivamente más de 100,000 horas de trabajo manual. 
+                  Pero lo más importante: seguimos escuchando. Cada función nueva nace de las conversaciones 
+                  con nuestros usuarios.
+                </p>
+              </div>
+            </div>
+
+            {/* Vision Statement */}
+            <div className="mt-12 p-8 bg-primary/5 rounded-xl border border-primary/20">
+              <h3 className="text-xl font-bold mb-4 text-center">Nuestra Visión para el Futuro</h3>
+              <p className="text-muted-foreground text-center leading-relaxed max-w-3xl mx-auto">
+                Soñamos con un mundo donde cualquier persona con una idea de negocio pueda competir 
+                en igualdad de condiciones con las grandes corporaciones. Queremos democratizar el acceso 
+                a herramientas de gestión de clase mundial, eliminando barreras tecnológicas y económicas. 
+                Para 2027, aspiramos a ser el aliado tecnológico de 10,000 negocios en Latinoamérica, 
+                impulsando la economía local y empoderando a una nueva generación de emprendedores.
               </p>
             </div>
           </div>

@@ -149,6 +149,11 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
 
   // Catalog Form State
   const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
+  const [deliveringService, setDeliveringService] = useState<Service | null>(null);
+  const [deliveryNote, setDeliveryNote] = useState('');
+  const [deliveryValue, setDeliveryValue] = useState('');
+  const [deletingService, setDeletingService] = useState<Service | null>(null);
+  const [deletingCatalogItem, setDeletingCatalogItem] = useState<ServiceDefinition | null>(null);
   const [catalogEditingId, setCatalogEditingId] = useState<number | null>(null);
   const [catalogFormData, setCatalogFormData] = useState({
     name: '',
@@ -263,6 +268,11 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     
     const css = `@page{size:${paperW}mm auto;margin:0} *{box-sizing:border-box} html{background:#fff} html,body{margin:0;padding:0} body{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#fff;font-family:Arial, sans-serif;width:${paperW}mm;margin:0 auto;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px} img{max-width:100%;height:auto} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap} .tab{width:100%;border-collapse:collapse;table-layout:fixed} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px;vertical-align:top} .tab td{word-break:break-word} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
     
+    const isEntrada = service.status === 'recibido';
+    const titleText = isEntrada ? "RECIBO DE ENTRADA" : "RECIBO DE SERVICIO / SALIDA";
+    const valueText = isEntrada ? "INGRESADO" : Number(service.value).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0});
+    const totalText = isEntrada ? "PAGAR AL RETIRAR" : Number(service.value).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0});
+
     const header = `
       ${logoTag}
       <div class="${alignCls}">
@@ -274,23 +284,24 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
         ${printerOpts.header2 ? `<div class="small">${printerOpts.header2}</div>` : ''}
       </div>
       <div class="hr"></div>
+      <div class="${alignCls} t" style="margin-bottom: 5px; font-size: 14px;">${titleText}</div>
       <div class="row small"><div>Servicio: #${service.id}</div><div>${new Date(service.created_at).toLocaleString()}</div></div>
       <div class="row small"><div>Cliente: ${service.client_name || 'Cliente'}</div><div></div></div>
     `;
     
     const table = `
       <table class="tab">
-        <thead><tr><th>Descripción</th><th class="r">Valor</th></tr></thead>
+        <thead><tr><th>Descripción</th><th class="r">${isEntrada ? 'Estado' : 'Valor'}</th></tr></thead>
         <tbody>
           <tr>
             <td>
               <div class="t">${service.name}</div>
               <div class="small">${service.description}</div>
             </td>
-            <td class="r">${Number(service.value).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0})}</td>
+            <td class="r">${valueText}</td>
           </tr>
         </tbody>
-        <tfoot><tr><td class="t">Total</td><td class="r t">${Number(service.value).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0})}</td></tr></tfoot>
+        <tfoot><tr><td class="t">${isEntrada ? 'Total Estimado' : 'Total'}</td><td class="r t">${totalText}</td></tr></tfoot>
       </table>
     `;
     
@@ -366,15 +377,15 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
         ${printerOpts.header2 ? `<div class="small">${printerOpts.header2}</div>` : ''}
       </div>
       <div class="hr"></div>
-      <div class="${alignCls} t">Recibo de Entrada</div>
+      <div class="${alignCls} t" style="font-size: 14px; margin-bottom: 5px;">RECIBO DE ENTRADA</div>
       <div class="row small"><div>Cliente: ${clientName}</div><div>${new Date().toLocaleString()}</div></div>
-      <div class="small ${alignCls}">Confirmación de recepción de servicios. Sin valores.</div>
+      <div class="small ${alignCls}">Confirmación de recepción. Estado: <span class="t">INGRESADO</span>. Sin valores.</div>
     `;
     
     const combined = items.map((it, idx) => {
       const who = it.employee ? ` (${it.employee})` : '';
       const desc = it.description ? ` — ${it.description}` : '';
-      return `${idx + 1}. ${it.name}${who}${desc}`;
+      return `${idx + 1}. ${it.name}${who}${desc} [INGRESADO]`;
     }).join(' • ');
     
     const table = `
@@ -778,16 +789,25 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     }
   };
 
-  const handleDeliver = async (service: Service) => {
-    if (!token) return;
-    if (!window.confirm(`¿Confirmar entrega y generar cobro de $${Number(service.value).toLocaleString()}?`)) return;
+  const handleDeliver = (service: Service) => {
+    setDeliveringService(service);
+    setDeliveryNote('');
+    setDeliveryValue(String(service.value));
+  };
+
+  const confirmDeliver = async () => {
+    if (!token || !deliveringService) return;
 
     showToast('Procesando entrega y cobro...', 'loading');
 
     try {
-      const res = await fetch(`${apiBase}/services/${service.id}/deliver/`, {
+      const res = await fetch(`${apiBase}/services/${deliveringService.id}/deliver/`, {
         method: 'POST',
         headers: authHeaders(token),
+        body: JSON.stringify({ 
+          note: deliveryNote,
+          value: Number(deliveryValue)
+        })
       });
       
       const data = await res.json();
@@ -795,6 +815,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
 
       await loadServices();
       await loadStats();
+      setDeliveringService(null);
       showToast('Servicio entregado y cobrado exitosamente', 'success');
     } catch (e: any) {
       showToast(e.message, 'error');
@@ -803,10 +824,15 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
 
 
 
-  const handleDelete = async (id: number) => {
-    if (!token || !window.confirm('¿Estás seguro de que deseas eliminar este servicio?')) return;
+  const handleDelete = (service: Service) => {
+    setDeletingService(service);
+  };
+
+  const confirmDeleteService = async () => {
+    if (!token || !deletingService) return;
     
     showToast('Eliminando servicio...', 'loading');
+    const id = deletingService.id;
     
     try {
       const result = await offlineSync.queueMutation({
@@ -819,6 +845,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       if (!result.ok) throw new Error('No se pudo eliminar el servicio');
       await loadServices();
       await loadStats();
+      setDeletingService(null);
       showToast(result.queued ? 'Servicio eliminado localmente. Se sincronizará al reconectar.' : 'Servicio eliminado correctamente', 'success');
     } catch (error: any) {
       showToast(error.message || 'Error al eliminar el servicio', 'error');
@@ -845,7 +872,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     if (!token) return;
     setCatalogErrors({});
 
-    if (!catalogFormData.name || !catalogFormData.description || !catalogFormData.price) {
+    if (!catalogFormData.name || !catalogFormData.description) {
       showToast('Complete los campos obligatorios', 'error');
       return;
     }
@@ -854,8 +881,6 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       const fd = new FormData();
       fd.append('name', catalogFormData.name);
       fd.append('description', catalogFormData.description);
-      fd.append('price', catalogFormData.price);
-      fd.append('estimated_duration', catalogFormData.estimated_duration);
       if (catalogFormData.image) {
         fd.append('image', catalogFormData.image);
       }
@@ -907,8 +932,13 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     }
   };
 
-  const handleCatalogDelete = async (id: number) => {
-    if (!token || !window.confirm('¿Eliminar del catálogo?')) return;
+  const handleCatalogDelete = (item: ServiceDefinition) => {
+    setDeletingCatalogItem(item);
+  };
+
+  const confirmDeleteCatalogItem = async () => {
+    if (!token || !deletingCatalogItem) return;
+    const id = deletingCatalogItem.id;
     try {
       const result = await offlineSync.queueMutation({
         token,
@@ -918,6 +948,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
         store: 'services',
       });
       if (!result.ok) throw new Error('No se pudo eliminar');
+      setDeletingCatalogItem(null);
       showToast(result.queued ? 'Eliminado localmente. Se sincronizará al reconectar.' : 'Eliminado del catálogo', 'success');
       loadCatalog();
     } catch (e: any) {
@@ -947,31 +978,31 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 h-full flex flex-col bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       {/* Header & Actions */}
       <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white dark:bg-gray-900 p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <span className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500 dark:text-indigo-400">
-                <Briefcase className="w-5 h-5" />
+              <span className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 shadow-inner">
+                <Briefcase className="w-6 h-6" />
               </span>
               Gestión de Servicios
             </h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Administra los servicios ofrecidos a tus clientes</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 font-medium">Control total de tus tickets y catálogo de servicios</p>
           </div>
           
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg mr-2">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+            <div className="flex bg-gray-100 dark:bg-gray-800 p-1.5 rounded-xl mr-2 shadow-inner">
               <button
                 onClick={() => setViewMode('tickets')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'tickets' ? 'bg-white dark:bg-indigo-500 text-indigo-600 dark:text-white shadow-sm dark:shadow-lg' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'tickets' ? 'bg-white dark:bg-indigo-500 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
               >
                 Servicios Activos
               </button>
               <button
                 onClick={() => setViewMode('catalog')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'catalog' ? 'bg-white dark:bg-indigo-500 text-indigo-600 dark:text-white shadow-sm dark:shadow-lg' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'catalog' ? 'bg-white dark:bg-indigo-500 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
               >
                 Catálogo
               </button>
@@ -981,32 +1012,22 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
               <input 
                 type="text" 
-                placeholder="Buscar servicio..." 
+                placeholder="Buscar..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full sm:w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                className="w-full sm:w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none placeholder:text-gray-400 transition-all"
               />
             </div>
-            <select
-              value={ordering}
-              onChange={(e) => setOrdering(e.target.value)}
-              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs text-gray-700 dark:text-gray-400 rounded-lg focus:ring-0 px-3 py-2"
-            >
-              <option value="-created_at">Más recientes</option>
-              <option value="created_at">Más antiguos</option>
-              <option value="name">Nombre A-Z</option>
-              <option value="-value">Mayor valor</option>
-              <option value="value">Menor valor</option>
-            </select>
+
             <button 
               onClick={() => {
                 if (viewMode === 'tickets') {
                   if (onCreate) {
                     onCreate();
                   } else {
-                    setFormData({ name: '', description: '', third_party_provider: '', third_party_cost: '', value: '', clientId: '', status: 'recibido' });
+                    setFormData({ name: '', description: '', third_party_provider: '', third_party_cost: '', value: '', clientId: '', worker: '', status: 'recibido' });
                     setEditingId(null);
-                    setServiceItems([{ id: String(Date.now()), name: '', description: '', value: '', third_party_provider: '', third_party_cost: '' }]);
+                    setServiceItems([{ id: String(Date.now()), name: '', description: '', value: '', third_party_provider: '', third_party_cost: '', worker: '' }]);
                     setIsModalOpen(true);
                   }
                 } else {
@@ -1015,10 +1036,10 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                   setIsCatalogModalOpen(true);
                 }
               }}
-              className="btn-brand px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 text-white bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500"
+              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-black transition-all shadow-lg shadow-indigo-900/20 active:scale-95"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">{viewMode === 'tickets' ? 'Nuevo Servicio' : 'Agregar al Catálogo'}</span>
+              <span>{viewMode === 'tickets' ? 'Nuevo Servicio' : 'Agregar'}</span>
             </button>
           </div>
         </div>
@@ -1092,8 +1113,9 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
         </div>
       </div>
 
-      {/* Services Table */}
-      <div className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden flex flex-col shadow-sm">
+      {/* Services Table Container */}
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm flex flex-col">
+
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase text-gray-500 dark:text-gray-400">
@@ -1111,8 +1133,6 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                   <>
                     <th className="px-6 py-3 font-medium tracking-wider">Nombre</th>
                     <th className="px-6 py-3 font-medium tracking-wider">Descripción</th>
-                    <th className="px-6 py-3 font-medium tracking-wider">Precio Base</th>
-                    <th className="px-6 py-3 font-medium tracking-wider">Duración Est.</th>
                     <th className="px-6 py-3 font-medium tracking-wider">Imagen</th>
                   </>
                 )}
@@ -1149,7 +1169,13 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-medium text-gray-900 dark:text-white">
-                        ${Number(service.value || 0).toLocaleString()}
+                        {service.status === 'entregado' ? (
+                          `$${Number(service.value || 0).toLocaleString()}`
+                        ) : (
+                          <span className="text-amber-500 font-bold bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+                            Pendiente
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -1194,7 +1220,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                           <Edit className="w-4 h-4" />
                         </button>
                         <button 
-                          onClick={() => handleDelete(service.id)}
+                          onClick={() => handleDelete(service)}
                           className="p-1.5 text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
                         >
                           <Trash className="w-4 h-4" />
@@ -1228,14 +1254,6 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                       <div className="text-sm text-gray-500 dark:text-gray-500 truncate max-w-xs">{item.description}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        ${Number(item.price || 0).toLocaleString()}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{item.estimated_duration || '-'}</div>
-                    </td>
-                    <td className="px-6 py-4">
                       {item.image ? (
                         <img src={item.image} alt={item.name} className="w-10 h-10 rounded-lg object-cover bg-gray-100 dark:bg-gray-800" />
                       ) : (
@@ -1253,7 +1271,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                           <Edit className="w-4 h-4" />
                         </button>
                         <button 
-                          onClick={() => handleCatalogDelete(item.id)}
+                          onClick={() => handleCatalogDelete(item)}
                           className="p-1.5 text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
                         >
                           <Trash className="w-4 h-4" />
@@ -1320,10 +1338,11 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                     <button
                       type="button"
                       onClick={() => setIsClientModalOpen(true)}
-                      className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                      className="px-4 py-2.5 bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 rounded-xl text-indigo-600 dark:text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-2 font-bold text-xs uppercase tracking-widest shadow-sm active:scale-95"
                       title="Crear nuevo cliente"
                     >
-                      <Plus className="w-5 h-5" />
+                      <Plus className="w-4 h-4" />
+                      <span>Nuevo</span>
                     </button>
                   </div>
                   {(editingId && serviceErrors.client) && <p className="mt-1 text-xs text-rose-400">{serviceErrors.client}</p>}
@@ -1509,23 +1528,6 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Valor</label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                      <input 
-                        type="number" 
-                        name="value"
-                        value={formData.value}
-                        onChange={handleInputChange}
-                        placeholder="0.00 (Opcional)"
-                        min="0"
-                        className={`w-full bg-white dark:bg-gray-800 border ${serviceErrors.value ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all`}
-                      />
-                    </div>
-                    {serviceErrors.value && <p className="mt-1 text-xs text-rose-400">{serviceErrors.value}</p>}
-                  </div>
-
-                  <div>
                     <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Asignar a</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
@@ -1547,38 +1549,59 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                     {serviceErrors.worker && <p className="mt-1 text-xs text-rose-400">{serviceErrors.worker}</p>}
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Proveedor Externo</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                      <input 
-                        type="text"
-                        name="third_party_provider"
-                        value={formData.third_party_provider}
-                        onChange={handleInputChange}
-                        placeholder="Opcional"
-                        className={`w-full bg-white dark:bg-gray-800 border ${serviceErrors.third_party_provider ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all`}
-                      />
-                    </div>
-                    {serviceErrors.third_party_provider && <p className="mt-1 text-xs text-rose-400">{serviceErrors.third_party_provider}</p>}
-                  </div>
+                  {(formData.status === 'entregado' || !editingId) && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Valor</label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                          <input 
+                            type="number" 
+                            name="value"
+                            value={formData.value}
+                            onChange={handleInputChange}
+                            placeholder="0.00 (Opcional)"
+                            min="0"
+                            className={`w-full bg-white dark:bg-gray-800 border ${serviceErrors.value ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all`}
+                          />
+                        </div>
+                        {serviceErrors.value && <p className="mt-1 text-xs text-rose-400">{serviceErrors.value}</p>}
+                      </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Costo Tercero</label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                      <input 
-                        type="number" 
-                        name="third_party_cost"
-                        value={formData.third_party_cost}
-                        onChange={handleInputChange}
-                        placeholder="0.00"
-                        min="0"
-                        className={`w-full bg-white dark:bg-gray-800 border ${serviceErrors.third_party_cost ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all`}
-                      />
-                    </div>
-                    {serviceErrors.third_party_cost && <p className="mt-1 text-xs text-rose-400">{serviceErrors.third_party_cost}</p>}
-                  </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Proveedor Externo</label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                          <input 
+                            type="text"
+                            name="third_party_provider"
+                            value={formData.third_party_provider}
+                            onChange={handleInputChange}
+                            placeholder="Opcional"
+                            className={`w-full bg-white dark:bg-gray-800 border ${serviceErrors.third_party_provider ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all`}
+                          />
+                        </div>
+                        {serviceErrors.third_party_provider && <p className="mt-1 text-xs text-rose-400">{serviceErrors.third_party_provider}</p>}
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Costo Tercero</label>
+                        <div className="relative">
+                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                          <input 
+                            type="number" 
+                            name="third_party_cost"
+                            value={formData.third_party_cost}
+                            onChange={handleInputChange}
+                            placeholder="0.00"
+                            min="0"
+                            className={`w-full bg-white dark:bg-gray-800 border ${serviceErrors.third_party_cost ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all`}
+                          />
+                        </div>
+                        {serviceErrors.third_party_cost && <p className="mt-1 text-xs text-rose-400">{serviceErrors.third_party_cost}</p>}
+                      </div>
+                    </>
+                  )}
                   
                    <div>
                       <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Estado</label>
@@ -1632,31 +1655,42 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       )}
       {/* Add Client Modal (Nested) */}
       {isClientModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Registrar Nuevo Cliente</h2>
-              <button onClick={() => setIsClientModalOpen(false)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
-                <X className="w-5 h-5" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[2.5rem] w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+            <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-800/30">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30">
+                  <User className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900 dark:text-white">Nuevo Cliente</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">Registra los datos para el servicio</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsClientModalOpen(false)} 
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all active:scale-90"
+              >
+                <X className="w-6 h-6" />
               </button>
             </div>
             
-            <form onSubmit={handleClientSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleClientSubmit} className="p-8 space-y-6">
               {/* Client Type Selector */}
-              <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
+              <div className="flex bg-gray-100 dark:bg-gray-800 p-1.5 rounded-2xl shadow-inner">
                 <button
                   type="button"
                   onClick={() => setClientFormData(f => ({ ...f, client_type: 'person' }))}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${clientFormData.client_type === 'person' ? 'bg-white dark:bg-gray-700 text-indigo-600 shadow-sm' : 'text-gray-500'}`}
+                  className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${clientFormData.client_type === 'person' ? 'bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  Persona Natural
+                  Persona
                 </button>
                 <button
                   type="button"
                   onClick={() => setClientFormData(f => ({ ...f, client_type: 'company' }))}
-                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${clientFormData.client_type === 'company' ? 'bg-white dark:bg-gray-700 text-indigo-600 shadow-sm' : 'text-gray-500'}`}
+                  className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${clientFormData.client_type === 'company' ? 'bg-white dark:bg-indigo-600 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
                 >
-                  Empresa (NIT)
+                  Empresa
                 </button>
               </div>
 
@@ -1664,15 +1698,15 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
                   {clientFormData.client_type === 'person' ? 'Nombre Completo' : 'Razón Social'}
                 </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                <div className="relative group">
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
                   <input 
                     type="text" 
                     name="full_name"
                     value={clientFormData.full_name}
                     onChange={handleClientInputChange}
-                    placeholder={clientFormData.client_type === 'person' ? "Nombre del cliente" : "Nombre de la empresa"}
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                    placeholder={clientFormData.client_type === 'person' ? "Nombre y apellidos" : "Nombre legal de la empresa"}
+                    className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl pl-12 pr-4 py-3.5 text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
                     required
                   />
                 </div>
@@ -1682,8 +1716,8 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">
                   {clientFormData.client_type === 'person' ? 'Cédula' : 'NIT'}
                 </label>
-                <div className="relative">
-                  <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
+                <div className="relative group">
+                  <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
                   <input 
                     type="text" 
                     name="cedula"
@@ -1691,71 +1725,72 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                     onChange={(e) => {
                       setClientFormData(f => ({ ...f, cedula: e.target.value }));
                     }}
-                    placeholder={clientFormData.client_type === 'person' ? "Ej. 12345678" : "Ej. 900123456-1"}
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                    placeholder={clientFormData.client_type === 'person' ? "C.C / Pasaporte" : "NIT (Incluir dígito verif.)"}
+                    className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl pl-12 pr-4 py-3.5 text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
                     required
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Teléfono</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  <input 
-                    type="text" 
-                    name="phone"
-                    value={clientFormData.phone}
-                    onChange={handleClientInputChange}
-                    placeholder="Número de teléfono"
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Teléfono</label>
+                  <div className="relative group">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                    <input 
+                      type="text" 
+                      name="phone"
+                      value={clientFormData.phone}
+                      onChange={handleClientInputChange}
+                      placeholder="Número de teléfono"
+                      className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl pl-12 pr-4 py-3.5 text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Correo Electrónico</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  <input 
-                    type="email" 
-                    name="email"
-                    value={clientFormData.email}
-                    onChange={handleClientInputChange}
-                    placeholder="cliente@ejemplo.com"
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
-                  />
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Correo Electrónico</label>
+                  <div className="relative group">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                    <input 
+                      type="email" 
+                      name="email"
+                      value={clientFormData.email}
+                      onChange={handleClientInputChange}
+                      placeholder="cliente@ejemplo.com"
+                      className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl pl-12 pr-4 py-3.5 text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                    />
+                  </div>
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Dirección</label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                  <input 
-                    type="text" 
+                <div className="relative group">
+                  <MapPin className="absolute left-4 top-4 w-4 h-4 text-gray-400 group-focus-within:text-indigo-500 transition-colors" />
+                  <textarea 
                     name="address"
                     value={clientFormData.address}
                     onChange={handleClientInputChange}
-                    placeholder="Dirección de residencia"
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all"
+                    placeholder="Dirección completa de residencia u oficina"
+                    className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-2xl pl-12 pr-4 py-4 text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 min-h-[100px] resize-none"
                   />
                 </div>
               </div>
 
-              <div className="pt-4 flex gap-3">
+              <div className="pt-6 flex gap-4">
                 <button 
                   type="button" 
                   onClick={() => setIsClientModalOpen(false)}
-                  className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="flex-1 px-6 py-4 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all active:scale-95"
                 >
-                  Cancelar
+                  Descartar
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium text-white shadow-lg shadow-indigo-900/20 transition-all"
+                  className="flex-[2] px-6 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-600/30 transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
-                  Guardar Cliente
+                  <Plus className="w-5 h-5" /> Guardar Cliente
                 </button>
               </div>
             </form>
@@ -1809,41 +1844,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                   {catalogErrors.description && <p className="mt-1 text-xs text-rose-400">{catalogErrors.description}</p>}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Precio Base</label>
-                    <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                      <input 
-                        type="number" 
-                        name="price"
-                        value={catalogFormData.price}
-                        onChange={(e) => setCatalogFormData({...catalogFormData, price: e.target.value})}
-                        placeholder="0.00"
-                        min="0"
-                        className={`w-full bg-white dark:bg-gray-800 border ${catalogErrors.price ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all`}
-                        required
-                      />
-                    </div>
-                    {catalogErrors.price && <p className="mt-1 text-xs text-rose-400">{catalogErrors.price}</p>}
-                  </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Duración Estimada</label>
-                    <div className="relative">
-                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
-                      <input 
-                        type="text" 
-                        name="estimated_duration"
-                        value={catalogFormData.estimated_duration}
-                        onChange={(e) => setCatalogFormData({...catalogFormData, estimated_duration: e.target.value})}
-                        placeholder="Ej. 2 horas"
-                        className={`w-full bg-white dark:bg-gray-800 border ${catalogErrors.estimated_duration ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none transition-all`}
-                      />
-                    </div>
-                    {catalogErrors.estimated_duration && <p className="mt-1 text-xs text-rose-400">{catalogErrors.estimated_duration}</p>}
-                  </div>
-                </div>
 
                 <div>
                   <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wide">Imagen (Opcional)</label>
@@ -1972,6 +1973,156 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                    Cerrar
                 </button>
              </div>
+          </div>
+        </div>
+      )}
+
+      {/* Salida / Entrega Modal */}
+      {deliveringService && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-[2.5rem] w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+            <div className="p-8 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-emerald-50/50 dark:bg-emerald-500/10">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/30">
+                  <CheckCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900 dark:text-white">Confirmar Entrega</h2>
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest">Finalizar Servicio</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setDeliveringService(null)} 
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-2xl text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-8 space-y-6">
+              <div className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-6 border border-gray-100 dark:border-gray-700">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-1">Servicio</span>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">{deliveringService.name}</h3>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100 dark:border-gray-700/50">
+                  <div>
+                    <label className="block text-xs font-black text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Valor Final del Servicio</label>
+                    <div className="relative group">
+                      <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500 transition-colors" />
+                      <input 
+                        type="number" 
+                        value={deliveryValue}
+                        onChange={(e) => setDeliveryValue(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-xl font-black text-emerald-600 dark:text-emerald-400 focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all shadow-inner"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-1">Cliente</span>
+                    <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200 font-bold bg-gray-100 dark:bg-gray-800 px-4 py-3 rounded-2xl">
+                      <User className="w-4 h-4 text-gray-400" />
+                      {deliveringService.client_name}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-widest">Notas de Entrega / Observaciones Finales</label>
+                <div className="relative group">
+                  <Edit className="absolute left-4 top-4 w-4 h-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
+                  <textarea 
+                    value={deliveryNote}
+                    onChange={(e) => setDeliveryNote(e.target.value)}
+                    placeholder="Ej. Se entregó cable de poder original, el equipo funciona correctamente..."
+                    className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-2xl pl-12 pr-4 py-4 text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600 min-h-[120px] resize-none shadow-inner"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-4">
+                <button 
+                  onClick={() => setDeliveringService(null)} 
+                  className="flex-1 px-6 py-4 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all active:scale-95"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={confirmDeliver}
+                  className="flex-[2] px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-sm font-black shadow-xl shadow-emerald-600/30 transition-all active:scale-95"
+                >
+                  Confirmar Salida
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Eliminar Servicio (Ticket) */}
+      {deletingService && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-100 dark:border-gray-800 animate-in zoom-in-95 duration-300">
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-rose-100 dark:bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Trash className="w-10 h-10 text-rose-600 dark:text-rose-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">¿Eliminar Servicio?</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
+                Estás a punto de eliminar el ticket <span className="font-semibold text-gray-900 dark:text-white">{deletingService.name}</span>. 
+                Esta acción no se puede deshacer.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setDeletingService(null)}
+                  className="flex-1 px-6 py-3.5 rounded-2xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDeleteService}
+                  className="flex-1 px-6 py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-semibold transition-all shadow-lg shadow-rose-600/20 active:scale-95"
+                >
+                  Sí, eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Eliminar Item del Catálogo */}
+      {deletingCatalogItem && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-100 dark:border-gray-800 animate-in zoom-in-95 duration-300">
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-rose-100 dark:bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Trash className="w-10 h-10 text-rose-600 dark:text-rose-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">¿Eliminar del Catálogo?</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
+                Estás a punto de eliminar <span className="font-semibold text-gray-900 dark:text-white">{deletingCatalogItem.name}</span> de tus servicios predefinidos.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setDeletingCatalogItem(null)}
+                  className="flex-1 px-6 py-3.5 rounded-2xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDeleteCatalogItem}
+                  className="flex-1 px-6 py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-semibold transition-all shadow-lg shadow-rose-600/20 active:scale-95"
+                >
+                  Sí, eliminar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

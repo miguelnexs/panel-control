@@ -22,6 +22,7 @@ import {
   GripVertical,
   FileText
 } from 'lucide-react';
+import SafeImage from './SafeImage';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 import SyncStatusBanner from './SyncStatusBanner';
 import {
@@ -202,7 +203,7 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, rol
     searchTimeout.current = setTimeout(() => {
       setPage(1);
       setSearch(val);
-    }, 500);
+    }, 600);
   };
   
   const totalPages = React.useMemo(() => Math.max(1, Math.ceil(total / pageSize)), [total, pageSize]);
@@ -210,10 +211,8 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, rol
   useEffect(() => {
     const loadCats = async () => {
       try {
-        const res = await fetch(`${apiBase}/products/categories/?page_size=100`, { headers: authHeaders(token) });
-        const data = await res.json();
-        const results = Array.isArray(data.results) ? data.results : [];
-        setCategories(results);
+        const data = await offlineSync.loadData('categories', `${apiBase}/products/categories/?page_size=100`, token);
+        setCategories(Array.isArray(data) ? data : []);
       } catch (e) {}
     };
     if (token) loadCats();
@@ -589,13 +588,12 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, rol
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden flex-shrink-0">
-                            {p.image ? (
-                              <img src={mediaUrl(p.image)} alt={p.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600">
-                                <Package className="w-5 h-5" />
-                              </div>
-                            )}
+                            <SafeImage 
+                              src={mediaUrl(p.image)} 
+                              alt={p.name} 
+                              className="w-full h-full object-cover" 
+                              fallbackIcon={<Package className="w-5 h-5 opacity-30" />}
+                            />
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
@@ -755,14 +753,17 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, rol
                 {/* Left Column: Image & Status */}
                 <div className="space-y-4">
                   <div className="aspect-square w-full rounded-2xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden relative">
-                    {viewing.image ? (
-                      <img src={mediaUrl(viewing.image)} alt={viewing.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 dark:text-gray-600">
-                        <Package className="w-12 h-12 mb-2 opacity-50" />
-                        <span className="text-sm">Sin imagen</span>
-                      </div>
-                    )}
+                    <SafeImage 
+                      src={mediaUrl(viewing.image)} 
+                      alt={viewing.name} 
+                      className="w-full h-full object-cover" 
+                      fallbackIcon={
+                        <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-600">
+                          <Package className="w-12 h-12 mb-2 opacity-50" />
+                          <span className="text-sm">Sin imagen</span>
+                        </div>
+                      }
+                    />
                     <div className="absolute top-3 right-3">
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold shadow-lg ${viewing.active ? 'bg-emerald-500 text-white' : 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-200'}`}>
                         {viewing.active ? 'ACTIVO' : 'INACTIVO'}
@@ -772,7 +773,7 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, rol
                   
                   <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
                     <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Stock Total</div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{viewing.inventory_qty} u.</div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{viewing.total_stock} u.</div>
                   </div>
                 </div>
 

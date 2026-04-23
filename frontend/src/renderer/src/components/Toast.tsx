@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, XCircle, Loader2, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, AlertCircle, AlertTriangle } from 'lucide-react';
 
-export type ToastType = 'success' | 'error' | 'loading' | 'info';
+export type ToastType = 'success' | 'error' | 'loading' | 'info' | 'warning';
 
 interface ToastProps {
   message: string;
@@ -30,6 +30,7 @@ export const Toast: React.FC<ToastProps> = ({
     switch (type) {
       case 'success': return <CheckCircle className="w-6 h-6 text-emerald-400" />;
       case 'error': return <XCircle className="w-6 h-6 text-red-400" />;
+      case 'warning': return <AlertTriangle className="w-6 h-6 text-amber-400" />;
       case 'loading': return <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />;
       default: return <AlertCircle className="w-6 h-6 text-gray-400" />;
     }
@@ -49,7 +50,7 @@ export const Toast: React.FC<ToastProps> = ({
           </div>
           <div className="flex flex-col">
             <span className="font-semibold text-sm text-gray-400 uppercase tracking-wider mb-0.5">
-              {type === 'loading' ? 'Procesando' : type === 'success' ? 'Éxito' : type === 'error' ? 'Error' : 'Información'}
+              {type === 'loading' ? 'Procesando' : type === 'success' ? 'Éxito' : type === 'error' ? 'Error' : type === 'warning' ? 'Advertencia' : 'Información'}
             </span>
             <span className="font-medium text-base">{message}</span>
           </div>
