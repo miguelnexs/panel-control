@@ -61,10 +61,10 @@ interface CompanySettings {
   company_phone: string;
   company_address: string;
   logo: string | null;
-  printer_type?: string;
-  printer_name?: string;
-  paper_width_mm?: number;
-  receipt_footer?: string;
+  service_printer_type?: string;
+  service_printer_name?: string;
+  service_paper_width_mm?: number;
+  service_receipt_footer?: string;
   primary_color?: string;
 }
 
@@ -126,7 +126,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
   const [printingService, setPrintingService] = useState<Service | null>(null);
   const [settings, setSettings] = useState<CompanySettings>({
     company_name: '', company_nit: '', company_phone: '', company_address: '', logo: null,
-    printer_type: 'system', paper_width_mm: 58, receipt_footer: '', primary_color: '#0ea5e9'
+    service_printer_type: 'system', service_paper_width_mm: 58, service_receipt_footer: '', primary_color: '#0ea5e9'
   });
   const [printerOpts, setPrinterOpts] = useState<PrinterOptions>({
     show_logo: true, header1: '', header2: '', align: 'center', font_size: 11,
@@ -211,14 +211,15 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
         company_phone: data.company_phone || '',
         company_address: data.company_address || '',
         logo: data.logo || null,
-        printer_type: data.printer_type || 'system',
-        paper_width_mm: data.paper_width_mm || 58,
-        receipt_footer: data.receipt_footer || '',
+        service_printer_type: data.service_printer_type || 'system',
+        service_printer_name: data.service_printer_name || '',
+        service_paper_width_mm: data.service_paper_width_mm || 58,
+        service_receipt_footer: data.service_receipt_footer || '',
         primary_color: data.primary_color || '#0ea5e9'
       };
 
       try {
-        const raw = data.receipt_footer || '';
+        const raw = data.service_receipt_footer || '';
         const obj = typeof raw === 'string' ? JSON.parse(raw) : null;
         if (obj && typeof obj === 'object') {
           setPrinterOpts({
@@ -234,7 +235,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
             logo_url: obj.logo_url || '',
             logo_width_mm: Number(obj.logo_width_mm || 45),
           });
-          newSettings.receipt_footer = obj.message !== undefined ? obj.message : '';
+          newSettings.service_receipt_footer = obj.message !== undefined ? obj.message : '';
         }
       } catch {}
 
@@ -245,7 +246,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
   };
 
   const generateReceiptHtml = (service: Service) => {
-    const paperW = settings.paper_width_mm || 58;
+    const paperW = settings.service_paper_width_mm || 58;
     const primary = settings.primary_color || '#000';
     const brand = (settings.company_name || 'Mi Empresa de Servicios');
     const nit = (settings.company_nit || '900.000.000');
@@ -306,8 +307,8 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     `;
     
     const qr = printerOpts.show_qr ? `<div class="c"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`SVC-${service.id}`)}" style="width:35mm;height:35mm;object-fit:contain"/></div>` : '';
-    const footer = `<div class="hr"></div><div class="${alignCls} small">${settings.receipt_footer || ''}</div>${qr}`;
-    
+    const footer = `<div class="hr"></div><div class="${alignCls} small">${settings.service_receipt_footer || ''}</div>${qr}`;
+
     return `<!doctype html><html><head><meta charset="utf-8"><title>Recibo Servicio #${service.id}</title><style>${css}</style></head><body>${header}${table}${footer}</body></html>`;
   };
 
@@ -345,7 +346,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
   const [printingIntake, setPrintingIntake] = useState<null | { clientName: string; items: Array<{ name: string; description: string; employee?: string }> }>(null);
   
   const generateIntakeReceiptHtml = (clientName: string, items: Array<{ name: string; description: string; employee?: string }>) => {
-    const paperW = settings.paper_width_mm || 58;
+    const paperW = settings.service_paper_width_mm || 58;
     const primary = settings.primary_color || '#000';
     const brand = (settings.company_name || 'Mi Empresa de Servicios');
     const nit = (settings.company_nit || '900.000.000');
@@ -396,7 +397,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     `;
     
     const qr = printerOpts.show_qr ? `<div class="c"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`INTAKE-${clientName}-${Date.now()}`)}" style="width:35mm;height:35mm;object-fit:contain"/></div>` : '';
-    const footer = `<div class="hr"></div><div class="${alignCls} small">${settings.receipt_footer || ''}</div>${qr}`;
+    const footer = `<div class="hr"></div><div class="${alignCls} small">${settings.service_receipt_footer || ''}</div>${qr}`;
     
     return `<!doctype html><html><head><meta charset="utf-8"><title>Recibo de Entrada - ${clientName}</title><style>${css}</style></head><body>${header}${table}${footer}</body></html>`;
   };
@@ -567,8 +568,8 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     if (!token) return;
     
     // Basic validation
-    if (!clientFormData.full_name || !clientFormData.cedula) {
-      showToast("Nombre y Cédula son obligatorios", 'error');
+    if (!clientFormData.full_name) {
+      showToast("El nombre es obligatorio", 'error');
       return;
     }
 
@@ -602,6 +603,26 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       
     } catch (error: any) {
       showToast(error.message || 'Error al crear cliente', 'error');
+    }
+  };
+
+  const handleSendEmail = async (service: Service) => {
+    if (!token) return;
+    
+    showToast('Enviando recibo por correo...', 'loading');
+    
+    try {
+      const res = await fetch(`${apiBase}/services/receipt/send/${service.id}/`, {
+        method: 'POST',
+        headers: authHeaders(token)
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'No se pudo enviar el correo');
+      
+      showToast('Recibo enviado correctamente al cliente', 'success');
+    } catch (error: any) {
+      showToast(error.message || 'Error al enviar correo', 'error');
     }
   };
 
@@ -1212,6 +1233,13 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                           title="Imprimir Recibo"
                         >
                           <Printer className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => handleSendEmail(service)}
+                          className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-colors"
+                          title="Enviar por Correo"
+                        >
+                          <Mail className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => handleEdit(service)}
@@ -1922,6 +1950,14 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                    className="flex-1 bg-indigo-600 text-white py-2 rounded-lg font-medium hover:bg-indigo-500 transition-colors flex items-center justify-center gap-2"
                 >
                    <Printer className="w-4 h-4" /> Imprimir
+                </button>
+                <button 
+                   onClick={() => {
+                     if (printingService) handleSendEmail(printingService);
+                   }}
+                   className="flex-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 py-2 rounded-lg font-medium hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center gap-2 border border-indigo-200 dark:border-indigo-500/20"
+                >
+                   <Mail className="w-4 h-4" /> Correo
                 </button>
                 <button 
                    onClick={() => setPrintingService(null)}

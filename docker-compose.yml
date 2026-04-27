@@ -22,7 +22,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: sh -c "python manage.py migrate && python scripts/create_superadmin.py && python populate_templates.py && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ./backend:/app
     ports:
@@ -55,3 +55,5 @@ services:
 
 volumes:
   postgres_data:
+    external: true
+    name: localix_postgres_data

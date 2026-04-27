@@ -20,7 +20,10 @@ import {
   Wand2,
   Crop,
   GripVertical,
-  CloudOff
+  CloudOff,
+  Sparkles,
+  Loader2,
+  MessageSquare
 } from 'lucide-react';
 import {
   DndContext,
@@ -149,8 +152,12 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
   const [salePrice, setSalePrice] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [categories, setCategories] = useState<any[]>([]);
-  const [sku, setSku] = useState('');
-  const [inventoryQty, setInventoryQty] = useState('0');
+  const [sku, setSku] = useState(product?.sku || '');
+  const [inventoryQty, setInventoryQty] = useState<string>(product?.inventory_qty != null ? String(product.inventory_qty) : '0');
+  const [aiNotes, setAiNotes] = useState<string>('');
+  const [showAiPanel, setShowAiPanel] = useState(false);
+  const [showMagicSuccess, setShowMagicSuccess] = useState(false);
+  const [loadingType, setLoadingType] = useState<'ai' | 'save'>('ai');
   const [description, setDescription] = useState('');
   const [active, setActive] = useState(true);
   const [isDraft, setIsDraft] = useState(false);
@@ -288,11 +295,37 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
     return n.toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
   };
   const normalizePrice = (v: any) => {
-    const s = String(v).replace(/[^0-9.,]/g, '').replace(',', '.');
+    if (v === '' || v == null) return '';
+    let s = String(v).replace(/[^0-9.,]/g, '');
+    
+    // Si tiene puntos y comas, el punto es miles y la coma es decimal
+    if (s.includes('.') && s.includes(',')) {
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else if (s.includes(',')) {
+      // Solo coma: tratamos como decimal
+      s = s.replace(',', '.');
+    } else if (s.includes('.')) {
+      // Si solo tiene punto, puede ser decimal o miles. 
+      // En COP usualmente el punto es miles si hay 3 decimales después (ej: 1.500)
+      // Pero para ser seguros, si no hay decimales (es un entero), eliminamos el punto.
+      const parts = s.split('.');
+      if (parts[parts.length - 1].length === 3) {
+        s = s.replace(/\./g, '');
+      }
+    }
+    
+    // Limpieza final: si quedaron múltiples puntos, solo el último es decimal
     const parts = s.split('.');
-    if (parts.length > 2) return parts[0] + '.' + parts.slice(1).join('');
-    if (parts[1]) parts[1] = parts[1].slice(0, 2);
-    return parts.join('.');
+    if (parts.length > 2) {
+      s = parts.slice(0, -1).join('') + '.' + parts[parts.length - 1];
+    }
+    
+    // Limitar a 2 decimales
+    const finalParts = s.split('.');
+    if (finalParts.length > 1) {
+      return finalParts[0] + '.' + finalParts[1].slice(0, 2);
+    }
+    return s || '0';
   };
   const normalizePercent = (v: any) => {
     const s = String(v).replace(/[^0-9.,]/g, '').replace(',', '.');
@@ -573,15 +606,26 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
     const loadEditing = async () => {
       if (!product) return;
       setLoading(true);
-      setName(product.name || '');
-      setPrice(String(product.price || ''));
-      setCostPrice(String(product.cost_price || '0'));
-      const existingIsSale = Boolean(product.is_sale);
+
+      let fullProduct = product;
+      if (navigator.onLine) {
+        try {
+          const res = await fetch(`${apiBase}/products/${product.id}/`, { headers: authHeaders(token) });
+          if (res.ok) {
+            fullProduct = await res.json();
+          }
+        } catch (e) { console.error("Error fetching full product details:", e); }
+      }
+
+      setName(fullProduct.name || '');
+      setPrice(String(fullProduct.price || ''));
+      setCostPrice(String(fullProduct.cost_price || '0'));
+      const existingIsSale = Boolean(fullProduct.is_sale);
       setIsSale(existingIsSale);
-      const existingSalePrice = product.sale_price != null ? String(product.sale_price) : '';
+      const existingSalePrice = fullProduct.sale_price != null ? String(fullProduct.sale_price) : '';
       setSalePrice(existingSalePrice);
       if (existingIsSale && existingSalePrice) {
-        const base = Number(product.price || 0);
+        const base = Number(fullProduct.price || 0);
         const sp = Number(existingSalePrice);
         if (base > 0 && sp > 0 && sp < base) {
           const pct = ((1 - sp / base) * 100);
@@ -592,24 +636,24 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
         setOfferPercent('');
         setOfferMode('percent');
       }
-      setCategoryId(String(product.category || ''));
-      setSku(product.sku || '');
-      setInventoryQty(String(product.inventory_qty || '0'));
-      setDescription(product.description || '');
-      setActive(Boolean(product.active));
+      setCategoryId(String(fullProduct.category || ''));
+      setSku(fullProduct.sku || '');
+      setInventoryQty(String(fullProduct.inventory_qty || '0'));
+      setDescription(fullProduct.description || '');
+      setActive(Boolean(fullProduct.active));
       
       // Load Images
       const initialImages: any[] = [];
-      if (product.image) {
+      if (fullProduct.image) {
         initialImages.push({
           id: 'main-existing',
-          image: product.image,
+          image: fullProduct.image,
           isExisting: true,
           type: 'main'
         });
       }
-      if (product.gallery && Array.isArray(product.gallery)) {
-        product.gallery.forEach((img: any) => {
+      if (fullProduct.gallery && Array.isArray(fullProduct.gallery)) {
+        fullProduct.gallery.forEach((img: any) => {
           initialImages.push({
             id: `gallery-${img.id}`,
             image: img.image,
@@ -763,20 +807,78 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
     // Obtener prefijo de nombre (primeras 3 letras de la primera palabra)
     const namePrefix = name.trim().split(' ')[0].substring(0, 3).toUpperCase();
     
-    // Generar sufijo aleatorio de 4 dígitos
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    
-    const newSku = `${catPrefix}-${namePrefix}-${randomSuffix}`;
-    setSku(newSku);
-    validateField('sku', newSku);
-    
-    // Limpiar error de SKU si existía
-    if (errors.sku) {
-      setErrors(prev => {
-        const newErrs = { ...prev };
-        delete newErrs.sku;
-        return newErrs;
+    setSku(`${catPrefix}-${namePrefix}-${Math.floor(1000 + Math.random() * 9000)}`);
+  };
+
+  const handleAnalyzeImage = async () => {
+    if (productImages.length === 0) return;
+    const mainImg = productImages[0];
+    setLoading(true);
+    setLoadingType('ai');
+    setErrors({});
+
+    try {
+      const fd = new FormData();
+      fd.append('notes', aiNotes);
+      if (mainImg.file) {
+        fd.append('image', mainImg.file);
+      } else if (mainImg.isExisting) {
+        // We need to fetch the image and convert to blob or just send the URL
+        // To simplify, let's assume the backend can fetch it if we send the URL
+        fd.append('image_url', mediaUrl(mainImg.image));
+      }
+
+      const res = await fetch(`${apiBase}/webconfig/ai/analyze-product/`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: fd
       });
+
+      if (!res.ok) throw new Error('No se pudo analizar la imagen.');
+      const data = await res.json();
+
+      if (data.name) setName(data.name);
+      if (data.description) setDescription(data.description);
+      if (data.price) setPrice(String(data.price));
+      if (data.category_name) {
+        const found = categories.find(c => c.name.toLowerCase().includes(data.category_name.toLowerCase()));
+        if (found) setCategoryId(String(found.id));
+      }
+      if (Array.isArray(data.features)) {
+        const newFeats = data.features.map((f: string) => ({ name: f }));
+        setFeatures([...features, ...newFeats]);
+      }
+      if (Array.isArray(data.suggested_variants)) {
+        const newVars = data.suggested_variants.map((v: any) => ({
+          clientId: `variant-ai-${Math.random().toString(36).substr(2, 9)}`,
+          name: (v.name || v).substring(0, 50), // Truncate to 50 chars
+          extra_price: String(v.extra_price || 0),
+          position: variants.length
+        }));
+        setVariants([...variants, ...newVars]);
+      }
+      if (Array.isArray(data.suggested_colors)) {
+        const newCols = data.suggested_colors.map((c: any) => ({
+          clientId: `color-ai-${Math.random().toString(36).substr(2, 9)}`,
+          name: c.name || c,
+          hex: c.hex || '#000000',
+          position: colors.length,
+          images: []
+        }));
+        setColors([...colors, ...newCols]);
+      }
+      
+      // Magic success effect
+      setShowMagicSuccess(true);
+      setTimeout(() => {
+        setLoading(false);
+        setShowMagicSuccess(false);
+        setShowAiPanel(false);
+      }, 1500);
+
+    } catch (error: any) {
+      setLoading(false);
+      setErrors({ form: `Error en análisis IA: ${error.message}` });
     }
   };
 
@@ -922,7 +1024,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
     setProductImages(prev => [...prev, ...newImages]);
   };
 
-  const validateClient = () => {
+  const validateClient = (forceDraft = false) => {
     const errs: any = {};
     // Relaxed regex to match backend - allowing almost any printable character
     const nameOk = name.trim().length > 0 && name.length <= 100;
@@ -933,9 +1035,14 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
     if (!priceNorm || Number.isNaN(priceNum) || priceNum <= 0) errs.price = 'Precio debe ser positivo con 2 decimales.';
     
     if (description.length > 500) errs.description = 'Descripción máximo 500 caracteres.';
-    if (!categories.find((c) => String(c.id) === String(categoryId))) errs.category = 'Debe seleccionar una categoría válida.';
-    
-    // SKU is optional but if present must be valid (relaxed validation)
+    if (!forceDraft) {
+      if (!categoryId || categoryId === 'null' || categoryId === 'undefined') {
+        errs.category = 'Debe seleccionar una categoría.';
+      } else if (!categories.find((c) => String(c.id) === String(categoryId))) {
+        errs.category = 'La categoría seleccionada no es válida.';
+      }
+    }
+
     if (sku && sku.length > 50) errs.sku = 'SKU máximo 50 caracteres.';
     
     const inv = Number(inventoryQty);
@@ -970,8 +1077,13 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       }
     }
     
-    if (colors.some((c) => !c.name || !/^#[0-9A-Fa-f]{6}$/.test(c.hex))) {
-      errs.colors = 'Verifique nombre y HEX (#RRGGBB) de los colores.';
+    if (colors.length > 0) {
+      if (colors.some((c) => !c.name)) {
+        errs.colors = 'Todos los colores deben tener un nombre.';
+      }
+      if (colors.some((c) => c.hex && !/^#[0-9A-Fa-f]{6}$/.test(c.hex))) {
+        errs.colors = 'Verifique el formato HEX (#RRGGBB) de los colores.';
+      }
     }
     
     setErrors(errs);
@@ -984,15 +1096,18 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       setErrors({ form: 'Sin conexión a internet. Conéctate para guardar el producto.' });
       return;
     }
-    if (!forceDraft && !validateClient()) return;
+    if (!forceDraft && !validateClient(forceDraft)) return;
     
     setLoading(true);
+    setLoadingType('save');
     const fd = new FormData();
-    fd.append('name', name);
+    if (name) fd.append('name', name);
     fd.append('price', normalizePrice(price) || '0');
     fd.append('cost_price', normalizePrice(costPrice) || '0');
-    fd.append('category', categoryId || '');
-    fd.append('sku', sku || '');
+    if (categoryId && categoryId !== 'null' && categoryId !== 'undefined') {
+      fd.append('category', categoryId);
+    }
+    if (sku) fd.append('sku', sku);
     fd.append('inventory_qty', String(Number(inventoryQty || 0)));
     fd.append('description', description || '');
     fd.append('active', active ? 'true' : 'false');
@@ -1025,41 +1140,61 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
     const url = product ? `${apiBase}/products/${product.id}/` : `${apiBase}/products/`;
     const method = product ? 'PATCH' : 'POST';
-    const res = await fetch(url, { method, headers: authHeaders(token), body: fd });
+    
+    let res;
+    try {
+      res = await fetch(url, { method, headers: authHeaders(token), body: fd });
+    } catch (err: any) {
+      setErrors({ form: `Error de red: ${err.message}` });
+      setLoading(false);
+      return;
+    }
+
     let data;
     try {
       data = await res.json();
     } catch (e) {
       data = { detail: `Error inesperado (${res.status} ${res.statusText})` };
     }
-    
+
     if (!res.ok) {
-      const msg = data.detail || (product ? 'No se pudo actualizar el producto' : 'No se pudo crear el producto');
-      const newErrors: any = { form: msg };
+      let errorDetail = '';
+      if (typeof data === 'object') {
+        errorDetail = Object.entries(data)
+          .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+          .join(' | ');
+      } else {
+        errorDetail = String(data);
+      }
       
+      const newErrors: any = { form: `Error al guardar producto: ${errorDetail}` };
+      
+      // Mapeo de errores específicos a campos
       if (data && typeof data === 'object') {
         Object.keys(data).forEach(key => {
-            if (key !== 'detail') {
-                let errorMsg = '';
-                if (Array.isArray(data[key])) {
-                    errorMsg = data[key][0];
-                } else if (typeof data[key] === 'string') {
-                    errorMsg = data[key];
-                }
-                
-                if (errorMsg) {
-                    if (key === 'inventory_qty') {
-                        newErrors.inventoryQty = errorMsg;
-                    } else {
-                        newErrors[key] = errorMsg;
-                    }
-                }
+          if (key !== 'detail') {
+            let errorMsg = '';
+            if (Array.isArray(data[key])) {
+              errorMsg = data[key][0];
+            } else if (typeof data[key] === 'string') {
+              errorMsg = data[key];
             }
+            
+            if (errorMsg) {
+              if (key === 'inventory_qty') newErrors.inventoryQty = errorMsg;
+              else if (key === 'sale_price') newErrors.sale_price = errorMsg;
+              else newErrors[key] = errorMsg;
+            }
+          }
         });
       }
+      
       setErrors(newErrors);
+      setLoading(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
+
     try {
       const productId = product ? product.id : data.id;
       const updatedColors: any[] = [];
@@ -1118,13 +1253,18 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
           const fdColor = new FormData();
           fdColor.append('name', c.name);
           fdColor.append('hex', c.hex);
-          fdColor.append('stock', '0');
           fdColor.append('position', String(c.position));
           const createRes = await fetch(`${apiBase}/products/${productId}/colors/`, { method: 'POST', headers: authHeaders(token), body: fdColor });
           if (createRes.ok) {
             const created = await createRes.json();
             finalColorId = created.id;
             updatedColors.push({ ...created, clientId: c.clientId ?? null, name: created?.name ?? c.name, hex: created?.hex ?? c.hex });
+          } else {
+            const errData = await createRes.json();
+            console.error("Error creating color:", errData);
+            setErrors({ form: `Error al crear color "${c.name}": ${errData.detail || JSON.stringify(errData)}` });
+            setLoading(false);
+            return;
           }
         } else {
           const prev = existingColors.find((e) => String(e.id) === String(c.id)) || {};
@@ -1133,14 +1273,17 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
             const fdColor = new FormData();
             fdColor.append('name', c.name);
             fdColor.append('hex', c.hex);
-            fdColor.append('stock', '0');
             fdColor.append('position', String(c.position));
             const upRes = await fetch(`${apiBase}/products/colors/${c.id}/`, { method: 'PATCH', headers: authHeaders(token), body: fdColor });
             if (upRes.ok) {
               const updated = await upRes.json();
               updatedColors.push({ ...updated, clientId: c.clientId ?? `color-${updated?.id ?? c.id}`, name: updated?.name ?? c.name, hex: updated?.hex ?? c.hex });
+            } else {
+              const errData = await upRes.json();
+              setErrors({ form: `Error al actualizar color "${c.name}": ${errData.detail || JSON.stringify(errData)}` });
+              setLoading(false);
+              return;
             }
-            else updatedColors.push(c);
           } else {
             updatedColors.push(c);
           }
@@ -1187,6 +1330,11 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
           if (resV.ok) {
             const created = await resV.json();
             updatedVariants.push({ ...created, clientId: v.clientId ?? null, name: created?.name ?? v.name, extra_price: created?.extra_price ?? v.extra_price });
+          } else {
+            const errData = await resV.json();
+            setErrors({ form: `Error al crear variante "${v.name}": ${errData.detail || JSON.stringify(errData)}` });
+            setLoading(false);
+            return;
           }
         } else {
           const prev = existingVars.find((e) => String(e.id) === String(v.id));
@@ -1199,8 +1347,12 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
             if (resV.ok) {
               const updated = await resV.json();
               updatedVariants.push({ ...updated, clientId: v.clientId ?? `variant-${updated?.id ?? v.id}`, name: updated?.name ?? v.name, extra_price: updated?.extra_price ?? v.extra_price });
+            } else {
+              const errData = await resV.json();
+              setErrors({ form: `Error al actualizar variante "${v.name}": ${errData.detail || JSON.stringify(errData)}` });
+              setLoading(false);
+              return;
             }
-            else updatedVariants.push(v);
           } else {
             updatedVariants.push(v);
           }
@@ -1295,8 +1447,10 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
             body: JSON.stringify(payload)
           });
           if (!resSku.ok) {
-            const txt = await resSku.text().catch(() => '');
-            throw new Error(txt || 'No se pudo guardar el stock de las combinaciones.');
+            const errData = await resSku.json().catch(() => ({}));
+            setErrors({ form: `Error en combinación SKU: ${errData.detail || JSON.stringify(errData)}` });
+            setLoading(false);
+            return;
           }
         } else {
           const resSku = await fetch(`${apiBase}/products/skus/${s.id}/`, {
@@ -1305,8 +1459,10 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
             body: JSON.stringify(payload)
           });
           if (!resSku.ok) {
-            const txt = await resSku.text().catch(() => '');
-            throw new Error(txt || 'No se pudo actualizar el stock de las combinaciones.');
+            const errData = await resSku.json().catch(() => ({}));
+            setErrors({ form: `Error al actualizar combinación SKU: ${errData.detail || JSON.stringify(errData)}` });
+            setLoading(false);
+            return;
           }
         }
       }
@@ -1323,13 +1479,61 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
     if (onSaved) onSaved();
   };
 
+
   return (
     <div className="min-h-full animate-in fade-in duration-500">
       {loading && (
-        <div className="fixed inset-0 z-[100] bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
-            <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4" />
-            <div className="text-gray-900 dark:text-white font-medium">Cargando datos...</div>
+        <div className="fixed inset-0 z-[100] bg-white/60 dark:bg-[#0B0D14]/80 backdrop-blur-xl flex items-center justify-center animate-in fade-in duration-500">
+          <div className="relative group">
+            {/* Pulsing magic ring */}
+            <div className="absolute inset-[-20px] rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-20 blur-2xl animate-pulse" />
+            
+            <div className="bg-white/80 dark:bg-gray-900/90 border border-white/20 dark:border-gray-800 rounded-3xl p-10 shadow-2xl flex flex-col items-center relative overflow-hidden">
+              {/* Rotating background detail */}
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-blue-500/10 rounded-full blur-3xl animate-blob" />
+              
+              <div className="relative mb-6">
+                {!showMagicSuccess ? (
+                  <>
+                    <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      {loadingType === 'ai' ? (
+                        <Wand2 className="w-6 h-6 text-indigo-500 animate-bounce" />
+                      ) : (
+                        <Save className="w-6 h-6 text-indigo-500 animate-pulse" />
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center animate-in zoom-in duration-300">
+                    <CheckCircle2 className="w-10 h-10 text-white" />
+                  </div>
+                )}
+              </div>
+              
+              <h3 className="text-xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">
+                {showMagicSuccess 
+                  ? '¡Completado!' 
+                  : loadingType === 'ai' 
+                    ? 'Magia en progreso' 
+                    : 'Guardando producto'}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                {showMagicSuccess 
+                  ? 'La operación se realizó con éxito' 
+                  : loadingType === 'ai' 
+                    ? 'Gemini está analizando tu producto...' 
+                    : 'Estamos sincronizando los datos con el servidor...'}
+              </p>
+              
+              {!showMagicSuccess && (
+                <div className="mt-8 flex gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:-0.3s]" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce [animation-delay:-0.15s]" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-bounce" />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1386,6 +1590,20 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
             </button>
           </div>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto mb-6">
+        {errors.form && (
+          <div className="animate-in fade-in slide-in-from-top-4 duration-300 mb-6">
+            <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 p-4 rounded-2xl flex items-start gap-3 shadow-sm">
+              <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-bold text-rose-800 dark:text-rose-400">Error de validación</h3>
+                <p className="text-sm text-rose-700 dark:text-rose-300/80 mt-1">{errors.form}</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="max-w-7xl mx-auto">
@@ -1463,6 +1681,131 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
           {activeTab === 'detalles' && (
             <div className="space-y-6">
+              {/* Unified Pro Gallery Section - MOVED TO TOP */}
+              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm relative overflow-hidden">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
+                    <ImageIcon className="w-4 h-4" />
+                    <span>Galería e Inteligencia Visual</span>
+                  </div>
+                  
+                  {!showAiPanel && productImages.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAiPanel(true)}
+                      disabled={loading || !isOnline}
+                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
+                    >
+                      <Wand2 className="w-4 h-4" />
+                      <span>Analizar con IA</span>
+                    </button>
+                  )}
+                  
+                  {showAiPanel && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAiPanel(false)}
+                      className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                
+                <div className="space-y-6">
+                  {/* Notes for AI - Dynamic Appearance */}
+                  {showAiPanel && (
+                    <div className="bg-indigo-50/50 dark:bg-indigo-500/5 rounded-2xl p-5 border border-indigo-100 dark:border-indigo-500/20 animate-in slide-in-from-top-4 duration-300">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="p-1.5 bg-indigo-100 dark:bg-indigo-500/20 rounded-lg">
+                          <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <h4 className="text-xs font-bold text-indigo-900 dark:text-indigo-300 uppercase tracking-widest">Asistente de Inteligencia Visual</h4>
+                      </div>
+                      
+                      <label className="block text-[10px] font-bold text-indigo-500/60 dark:text-indigo-400/60 uppercase tracking-widest mb-2">
+                        Instrucciones opcionales
+                      </label>
+                      <textarea 
+                        value={aiNotes}
+                        onChange={(e) => setAiNotes(e.target.value)}
+                        placeholder="Ej: 'Añade tallas S y M', 'El material es seda'..."
+                        className="w-full bg-white dark:bg-gray-900 border border-indigo-200 dark:border-indigo-500/30 rounded-xl p-3 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 focus:outline-none resize-none h-24 transition-all mb-4"
+                      />
+                      
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={handleAnalyzeImage}
+                          disabled={loading}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
+                        >
+                          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                          <span>{loading ? 'Analizando...' : 'Comenzar Análisis'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowAiPanel(false)}
+                          className="px-4 py-2.5 text-sm font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <DndContext 
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext 
+                      items={productImages.map(img => String(img.id))}
+                      strategy={rectSortingStrategy}
+                    >
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        {productImages.map((img, idx) => (
+                          <SortableImage 
+                            key={img.id}
+                            id={img.id}
+                            src={img.src || mediaUrl(img.image)}
+                            isMain={idx === 0}
+                            onRemove={() => handleRemoveImage(idx)}
+                            onCrop={() => setCroppingImage({ src: img.src || mediaUrl(img.image), index: idx, type: img.isExisting ? 'existing' : 'new' })}
+                          />
+                        ))}
+                        
+                        <div 
+                          onClick={() => {
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.multiple = true;
+                            input.accept = 'image/*';
+                            input.onchange = (e: any) => handleAddImages(Array.from(e.target.files));
+                            input.click();
+                          }}
+                          className="relative aspect-square rounded-2xl bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-blue-500/50 hover:bg-blue-50/30 dark:hover:bg-blue-500/5 transition-all flex flex-col items-center justify-center cursor-pointer group shadow-sm"
+                        >
+                          <div className="p-3 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 group-hover:scale-110 transition-transform">
+                            <Plus className="w-5 h-5 text-blue-500" />
+                          </div>
+                          <span className="text-[10px] font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-widest mt-3">Añadir</span>
+                        </div>
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                  
+                  <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/10 flex items-start gap-3">
+                    <div className="p-1.5 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <p className="text-[11px] text-blue-700 dark:text-blue-300 leading-relaxed">
+                      <span className="font-bold">Nueva Función IA:</span> Sube una foto y presiona <span className="font-bold underline text-indigo-600">Analizar con IA</span> para que Gemini complete el nombre, descripción y precio automáticamente.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center gap-2 mb-6 text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
                   <FileText className="w-4 h-4" />
@@ -1747,67 +2090,6 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                 </div>
               </div>
 
-              {/* Unified Pro Gallery Section */}
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
-                    <ImageIcon className="w-4 h-4" />
-                    <span>Galería Pro</span>
-                  </div>
-                </div>
-                
-                <div className="space-y-6">
-                  <DndContext 
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={handleDragEnd}
-                  >
-                    <SortableContext 
-                      items={productImages.map(img => String(img.id))}
-                      strategy={rectSortingStrategy}
-                    >
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                        {productImages.map((img, idx) => (
-                          <SortableImage 
-                            key={img.id}
-                            id={img.id}
-                            src={img.src || mediaUrl(img.image)}
-                            isMain={idx === 0}
-                            onRemove={() => handleRemoveImage(idx)}
-                            onCrop={() => setCroppingImage({ src: img.src || mediaUrl(img.image), index: idx, type: img.isExisting ? 'existing' : 'new' })}
-                          />
-                        ))}
-                        
-                        <div 
-                          onClick={() => {
-                            const input = document.createElement('input');
-                            input.type = 'file';
-                            input.multiple = true;
-                            input.accept = 'image/*';
-                            input.onchange = (e: any) => handleAddImages(Array.from(e.target.files));
-                            input.click();
-                          }}
-                          className="relative aspect-square rounded-2xl bg-gray-50 dark:bg-gray-800 border-2 border-dashed border-gray-200 dark:border-gray-700 hover:border-blue-500/50 hover:bg-blue-50/30 dark:hover:bg-blue-500/5 transition-all flex flex-col items-center justify-center cursor-pointer group shadow-sm"
-                        >
-                          <div className="p-3 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 group-hover:scale-110 transition-transform">
-                            <Plus className="w-5 h-5 text-blue-500" />
-                          </div>
-                          <span className="text-[10px] font-bold text-gray-400 group-hover:text-blue-500 uppercase tracking-widest mt-3">Añadir</span>
-                        </div>
-                      </div>
-                    </SortableContext>
-                  </DndContext>
-                  
-                  <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-500/5 border border-amber-100 dark:border-amber-500/10 flex items-start gap-3">
-                    <div className="p-1.5 bg-amber-100 dark:bg-amber-500/20 rounded-lg">
-                      <Package className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                    </div>
-                    <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
-                      <span className="font-bold">Tip Pro:</span> La imagen en la <span className="underline">primera posición</span> será la portada principal. Arrastra para reordenar.
-                    </p>
-                  </div>
-                </div>
-              </div>
             </div>
           )}
 

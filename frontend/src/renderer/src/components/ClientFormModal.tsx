@@ -195,7 +195,6 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({
                   onChange={(e) => setForm({...form, cedula: e.target.value})}
                   placeholder={form.client_type === 'person' ? "C.C / Pasaporte" : "NIT con dígito de verificación"}
                   className={`w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-900 dark:text-white focus:ring-4 ${colors.ring} ${colors.border} focus:outline-none transition-all placeholder:text-gray-400`}
-                  required
                 />
               </div>
             </div>

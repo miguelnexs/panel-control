@@ -16,6 +16,7 @@ import {
   base64ToFile,
   type SyncOperation,
   type StoreName,
+  getSetting,
 } from '../lib/offlineDB';
 
 export interface OfflineSyncState {
@@ -133,6 +134,16 @@ export function useOfflineSync(token: string | null): UseOfflineSyncReturn {
   // ─── Sync engine ───────────────────────────────────────────────
   const processQueue = useCallback(async () => {
     if (syncingRef.current || !navigator.onLine) return;
+    
+    // Check if sync is enabled globally by Super Admin
+    try {
+      const syncEnabled = await getSetting('web_sync_enabled');
+      if (syncEnabled === false) {
+        console.log('Sync paused by Super Admin');
+        return;
+      }
+    } catch { /* ignore */ }
+
     const q = await getQueue();
     const pending = q.filter((i) => i.status === 'pending' || i.status === 'error');
     if (pending.length === 0) return;

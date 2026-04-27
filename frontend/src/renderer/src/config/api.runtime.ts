@@ -1,5 +1,5 @@
 export const candidateApiBases = (): string[] => {
-  return ['http://localhost:8000/api'];
+  return ['https://softwarebycg.shop/api'];
 };
 
 const tryHealth = async (base: string): Promise<boolean> => {

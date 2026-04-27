@@ -66,6 +66,11 @@ interface Client {
   phone?: string;
 }
 
+interface Category {
+  id: number;
+  name: string;
+}
+
 interface CartItem {
   product: Product;
   colorId: string | null;
@@ -83,9 +88,11 @@ interface SalesPageProps {
   token: string;
   apiBase: string;
   onSaleCreated?: () => void;
+  canCreate?: boolean;
 }
 
-const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) => {
+const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated, canCreate }) => {
+  const canCreateSafe = typeof canCreate === 'boolean' ? canCreate : true;
   const offlineSync = useOfflineSync(token);
   const gridRef = useRef<HTMLDivElement>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -95,6 +102,8 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
   const [selectedClientId, setSelectedClientId] = useState('');
   const [openClientModal, setOpenClientModal] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   
   // Pagination State
   const [page, setPage] = useState(1);
@@ -119,8 +128,8 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
   const [selectionQty, setSelectionQty] = useState(1);
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'transfer' | 'mixed'>('cash');
-  const [isApartado, setIsApartado] = useState(false);
-  const [apartadoAmount, setApartadoAmount] = useState('');
+  const [isSeparado, setIsSeparado] = useState(false);
+  const [separadoAmount, setSeparadoAmount] = useState('');
   const [cashReceived, setCashReceived] = useState('');
   const [mixedCashPart, setMixedCashPart] = useState('');
 
@@ -161,6 +170,10 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
   }, [search]);
 
   useEffect(() => {
+    setPage(1);
+  }, [selectedCategory]);
+
+  useEffect(() => {
     const loadCatalog = async () => {
       setLoading(true);
       try {
@@ -170,14 +183,17 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
           active: 'true'
         });
         if (debouncedSearch) params.set('search', debouncedSearch);
+        if (selectedCategory) params.set('category', String(selectedCategory));
 
-        const [prodsResult, clientsData] = await Promise.all([
+        const [prodsResult, clientsData, catsData] = await Promise.all([
           offlineSync.loadPaginatedData('sales', `${apiBase}/products/?${params.toString()}`, token),
           offlineSync.loadData('clients', `${apiBase}/clients/?page_size=200`, token),
+          offlineSync.loadData('categories', `${apiBase}/products/categories/?page_size=100`, token),
         ]);
         
         setProducts(prodsResult.items);
         setTotal(prodsResult.total);
+        setCategories(Array.isArray(catsData) ? catsData : []);
         
         // Pre-fill colors if available in product data
         const cMap: Record<number, Color[]> = {};
@@ -198,7 +214,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
       }
     };
     if (token) loadCatalog();
-  }, [token, page, debouncedSearch]);
+  }, [token, page, debouncedSearch, selectedCategory]);
 
   useEffect(() => {
     if (gridRef.current) {
@@ -299,7 +315,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     }
 
     if (selectionQty > stock) {
-        alert(`Solo hay ${stock} unidades disponibles para esta selecciÃ³n.`);
+        alert(`Solo hay ${stock} unidades disponibles para esta selección.`);
         return;
     }
     
@@ -342,7 +358,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
   }, [cart, variantOptions]);
 
   const paymentSummary = useMemo(() => {
-    const total = isApartado ? Number(apartadoAmount || 0) : Number(totalAmount || 0);
+    const total = isSeparado ? Number(separadoAmount || 0) : Number(totalAmount || 0);
     if (paymentMethod === 'transfer') {
       return { cashPart: 0, transferPart: total, change: 0 };
     }
@@ -356,12 +372,12 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     const received = Number(cashReceived || cashPart);
     const change = Math.max(0, received - cashPart);
     return { cashPart, transferPart, change };
-  }, [totalAmount, isApartado, apartadoAmount, paymentMethod, cashReceived, mixedCashPart]);
+  }, [totalAmount, isSeparado, separadoAmount, paymentMethod, cashReceived, mixedCashPart]);
 
   const validateCart = async () => {
     for (const it of cart) {
       const qty = Number(it.quantity || 0);
-      if (!qty || qty < 1) return { ok: false, msg: 'Cantidad invÃ¡lida' };
+      if (!qty || qty < 1) return { ok: false, msg: 'Cantidad inválida' };
       if (it.colorId) {
         const list = (colorOptions[it.product.id] || it.product.colors || []);
         const col = Array.isArray(list) ? list.find((c) => String(c.id) === String(it.colorId)) : null;
@@ -375,7 +391,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
 
   const submitSale = async () => {
     setMsg(null);
-    if (!token) { setMsg({ type: 'error', text: 'SesiÃ³n no vÃ¡lida' }); return; }
+    if (!token) { setMsg({ type: 'error', text: 'Sesión no válida' }); return; }
     
     if (!selectedClientId) { 
         setMsg({ type: 'warning', text: 'Seleccione un cliente para continuar con la venta' }); 
@@ -386,7 +402,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     if (!val.ok) { setMsg({ type: 'error', text: val.msg }); return; }
 
     if (paymentMethod === 'cash') {
-      const expectedTotal = isApartado ? Number(apartadoAmount || 0) : totalAmount;
+      const expectedTotal = isSeparado ? Number(separadoAmount || 0) : totalAmount;
       const received = Number(cashReceived || expectedTotal);
       if (!Number.isFinite(received) || received < expectedTotal) {
         setMsg({ type: 'error', text: 'En efectivo, el monto recibido debe ser mayor o igual al monto pagar.' });
@@ -394,7 +410,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
       }
     }
     if (paymentMethod === 'mixed') {
-      const expectedTotal = isApartado ? Number(apartadoAmount || 0) : totalAmount;
+      const expectedTotal = isSeparado ? Number(separadoAmount || 0) : totalAmount;
       const cashPart = Number(mixedCashPart || 0);
       if (!Number.isFinite(cashPart) || cashPart <= 0 || cashPart >= expectedTotal) {
         setMsg({ type: 'error', text: 'En pago mixto, la parte en efectivo debe ser mayor a 0 y menor al monto a pagar.' });
@@ -409,12 +425,12 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
     
     const payload = {
       client_id: selectedClientId,
-      status: isApartado ? 'apartado' : 'pending',
+      status: isSeparado ? 'apartado' : 'pending',
       payment_method: paymentMethod,
       cash_amount: Number(paymentSummary.cashPart || 0),
       transfer_amount: Number(paymentSummary.transferPart || 0),
       change_amount: Number(paymentSummary.change || 0),
-      apartado_amount: isApartado ? Number(apartadoAmount || 0) : 0,
+      apartado_amount: isSeparado ? Number(separadoAmount || 0) : 0,
       items: cart.map((it) => ({ 
         product_id: it.product.id, 
         color_id: it.colorId ? Number(it.colorId) : null,
@@ -441,15 +457,15 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
       setMsg({
         type: 'success',
         text: result.queued
-          ? 'Venta guardada localmente. Se sincronizarÃ¡ al reconectar.'
+          ? 'Venta guardada localmente. Se sincronizará al reconectar.'
           : 'Venta registrada exitosamente',
       });
       setCart([]);
       setOpenCart(false);
       setSelectedClientId('');
       setPaymentMethod('cash');
-      setIsApartado(false);
-      setApartadoAmount('');
+      setIsSeparado(false);
+      setSeparadoAmount('');
       setCashReceived('');
       setMixedCashPart('');
       if (onSaleCreated) onSaleCreated();
@@ -483,7 +499,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
         <div className="absolute inset-0 z-50 bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm flex items-center justify-center rounded-2xl">
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-8 shadow-2xl flex flex-col items-center">
             <div className="w-10 h-10 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4" />
-            <div className="text-gray-900 dark:text-white font-medium">Cargando catÃ¡logo...</div>
+            <div className="text-gray-900 dark:text-white font-medium">Cargando catálogo...</div>
           </div>
         </div>
       )}
@@ -530,6 +546,25 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                     </span>
                 </button>
             </div>
+        </div>
+
+        {/* Categories Bar */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 mb-4 shrink-0 px-1">
+            <button 
+                onClick={() => setSelectedCategory(null)}
+                className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all border ${!selectedCategory ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-900/20' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700'}`}
+            >
+                Todas
+            </button>
+            {categories.map((cat) => (
+                <button 
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all border ${selectedCategory === cat.id ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-900/20' : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-700'}`}
+                >
+                    {cat.name}
+                </button>
+            ))}
         </div>
 
         {/* Product Grid */}
@@ -627,7 +662,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                             Anterior
                         </button>
                         <div className="flex items-center justify-center px-4 py-2 bg-blue-50 dark:bg-blue-500/10 rounded-xl border border-blue-100 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 font-bold text-sm min-w-[100px]">
-                            PÃ¡gina {page} / {Math.max(1, Math.ceil(total / pageSize))}
+                            Página {page} / {Math.max(1, Math.ceil(total / pageSize))}
                         </div>
                         <button 
                             onClick={() => setPage((p) => p + 1)} 
@@ -782,7 +817,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                     {cart.length === 0 && (
                         <div className="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500">
                             <ShoppingCart className="w-16 h-16 mb-4 opacity-20" />
-                            <p>Tu carrito estÃ¡ vacÃ­o</p>
+                            <p>Tu carrito está vacío</p>
                             <button onClick={() => setOpenCart(false)} className="mt-4 text-blue-500 dark:text-blue-400 text-sm hover:underline">
                                 Explorar productos
                             </button>
@@ -807,13 +842,15 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                     ))}
                                 </select>
                             </div>
-                            <button 
-                                onClick={() => { setOpenClientModal(true); }} 
-                                className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-blue-500 dark:text-blue-400 hover:text-white hover:bg-blue-600 hover:border-blue-600 transition-all"
-                                title="Nuevo Cliente"
-                            >
-                                <UserPlus size={20} />
-                            </button>
+                            {canCreateSafe && (
+                                <button 
+                                    onClick={() => { setOpenClientModal(true); }} 
+                                    className="p-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-blue-500 dark:text-blue-400 hover:text-white hover:bg-blue-600 hover:border-blue-600 transition-all"
+                                    title="Nuevo Cliente"
+                                >
+                                    <UserPlus size={20} />
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -823,44 +860,44 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                             <div className="grid grid-cols-2 gap-2">
                                 <button
                                     type="button"
-                                    onClick={() => { setIsApartado(false); setPaymentMethod('cash'); }}
-                                    className={`py-2 rounded-lg text-xs font-semibold border transition-colors ${!isApartado ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700'}`}
+                                    onClick={() => { setIsSeparado(false); setPaymentMethod('cash'); }}
+                                    className={`py-2 rounded-lg text-xs font-semibold border transition-colors ${!isSeparado ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700'}`}
                                 >
                                     Venta Normal
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setIsApartado(true)}
-                                    className={`py-2 rounded-lg text-xs font-semibold border transition-colors ${isApartado ? 'bg-amber-600 text-white border-amber-600' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700'}`}
+                                    onClick={() => setIsSeparado(true)}
+                                    className={`py-2 rounded-lg text-xs font-semibold border transition-colors ${isSeparado ? 'bg-amber-600 text-white border-amber-600' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700'}`}
                                 >
-                                    Apartado
+                                    Separado
                                 </button>
                             </div>
                         </div>
 
-                        {isApartado && (
+                        {isSeparado && (
                             <div className="mb-4 space-y-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl p-4">
-                                <label className="text-xs font-medium text-amber-900 dark:text-amber-200 uppercase tracking-wider">Monto de Abono (Apartado)</label>
+                                <label className="text-xs font-medium text-amber-900 dark:text-amber-200 uppercase tracking-wider">Monto de Abono (Separado)</label>
                                 <input
                                     type="number"
                                     min={0}
                                     max={Number(totalAmount || 0)}
-                                    value={apartadoAmount}
-                                    onChange={(e) => setApartadoAmount(e.target.value)}
+                                    value={separadoAmount}
+                                    onChange={(e) => setSeparadoAmount(e.target.value)}
                                     className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-amber-200 dark:border-amber-500/20 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/40"
                                     placeholder="0"
                                 />
                                 <div className="text-xs text-amber-900 dark:text-amber-200">
-                                    Pendiente: <span className="font-semibold">{(Number(totalAmount || 0) - Number(apartadoAmount || 0)).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
+                                    Pendiente: <span className="font-semibold">{(Number(totalAmount || 0) - Number(separadoAmount || 0)).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
                                 </div>
                                 <div className="text-xs text-amber-700 dark:text-amber-300 bg-white dark:bg-gray-900 rounded p-2 border border-amber-100 dark:border-amber-500/20">
-                                    â„¹ï¸ El pedido se registrarÃ¡ como "Apartado" con un abono inicial.
+                                    ℹ️ El pedido se registrará como "Separado" con un abono inicial.
                                 </div>
                             </div>
                         )}
 
                         <div className="mb-4 space-y-3">
-                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">MÃ©todo de pago</label>
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Método de pago</label>
                             <div className="grid grid-cols-3 gap-2">
                                 <button
                                     type="button"
@@ -908,7 +945,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                     <input
                                         type="number"
                                         min={0}
-                                        max={isApartado ? Number(apartadoAmount || 0) : Number(totalAmount || 0)}
+                                        max={isSeparado ? Number(separadoAmount || 0) : Number(totalAmount || 0)}
                                         value={mixedCashPart}
                                         onChange={(e) => setMixedCashPart(e.target.value)}
                                         className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500/40"
@@ -932,7 +969,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
 
                             {paymentMethod === 'transfer' && (
                                 <div className="text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20 rounded-lg px-3 py-2">
-                                    Pago por transferencia: {(isApartado ? Number(apartadoAmount || 0) : totalAmount).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                                    Pago por transferencia: {(isSeparado ? Number(separadoAmount || 0) : totalAmount).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
                                 </div>
                             )}
                         </div>
@@ -943,14 +980,16 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                 {totalAmount.toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
                             </span>
                         </div>
-                        <button 
-                            onClick={submitSale} 
-                            disabled={cart.length === 0}
-                            className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-                        >
-                            <CheckCircle2 size={20} />
-                            Confirmar Venta
-                        </button>
+                        {canCreateSafe && (
+                            <button 
+                                onClick={submitSale} 
+                                disabled={cart.length === 0}
+                                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                            >
+                                <CheckCircle2 size={20} />
+                                Confirmar Venta
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -1025,7 +1064,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                 <div className="min-h-[200px] animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {selectionStep === 'initial' && (
                         <div className="space-y-8 py-4">
-                            <h4 className="text-center font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest text-xs">Â¿CÃ³mo deseas el producto?</h4>
+                            <h4 className="text-center font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest text-xs">¿Cómo deseas el producto?</h4>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <button
                                     onClick={() => {
@@ -1038,7 +1077,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                         <Package size={32} />
                                     </div>
                                     <div className="text-center">
-                                        <span className="block font-bold text-gray-900 dark:text-white uppercase tracking-wider">EstÃ¡ndar</span>
+                                        <span className="block font-bold text-gray-900 dark:text-white uppercase tracking-wider">Estándar</span>
                                         <span className="text-[10px] text-gray-500 font-medium">Usa el stock global</span>
                                     </div>
                                 </button>
@@ -1054,7 +1093,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                         <Palette size={32} />
                                     </div>
                                     <div className="text-center">
-                                        <span className="block font-bold text-gray-900 dark:text-white uppercase tracking-wider">Color EspecÃ­fico</span>
+                                        <span className="block font-bold text-gray-900 dark:text-white uppercase tracking-wider">Color Específico</span>
                                         <span className="text-[10px] text-gray-500 font-medium">Elige un tono de la lista</span>
                                     </div>
                                 </button>
@@ -1132,7 +1171,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                             );
                                             stock = variantSkus.reduce((sum, s) => sum + Number(s.stock || 0), 0);
                                         } else {
-                                            // Si no hay SKUs, asumimos stock global o permitimos selecciÃ³n
+                                            // Si no hay SKUs, asumimos stock global o permitimos selección
                                             stock = selectingProduct.inventory_qty || 0;
                                         }
 
@@ -1176,7 +1215,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                                         selectedVariant === null ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-500/5 shadow-lg' : 'border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30'
                                     }`}
                                 >
-                                    <span className="font-bold text-gray-900 dark:text-white uppercase tracking-wider">EstÃ¡ndar</span>
+                                    <span className="font-bold text-gray-900 dark:text-white uppercase tracking-wider">Estándar</span>
                                     <span className="text-[10px] text-gray-400 font-medium">Sin cargo extra</span>
                                 </button>
                             </div>
@@ -1246,7 +1285,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                     }}
                     className="px-6 py-3 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-sm font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
                 >
-                    AtrÃ¡s
+                    Atrás
                 </button>
                 <button 
                     onClick={() => {
@@ -1261,7 +1300,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated }) 
                     {selectionStep === 'quantity' ? (
                         <>
                             <ShoppingCart size={18} />
-                            <span>{currentAvailableStock === 0 ? 'Agotado' : 'AÃ±adir al Carrito'}</span>
+                            <span>{currentAvailableStock === 0 ? 'Agotado' : 'Añadir al Carrito'}</span>
                         </>
                     ) : (
                         <span>Siguiente</span>

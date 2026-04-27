@@ -17,6 +17,8 @@ interface SidebarProps {
   subscription?: any;
   permissions?: string[];
   permissionsEnforced?: boolean;
+  webStoreEnabled?: boolean | null;
+  webSyncEnabled?: boolean;
 }
 
 interface MenuPos {
@@ -24,7 +26,7 @@ interface MenuPos {
   left: number;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, orderNotif, token, apiBase, setUpdateMsg, subscription, permissions = [], permissionsEnforced = false }) => {
+const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, orderNotif, token, apiBase, setUpdateMsg, subscription, permissions = [], permissionsEnforced = false, webStoreEnabled = null, webSyncEnabled = true }) => {
   const [collapsed, setCollapsed] = useState(false)
   const [companyName, setCompanyName] = useState('')
   const [companyLogo, setCompanyLogo] = useState('')
@@ -414,6 +416,17 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
           <span className={textClass}>Dashboard</span>
           <span className={tooltipClass}>Dashboard</span>
         </button>
+
+        {role === 'super_admin' && (
+          <button className={`${itemBase} ${view === 'super_admin_requests' ? activeClass : ''}`} onClick={() => setView('super_admin_requests')} title="Solicitudes Web">
+            {view === 'super_admin_requests' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
+            <span className={`${iconBoxClass} bg-rose-500/10 text-rose-600 dark:text-rose-400 ${view === 'super_admin_requests' ? 'ring-1 ring-white/20' : ''}`}>
+              <Icon name="web" className="w-4 h-4" />
+            </span>
+            <span className={textClass}>Solicitudes Web</span>
+            <span className={tooltipClass}>Solicitudes Web</span>
+          </button>
+        )}
         {(canAccess('ventas') || canAccess('ventas_estadisticas') || canAccess('caja')) && (
         <div className="relative">
           <button className={`${itemBase} ${['ventas', 'caja', 'ventas_estadisticas'].includes(view) ? activeClass : ''}`} onClick={toggleVentasMenu} title="Ventas">
@@ -712,21 +725,36 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
           </div>
         )}
 
-        {(role === 'super_admin' || subscription?.features?.web_store || subscription?.code === 'advanced') && (
+        {canAccess('web') && role !== 'super_admin' && (
           <div className="relative">
-            <button className={`${itemBase} ${['web', 'web_productos', 'web_categorias', 'web_ofertas', 'web_urls', 'web_pagos', 'web_envios'].includes(view) ? activeClass : ''}`} onClick={toggleWebMenu} title="Página web">
-              {(['web', 'web_productos', 'web_categorias', 'web_ofertas', 'web_urls', 'web_pagos', 'web_envios'].includes(view)) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-              <span className={`${iconBoxClass} ${toneClasses('web')} ${['web', 'web_productos', 'web_categorias', 'web_ofertas', 'web_urls', 'web_pagos', 'web_envios'].includes(view) ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
-                <Icon name="web" className="w-4 h-4" />
-              </span>
-              <span className={textClass}>Página web</span>
-              <span className={tooltipClass}>Página web</span>
-              {!collapsed && (
-                <svg className={`w-3.5 h-3.5 ml-auto text-gray-500 dark:text-gray-400 transition-transform ${webMenuPos || isWebOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              )}
-            </button>
+            {role !== 'super_admin' && (webStoreEnabled !== true || webSyncEnabled === false) ? (
+              <button 
+                className={`${itemBase} ${view === 'web_request' ? activeClass : ''}`} 
+                onClick={() => setView('web_request')} 
+                title="Página web"
+              >
+                {view === 'web_request' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
+                <span className={`${iconBoxClass} ${toneClasses('web')} ${view === 'web_request' ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
+                  <Icon name="web" className="w-4 h-4" />
+                </span>
+                <span className={textClass}>Página web</span>
+                <span className={tooltipClass}>Página web</span>
+              </button>
+            ) : (
+              <>
+                <button className={`${itemBase} ${['web', 'web_productos', 'web_categorias', 'web_ofertas', 'web_urls', 'web_pagos', 'web_envios'].includes(view) ? activeClass : ''}`} onClick={(e) => { toggleWebMenu(e); setView('web'); }} title="Página web">
+                  {(['web', 'web_productos', 'web_categorias', 'web_ofertas', 'web_urls', 'web_pagos', 'web_envios'].includes(view)) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
+                  <span className={`${iconBoxClass} ${toneClasses('web')} ${['web', 'web_productos', 'web_categorias', 'web_ofertas', 'web_urls', 'web_pagos', 'web_envios'].includes(view) ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
+                    <Icon name="web" className="w-4 h-4" />
+                  </span>
+                  <span className={textClass}>Página web</span>
+                  <span className={tooltipClass}>Página web</span>
+                  {!collapsed && (
+                    <svg className={`w-3.5 h-3.5 ml-auto text-gray-500 dark:text-gray-400 transition-transform ${webMenuPos || isWebOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
+                </button>
 
             {webMenuPos && collapsed && (
               <div
@@ -829,8 +857,11 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 </button>
               </div>
             )}
-          </div>
+          </>
         )}
+      </div>
+    )}
+    
 
         {(role === 'admin' || role === 'super_admin') && (
           <div className="relative">

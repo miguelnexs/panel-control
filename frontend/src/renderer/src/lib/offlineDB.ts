@@ -56,6 +56,9 @@ function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains('syncQueue')) {
         db.createObjectStore('syncQueue', { keyPath: 'id', autoIncrement: true });
       }
+      if (!db.objectStoreNames.contains('settings')) {
+        db.createObjectStore('settings', { keyPath: 'key' });
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -207,6 +210,29 @@ export async function clearQueue(): Promise<void> {
   return new Promise((res, rej) => {
     tx.oncomplete = () => { db.close(); res(); };
     tx.onerror = () => { db.close(); rej(tx.error); };
+  });
+}
+
+// ─── Settings ──────────────────────────────────────────────────────
+
+export async function saveSetting(key: string, value: any): Promise<void> {
+  const db = await openDB();
+  const tx = db.transaction('settings', 'readwrite');
+  tx.objectStore('settings').put({ key, value });
+  return new Promise((res, rej) => {
+    tx.oncomplete = () => { db.close(); res(); };
+    tx.onerror = () => { db.close(); rej(tx.error); };
+  });
+}
+
+export async function getSetting(key: string): Promise<any | null> {
+  const db = await openDB();
+  const tx = db.transaction('settings', 'readonly');
+  const store = tx.objectStore('settings');
+  return new Promise((res, rej) => {
+    const req = store.get(key);
+    req.onsuccess = () => { db.close(); res(req.result ? req.result.value : null); };
+    req.onerror = () => { db.close(); rej(req.error); };
   });
 }
 

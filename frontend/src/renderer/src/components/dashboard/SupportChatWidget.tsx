@@ -34,10 +34,21 @@ interface SupportChatItem {
   last_seen_id: number;
 }
 
-const SupportChatWidget: React.FC<SupportChatWidgetProps> = ({ token, apiBase: rawApiBase, role, userId }) => {
+const SupportChatWidget: React.FC<SupportChatWidgetProps> = ({ token, apiBase: rawApiBase, role, userId, openExternal, setOpenExternal }) => {
   const apiBase = rawApiBase.replace(/\/$/, '');
   const canUse = role === 'admin' || role === 'super_admin';
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+
+  const open = setOpenExternal ? !!openExternal : internalOpen;
+  const setOpen = (val: boolean | ((v: boolean) => boolean)) => {
+    if (setOpenExternal) {
+      if (typeof val === 'function') setOpenExternal(val(open));
+      else setOpenExternal(val);
+    } else {
+      setInternalOpen(val);
+    }
+  };
+
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState<string | null>(null);

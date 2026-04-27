@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import Dashboard from './components/Dashboard';
 import Login from './components/Login';
 import TitleBar from './components/TitleBar';
+
 import { API_BASE_URL, buildAuthHeaders } from './config/api.config';
+import AIChatAssistant from './components/AIChatAssistant';
 
 interface Msg {
   type: 'success' | 'error';
@@ -149,11 +151,21 @@ const App = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="relative h-screen overflow-hidden bg-[#0B0D14]">
       <TitleBar />
-      <div className="flex-1 overflow-hidden bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+      <div className="h-full w-full overflow-hidden transition-colors duration-300 pt-10">
         {token ? (
-          <Dashboard token={token} role={role!} userId={Number(userId)} onSignOut={handleSignOut} apiBase={apiBase} />
+          <>
+            <Dashboard 
+              key={token}
+              token={token} 
+              role={role!} 
+              userId={Number(userId)} 
+              onSignOut={handleSignOut} 
+              apiBase={apiBase}
+              onLoginSuccess={handleLoginSuccess}
+            />
+          </>
         ) : (
           <Login onLoginSuccess={handleLoginSuccess} apiBase={apiBase} />
         )}

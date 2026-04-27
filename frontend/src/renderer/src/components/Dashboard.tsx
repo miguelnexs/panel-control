@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import DashboardView from './dashboard/DashboardView';
 import Sidebar from './dashboard/Sidebar';
 import SupportChatWidget from './dashboard/SupportChatWidget';
+import { saveSetting } from '../lib/offlineDB';
 
 const ProductosManager = React.lazy(() => import('./ProductosManager'));
 const ProductFormPage = React.lazy(() => import('./ProductFormPage'));
@@ -29,7 +30,13 @@ const ClientDetailsPage = React.lazy(() => import('./ClientDetailsPage'));
 const UsersEmployeesPage = React.lazy(() => import('./dashboard/UsersEmployeesPage'));
 const UsersPermissionsPage = React.lazy(() => import('./dashboard/UsersPermissionsPage'));
 const UsersActivitiesPage = React.lazy(() => import('./dashboard/UsersActivitiesPage'));
+import UserSwitcherModal from './UserSwitcherModal';
+import { RefreshCw } from 'lucide-react';
 const UsersStatsPage = React.lazy(() => import('./dashboard/UsersStatsPage'));
+const SuperAdminWebRequests = React.lazy(() => import('./SuperAdminWebRequests'));
+
+import AIChatAssistant from './AIChatAssistant';
+import WebsiteRequestForm from './WebsiteRequestForm';
 
 interface DashboardProps {
   token: string | null;
@@ -37,9 +44,10 @@ interface DashboardProps {
   userId: number;
   onSignOut: () => void;
   apiBase: string;
+  onLoginSuccess: (token: string, refresh: string | null, role: string | null, userId: string | number | null, remember: boolean) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, apiBase }) => {
+const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, apiBase, onLoginSuccess }) => {
   const [view, setView] = useState('dashboard');
   const [orderNotif, setOrderNotif] = useState(0);
   const [navLoading, setNavLoading] = useState(false);
@@ -55,6 +63,11 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
   const [permissionsEnforced, setPermissionsEnforced] = useState(false);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [accessMsg, setAccessMsg] = useState<string | null>(null);
+  const [showUserSwitcher, setShowUserSwitcher] = useState(false);
+  const [activeChat, setActiveChat] = useState<'ai' | 'support' | null>(null);
+  const [webStoreEnabled, setWebStoreEnabled] = useState<boolean | null>(null);
+  const [webSyncEnabled, setWebSyncEnabled] = useState<boolean>(true);
+  const [webAdvertisingEnabled, setWebAdvertisingEnabled] = useState<boolean>(true);
 
   const canAccess = (targetView: string): boolean => {
     if (role === 'admin' || role === 'super_admin') return true;
@@ -73,6 +86,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
       servicios: 'view_services',
       service_form: 'view_services',
       web: 'view_web',
+      web_request: 'view_web',
+      super_admin_requests: 'view_web',
       web_productos: 'view_web',
       web_categorias: 'view_web',
       web_ofertas: 'view_web',
@@ -121,6 +136,13 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
       edit: hasPermission('edit_sales'),
       del: hasPermission('delete_sales'),
     },
+    orders: {
+      edit: hasPermission('view_orders'), // Standard employees can view but maybe not delete
+      del: hasPermission('delete_sales'), // Deleting an order is like deleting a sale
+    },
+    web: {
+      manage: hasPermission('view_web'),
+    }
   };
 
   const navigate = (v: string) => {
@@ -129,8 +151,29 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
       setAccessMsg('No tienes permiso para acceder a esta sección.');
       return;
     }
+    if (v === 'web' && (webStoreEnabled !== true || webSyncEnabled === false) && role !== 'super_admin') {
+      setView('web_request');
+      setNavLoading(false);
+      return;
+    }
     setNavLoading(true);
     setView(v);
+    if (v === 'dashboard') {
+       // Refresh settings to check if web store was enabled
+       const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+        fetch(`${apiBase}/webconfig/settings/`, { headers })
+         .then(res => res.json())
+         .then(data => {
+           setWebStoreEnabled(Boolean(data?.enable_web_store));
+           const syncEnabled = data?.enable_web_sync !== false;
+           const adEnabled = data?.enable_web_advertising !== false;
+           setWebSyncEnabled(syncEnabled);
+           setWebAdvertisingEnabled(adEnabled);
+           saveSetting('web_sync_enabled', syncEnabled).catch(() => {});
+           saveSetting('web_advertising_enabled', adEnabled).catch(() => {});
+         })
+         .catch(() => {});
+    }
     setTimeout(() => setNavLoading(false), 800);
     if (v === 'pedidos') {
       const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
@@ -156,7 +199,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
       const usersCount = usersRes.ok && Array.isArray(usersRes.d) ? usersRes.d.length : 0;
       const clientsNewMonth = clientsStats.ok ? Number(clientsStats.d.new_this_month || 0) : 0;
       const ordersTotal = salesStats.ok && salesStats.d.status_counts ? Object.values(salesStats.d.status_counts).reduce((a: any, b: any) => a + b, 0) as number : 0;
-      const salesAmount = salesStats.ok ? Number(salesStats.d.total_amount || 0) : 0;
+      const salesAmount = salesStats.ok ? Number(salesStats.d.today_amount || 0) : 0;
       
       if (salesStats.ok && salesStats.d.top_products) {
         setTopProducts(salesStats.d.top_products);
@@ -179,6 +222,25 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
         usersCount, clientsNewMonth, ordersTotal, salesAmount,
         statusCounts: statusCounts
       });
+      
+      // Fetch web store status
+      fetch(`${apiBase}/webconfig/settings/`, { headers })
+        .then(res => res.json())
+        .then(data => {
+          setWebStoreEnabled(Boolean(data?.enable_web_store));
+          const syncEnabled = data?.enable_web_sync !== false;
+          const adEnabled = data?.enable_web_advertising !== false;
+          setWebSyncEnabled(syncEnabled);
+          setWebAdvertisingEnabled(adEnabled);
+          saveSetting('web_sync_enabled', syncEnabled).catch(() => {});
+          saveSetting('web_advertising_enabled', adEnabled).catch(() => {});
+        })
+        .catch(() => {
+          setWebStoreEnabled(false);
+          setWebSyncEnabled(true);
+          setWebAdvertisingEnabled(true);
+        });
+        
     }).catch(() => {});
   }, [token]);
 
@@ -249,14 +311,39 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
           orderNotif={orderNotif}
           token={token}
           apiBase={apiBase}
+          setUpdateMsg={setLastNet}
           subscription={subscription}
           permissions={permissions}
           permissionsEnforced={permissionsEnforced}
+          webStoreEnabled={webStoreEnabled}
+          webSyncEnabled={webSyncEnabled}
         />
       <main className="flex-1 p-6 space-y-6 relative overflow-y-auto">
         {(role === 'admin' || role === 'super_admin') && (
-          <SupportChatWidget token={token} apiBase={apiBase} role={role} userId={userId} />
+          <SupportChatWidget 
+            token={token} 
+            apiBase={apiBase} 
+            role={role} 
+            userId={userId} 
+            openExternal={activeChat === 'support'}
+            setOpenExternal={(o) => setActiveChat(o ? 'support' : null)}
+          />
         )}
+        {token && (
+          <AIChatAssistant 
+            token={token} 
+            apiBase={apiBase} 
+            openExternal={activeChat === 'ai'}
+            setOpenExternal={(o) => setActiveChat(o ? 'ai' : null)}
+          />
+        )}
+        <UserSwitcherModal 
+          isOpen={showUserSwitcher}
+          onClose={() => setShowUserSwitcher(false)}
+          token={token}
+          apiBase={apiBase}
+          onLoginSuccess={onLoginSuccess}
+        />
         {navLoading && (
           <div className="absolute inset-0 z-40 bg-white/80 dark:bg-gray-900/80 flex items-center justify-center backdrop-blur-sm transition-all">
             <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-xl p-5 shadow-xl text-center">
@@ -271,7 +358,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
               {accessMsg}
             </div>
           )}
-          <div className="flex items-center justify-between mb-6 gap-4">
+          <div className="flex items-center justify-between mb-6 gap-4 pr-24">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
               {view === 'dashboard' ? 'Dashboard' : 
                view === 'users' || view === 'users_empleados' ? 'Usuarios / Empleados' :
@@ -285,6 +372,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
                view === 'ventas' ? 'Ventas' : 
                view === 'ventas_estadisticas' ? 'Ventas / Estadísticas' :
                view === 'web' || view === 'web_productos' ? 'Página web / Productos' :
+               view === 'web_request' ? 'Página web / Solicitud' :
+               view === 'super_admin_requests' ? 'Súper Admin / Solicitudes Web' :
                view === 'web_categorias' ? 'Página web / Categorías' :
                view === 'web_ofertas' ? 'Página web / Ofertas' :
                view === 'web_urls' ? 'Página web / URLs' :
@@ -308,6 +397,15 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
                 </div>
               )}
               <div className="text-sm text-gray-500 dark:text-gray-400 font-medium px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">Rol: <span className="text-gray-900 dark:text-white ml-1">{role}</span></div>
+              
+              <button 
+                onClick={() => setShowUserSwitcher(true)}
+                className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs font-bold hover:bg-blue-600 hover:text-white transition-all group"
+                title="Cambiar cuenta de usuario"
+              >
+                <RefreshCw size={14} className="group-hover:rotate-180 transition-transform duration-500" />
+                Cambiar Cuenta
+              </button>
             </div>
           </div>
           {view === 'dashboard' && (
@@ -389,7 +487,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
             />
           )}
           {view === 'ventas' && (
-            <SalesPage token={token} apiBase={apiBase} onSaleCreated={() => setOrderNotif((n) => n + 1)} />
+            <SalesPage 
+              token={token} 
+              apiBase={apiBase} 
+              onSaleCreated={() => setOrderNotif((n) => n + 1)} 
+              canCreate={permsUi.sales.create}
+            />
           )}
           {view === 'ventas_estadisticas' && (
             <SalesStatsPage token={token} apiBase={apiBase} role={role} />
@@ -402,6 +505,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
               role={role}
               setView={(v: string) => navigate(v)}
               setProductEditing={(p: any) => { setProductEditing(p); navigate('producto_form'); }}
+              canManage={permsUi.web.manage}
             />
           )}
           {view === 'web_categorias' && (
@@ -412,6 +516,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
               role={role}
               setView={(v: string) => navigate(v)}
               setProductEditing={(p: any) => { setProductEditing(p); navigate('producto_form'); }}
+              canManage={permsUi.web.manage}
             />
           )}
           {view === 'web_ofertas' && (
@@ -458,10 +563,25 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
             <TemplatesManager />
           )}
           {view === 'pedidos' && (
-            <OrdersPage token={token} apiBase={apiBase} />
+            <OrdersPage 
+              token={token} 
+              apiBase={apiBase} 
+              canEdit={permsUi.orders.edit}
+              canDelete={permsUi.orders.del}
+            />
           )}
           {view === 'planes' && (
             <PlansManager token={token} role={role} />
+          )}
+          {view === 'web_request' && (
+            <div className="p-6">
+              <WebsiteRequestForm apiBase={apiBase} token={token} onSuccess={() => navigate('dashboard')} />
+            </div>
+          )}
+          {view === 'super_admin_requests' && (
+            <div className="p-6">
+              <SuperAdminWebRequests apiBase={apiBase} token={token} />
+            </div>
           )}
           {view === 'configuracion' && (
             <ConfigProfilePage token={token} apiBase={apiBase} />

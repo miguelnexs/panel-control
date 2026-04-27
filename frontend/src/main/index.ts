@@ -312,11 +312,6 @@ function createWindow(): BrowserWindow {
     icon: path.join(__dirname, '..', 'resources', 'localix-logo.png'),
     show: false,
     titleBarStyle: 'hidden',
-    titleBarOverlay: {
-      color: '#030712', // gray-950
-      symbolColor: '#9ca3af', // gray-400
-      height: 56
-    },
     autoHideMenuBar: true,
   });
 
@@ -355,6 +350,14 @@ function createWindow(): BrowserWindow {
     }
   });
 
+  mainWindow.on('maximize', () => {
+    mainWindow?.webContents.send('window-maximized');
+  });
+
+  mainWindow.on('unmaximize', () => {
+    mainWindow?.webContents.send('window-unmaximized');
+  });
+
   return mainWindow;
 }
 
@@ -380,6 +383,23 @@ ipcMain.handle('ui:reset-settings', async () => {
   deleteUiSettings();
   if (mainWindow) applyUiSettings(mainWindow, 'default', 1);
   return { ok: true };
+});
+
+// Window control handlers
+ipcMain.on('window:minimize', () => {
+  mainWindow?.minimize();
+});
+
+ipcMain.on('window:maximize', () => {
+  if (mainWindow?.isMaximized()) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow?.maximize();
+  }
+});
+
+ipcMain.on('window:close', () => {
+  mainWindow?.close();
 });
 
 // Allow renderer to trigger update checks

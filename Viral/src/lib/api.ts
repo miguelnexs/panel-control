@@ -16,11 +16,6 @@ export const getPublicParams = () => {
   // Obtiene el origen actual (ej: http://localhost:5173 o https://mitienda.com)
   let site = window.location.origin;
   
-  // En desarrollo local, usamos la URL registrada del usuario "burbuja" si estamos en localhost
-  if (site.includes('localhost') || site.includes('127.0.0.1')) {
-    site = 'http://192.168.101.11:8080';
-  }
-  
   return `?site=${encodeURIComponent(site)}`;
 };
 

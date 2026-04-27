@@ -60,6 +60,14 @@ interface OrderItem {
   line_total: number | string;
 }
 
+interface SalePayment {
+  id: number;
+  amount: number | string;
+  payment_method: string;
+  notes: string;
+  created_at: string;
+}
+
 interface DianInfo {
   status: string;
   cufe?: string;
@@ -84,6 +92,8 @@ interface Order {
   change_amount?: number | string;
   apartado_amount?: number | string;
   apartado_date?: string;
+  payments?: SalePayment[];
+  total_paid?: number | string;
 }
 
 interface Msg {
@@ -94,6 +104,8 @@ interface Msg {
 interface OrdersPageProps {
   token: string;
   apiBase: string;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 interface CompanySettings {
@@ -123,7 +135,9 @@ interface PrinterOptions {
   logo_width_mm: number;
 }
 
-const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
+const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDelete }) => {
+  const canEditSafe = typeof canEdit === 'boolean' ? canEdit : true;
+  const canDeleteSafe = typeof canDelete === 'boolean' ? canDelete : true;
   const offlineSync = useOfflineSync(token);
   const [orders, setOrders] = useState<Order[]>([]);
   const [settings, setSettings] = useState<CompanySettings>({
@@ -159,6 +173,13 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
   const [printingOrder, setPrintingOrder] = useState<Order | null>(null);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [deletingOrder, setDeletingOrder] = useState<Order | null>(null);
+  
+  // Payment Modal State
+  const [paymentModalOrder, setPaymentModalOrder] = useState<Order | null>(null);
+  const [newPaymentAmount, setNewPaymentAmount] = useState('');
+  const [newPaymentMethod, setNewPaymentMethod] = useState<'cash' | 'transfer'>('cash');
+  const [newPaymentNotes, setNewPaymentNotes] = useState('');
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
 
   const authHeaders = (tkn: string) => ({ ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) });
 
@@ -214,7 +235,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
 
   const generateReceiptHtml = (order: Order) => {
     const paperW = settings.paper_width_mm || 58;
-    const primary = settings.primary_color || '#000';
+    const primary = '#000';
     const brand = settings.company_name || 'Mi Tienda';
     const nit = settings.company_nit ? `NIT: ${settings.company_nit}` : '';
     const addr = settings.company_address || '';
@@ -231,11 +252,11 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
       } catch { return path || ''; } 
     };
     const logoSrc = printerOpts.logo_mode === 'custom' && printerOpts.logo_url ? printerOpts.logo_url : logo;
-    const logoTag = printerOpts.show_logo && logoSrc ? `<div class="c"><img src="${logoSrc.startsWith('http') ? logoSrc : absUrlFn(logoSrc)}" onerror="this.style.display='none'" style="width:${Number(printerOpts.logo_width_mm || 45)}mm;height:auto;object-fit:contain"/></div>` : '';
+    const logoTag = printerOpts.show_logo && logoSrc ? `<div class="c"><img src="${logoSrc.startsWith('http') ? logoSrc : absUrlFn(logoSrc)}" onerror="this.style.display='none'" style="width:${Number(printerOpts.logo_width_mm || 45)}mm;height:auto;object-fit:contain;filter:grayscale(100%) brightness(0.8);"/></div>` : '';
     
     const alignCls = printerOpts.align === 'left' ? 'l' : printerOpts.align === 'right' ? 'r' : 'c';
     
-    const css = `@page{size:${paperW}mm auto;margin:0} *{box-sizing:border-box} html{background:#fff} html,body{margin:0;padding:0} body{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#fff;font-family:Arial, sans-serif;width:${paperW}mm;margin:0 auto;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px} img{max-width:100%;height:auto} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap} .tab{width:100%;border-collapse:collapse;table-layout:fixed} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px;vertical-align:top} .tab td{word-break:break-word} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
+    const css = `@page{size:${paperW}mm auto;margin:0} *{box-sizing:border-box} html{background:#fff} html,body{margin:0;padding:0} body{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#fff;font-family:Arial, sans-serif;width:${paperW}mm;margin:0 auto;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px;font-weight:bold;color:#000} img{max-width:100%;height:auto} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:900} .hr{border-top:1px dashed #000;height:0;margin:8px 0} .row{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap} .tab{width:100%;border-collapse:collapse;table-layout:fixed} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px;vertical-align:top;color:#000;font-weight:bold} .tab td{word-break:break-word} .tab thead th{border-bottom:1px dashed #000;text-align:left} .tab tfoot td{border-top:1px dashed #000} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px;color:#000;font-weight:bold}`;
     
     const itemsHtml = (order.items || []).map((it) => `<tr><td>${it.product?.name || 'Item'}</td><td class="c">${it.quantity}</td><td class="r">${Number(it.unit_price).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0})}</td><td class="r">${Number(it.line_total).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0})}</td></tr>`).join('');
     
@@ -257,44 +278,68 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
     const clientAddress = order.client?.address || '';
     const apartoAmountText = order.status === 'apartado' && order.apartado_amount ? Number(order.apartado_amount).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}) : null;
     
+    const paymentsHtml = (order.payments || []).map((p) => `
+      <div class="row small" style="margin-bottom: 2px; border-bottom: 0.5px dashed #000; padding-bottom: 1px;">
+        <div>${new Date(p.created_at).toLocaleDateString()} - ${p.payment_method === 'cash' ? 'EFECTIVO' : 'TRANSF.'}</div>
+        <div class="r">${Number(p.amount).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0})}</div>
+      </div>
+    `).join('');
+
     const header = `
       ${logoTag}
       <div class="${alignCls}">
         <div class="t" style="font-size: ${Number(printerOpts.font_size || 11) + 2}px; color: ${primary};">${brand}</div>
-        <div class="small" style="color: #666;">${nit}</div>
-        <div class="small" style="color: #666;">${addr}</div>
-        <div class="small" style="color: #666;">${phone}</div>
+        <div class="small" style="color: #000;">${nit}</div>
+        <div class="small" style="color: #000;">${addr}</div>
+        <div class="small" style="color: #000;">${phone}</div>
         ${printerOpts.header1 ? `<div class="small">${printerOpts.header1}</div>` : ''}
         ${printerOpts.header2 ? `<div class="small">${printerOpts.header2}</div>` : ''}
       </div>
       <div class="hr"></div>
       
       <!-- Información del Pedido -->
-      <div style="background: #f8f9fa; border-radius: 4px; padding: 6px; margin: 6px 0;">
-        <div class="row small" style="margin-bottom: 3px;">
-          <div><strong>Orden:</strong> ${order.order_number}</div>
-          <div><strong>Fecha:</strong> ${new Date(order.created_at).toLocaleString()}</div>
+      <div style="padding: 4px 0; margin: 4px 0;">
+        <div class="row small" style="margin-bottom: 2px;">
+          <div><strong>ORDEN:</strong> ${order.order_number}</div>
+          <div><strong>FECHA:</strong> ${new Date(order.created_at).toLocaleString()}</div>
         </div>
       </div>
       
       <!-- Información del Cliente -->
-      <div style="background: #f8f9fa; border-radius: 4px; padding: 6px; margin: 6px 0;">
-        <div class="small" style="color: ${primary}; font-weight: 600; margin-bottom: 4px;">👤 INFORMACIÓN DEL CLIENTE</div>
-        <div class="small" style="margin-bottom: 2px;"><strong>Nombre:</strong> ${order.client?.full_name || 'Ocasional'}</div>
+      <div style="padding: 4px 0; margin: 4px 0;">
+        <div class="small" style="color: #000; font-weight: 900; margin-bottom: 4px; border-bottom: 1px dashed #000;">DATOS DEL CLIENTE</div>
+        <div class="small" style="margin-bottom: 2px;"><strong>NOMBRE:</strong> ${order.client?.full_name || 'Ocasional'}</div>
         ${clientCedula ? `<div class="small" style="margin-bottom: 2px;">${clientCedula}</div>` : ''}
-        ${clientEmail ? `<div class="small" style="margin-bottom: 2px;">📧 ${clientEmail}</div>` : ''}
-        ${clientPhone ? `<div class="small" style="margin-bottom: 2px;">📱 ${clientPhone}</div>` : ''}
-        ${clientAddress ? `<div class="small">📍 ${clientAddress}</div>` : ''}
+        ${clientEmail ? `<div class="small" style="margin-bottom: 2px;">EMAIL: ${clientEmail}</div>` : ''}
+        ${clientPhone ? `<div class="small" style="margin-bottom: 2px;">TEL: ${clientPhone}</div>` : ''}
+        ${clientAddress ? `<div class="small">DIR: ${clientAddress}</div>` : ''}
       </div>
       
       <!-- Información del Pago -->
-      <div style="background: #f8f9fa; border-radius: 4px; padding: 6px; margin: 6px 0;">
-        <div class="small" style="color: ${primary}; font-weight: 600; margin-bottom: 4px;">💳 INFORMACIÓN DEL PAGO</div>
+      <div style="padding: 4px 0; margin: 4px 0;">
+        <div class="small" style="color: #000; font-weight: 900; margin-bottom: 4px; border-bottom: 1px dashed #000;">INFORMACIÓN DEL PAGO</div>
         <div class="row small">
-          <div><strong>Método:</strong> ${paymentMethodText}</div>
+          <div><strong>MÉTODO:</strong> ${paymentMethodText}</div>
         </div>
-        ${apartoAmountText ? `<div class="row small" style="margin-top: 4px;"><div><strong>Abono:</strong> ${apartoAmountText}</div><div></div></div>` : ''}
-        ${statusText ? `<div class="row small" style="margin-top: 4px; color: #f59e0b; font-weight: 600;"><div>⚠️ ${statusText}</div><div></div></div>` : ''}
+        
+        ${paymentsHtml ? `
+          <div style="margin-top: 6px;">
+            <div class="small" style="font-size: 10px; border-bottom: 1px dashed #000; margin-bottom: 3px;">HISTORIAL DE ABONOS:</div>
+            ${paymentsHtml}
+            <div class="row small" style="margin-top: 4px; border-top: 1px dashed #000; padding-top: 2px;">
+              <div><strong>TOTAL ABONADO:</strong></div>
+              <div class="r"><strong>${Number(order.total_paid || 0).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0})}</strong></div>
+            </div>
+            ${(Number(order.total_amount) - Number(order.total_paid || 0)) > 0 ? `
+              <div class="row small" style="color: #000;">
+                <div><strong>SALDO PENDIENTE:</strong></div>
+                <div class="r"><strong>${(Number(order.total_amount) - Number(order.total_paid || 0)).toLocaleString('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0})}</strong></div>
+              </div>
+            ` : ''}
+          </div>
+        ` : (apartoAmountText ? `<div class="row small" style="margin-top: 4px;"><div><strong>ABONO:</strong> ${apartoAmountText}</div><div></div></div>` : '')}
+        
+        ${statusText ? `<div class="row small" style="margin-top: 4px; color: #000; font-weight: 900;"><div>⚠️ ${statusText.toUpperCase()}</div><div></div></div>` : ''}
       </div>
       
       <div class="hr"></div>
@@ -509,9 +554,48 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
     }
   };
 
+  const handleAddPayment = async () => {
+    if (!paymentModalOrder) return;
+    if (!newPaymentAmount || Number(newPaymentAmount) <= 0) {
+      showToast('Ingrese un monto válido', 'error');
+      return;
+    }
+
+    setIsSubmittingPayment(true);
+    try {
+      const res = await fetch(`${apiBase}/sales/${paymentModalOrder.id}/payments/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          amount: newPaymentAmount,
+          payment_method: newPaymentMethod,
+          notes: newPaymentNotes
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || 'Error al registrar pago');
+      }
+
+      showToast('Pago registrado correctamente', 'success');
+      setNewPaymentAmount('');
+      setNewPaymentNotes('');
+      setPaymentModalOrder(null);
+      loadOrders();
+    } catch (error: any) {
+      showToast(error.message, 'error');
+    } finally {
+      setIsSubmittingPayment(false);
+    }
+  };
+
   const getStatusLabel = (status: string = 'pending') => {
     switch(status.toLowerCase()) {
-      case 'apartado': return 'Apartado';
+      case 'apartado': return 'Separado';
       case 'completed':
       case 'delivered': return 'Entregado';
       case 'pending': return 'Pendiente';
@@ -610,7 +694,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
               >
                 <option value="all">Todos los estados</option>
                 <option value="pending">Pendiente</option>
-                <option value="apartado">Apartado</option>
+                <option value="apartado">Separado</option>
                 <option value="processing">Procesando</option>
                 <option value="delivered">Entregado</option>
                 <option value="cancelled">Cancelado</option>
@@ -686,9 +770,9 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                           </span>
                         )}
                       </div>
-                      {o.status === 'apartado' && Number(o.apartado_amount) > 0 && (
+                      {o.status === 'apartado' && (
                         <div className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                          Abono: {Number(o.apartado_amount).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                          Pagado: {Number(o.total_paid || o.apartado_amount || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
                         </div>
                       )}
                     </div>
@@ -700,7 +784,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                       className={`px-2.5 py-1 rounded-full text-xs font-medium border cursor-pointer outline-none transition-all dark:bg-gray-900 ${getStatusColor(o.status)}`}
                     >
                       <option value="pending">Pendiente</option>
-                      <option value="apartado">Apartado</option>
+                      <option value="apartado">Separado</option>
                       <option value="processing">Procesando</option>
                       <option value="shipped">Enviado</option>
                       <option value="delivered">Entregado</option>
@@ -738,13 +822,24 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                       >
                         <Eye className="w-4 h-4" />
                       </button>
-                      <button 
-                        onClick={() => handleDeleteOrder(o)}
-                        className="p-2 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/20 text-gray-400 hover:text-rose-600 transition-colors"
-                        title="Eliminar pedido"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {canEditSafe && o.status === 'apartado' && (
+                        <button 
+                          onClick={() => setPaymentModalOrder(o)}
+                          className="p-2 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-500 transition-colors"
+                          title="Gestionar Abonos"
+                        >
+                          <DollarSign className="w-4 h-4" />
+                        </button>
+                      )}
+                      {canDeleteSafe && (
+                        <button 
+                          onClick={() => handleDeleteOrder(o)}
+                          className="p-2 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/20 text-gray-400 hover:text-rose-600 transition-colors"
+                          title="Eliminar pedido"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -819,7 +914,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                     className={`px-3 py-1 rounded-full text-xs font-bold border cursor-pointer outline-none transition-all dark:bg-gray-900 ${getStatusColor(viewOrder.status)}`}
                  >
                     <option value="pending">Pendiente</option>
-                    <option value="apartado">Apartado</option>
+                    <option value="apartado">Separado</option>
                     <option value="processing">Procesando</option>
                     <option value="shipped">Enviado</option>
                     <option value="delivered">Entregado</option>
@@ -962,8 +1057,64 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                           {Number(viewOrder.total_amount).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
                         </span>
                       </div>
+                      
+                      {viewOrder.status === 'apartado' && (
+                        <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700 space-y-1">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">Total Pagado</span>
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                              {Number(viewOrder.total_paid || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">Saldo Pendiente</span>
+                            <span className="font-bold text-amber-600 dark:text-amber-500">
+                              {(Number(viewOrder.total_amount) - Number(viewOrder.total_paid || 0)).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
+
+                  {/* Historial de Pagos (si es apartado) */}
+                  {(viewOrder.status === 'apartado' || (viewOrder.payments && viewOrder.payments.length > 0)) && (
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-amber-500 dark:text-amber-400" /> Historial de Abonos
+                      </h4>
+                      <div className="space-y-3">
+                        {viewOrder.payments?.map((p, idx) => (
+                          <div key={idx} className="flex justify-between items-start text-xs border-b border-gray-200 dark:border-gray-700 pb-2 last:border-0">
+                            <div>
+                              <div className="font-bold text-gray-900 dark:text-white">
+                                {Number(p.amount).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                              </div>
+                              <div className="text-gray-500">{p.payment_method === 'cash' ? 'Efectivo' : 'Transferencia'}</div>
+                              {p.notes && <div className="text-gray-400 italic">"{p.notes}"</div>}
+                            </div>
+                            <div className="text-gray-400">
+                              {new Date(p.created_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                        ))}
+                        <div className="pt-2 flex justify-between items-center font-bold text-sm">
+                          <span className="text-gray-600 dark:text-gray-400">Total Pagado:</span>
+                          <span className="text-emerald-600 dark:text-emerald-400">
+                            {Number(viewOrder.total_paid || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                          </span>
+                        </div>
+                        {Number(viewOrder.total_amount) - Number(viewOrder.total_paid || 0) > 0 && (
+                          <div className="flex justify-between items-center font-bold text-sm text-amber-600 dark:text-amber-400">
+                            <span>Saldo Pendiente:</span>
+                            <span>
+                              {(Number(viewOrder.total_amount) - Number(viewOrder.total_paid || 0)).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Items List */}
@@ -1115,6 +1266,97 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase }) => {
                   className="flex-1 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium shadow-lg shadow-rose-900/20 transition-all transform hover:scale-[1.02]"
                 >
                   Eliminar ahora
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sale Payment Modal (Abonos) */}
+      {paymentModalOrder && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-md shadow-2xl scale-100 animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Registrar Abono</h3>
+              <button onClick={() => setPaymentModalOrder(null)} className="text-gray-500 hover:text-gray-900 dark:hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-xl border border-blue-100 dark:border-blue-500/20">
+                <div className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase mb-1">Orden #{paymentModalOrder.order_number}</div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Total Venta:</span>
+                  <span className="font-bold text-gray-900 dark:text-white">{Number(paymentModalOrder.total_amount).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Total Pagado:</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{Number(paymentModalOrder.total_paid || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
+                </div>
+                <div className="flex justify-between text-base mt-1 pt-1 border-t border-blue-200 dark:border-blue-500/30">
+                  <span className="font-bold text-blue-700 dark:text-blue-300">Saldo Pendiente:</span>
+                  <span className="font-black text-blue-700 dark:text-blue-300">{(Number(paymentModalOrder.total_amount) - Number(paymentModalOrder.total_paid || 0)).toLocaleString('es-CO', { style: 'currency', currency: 'COP' })}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">Monto del Abono</label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input 
+                    type="number"
+                    value={newPaymentAmount}
+                    onChange={(e) => setNewPaymentAmount(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full pl-9 pr-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all text-lg font-bold text-gray-900 dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">Método de Pago</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button 
+                    onClick={() => setNewPaymentMethod('cash')}
+                    className={`py-2.5 rounded-xl border font-medium transition-all ${newPaymentMethod === 'cash' ? 'bg-emerald-500 border-emerald-600 text-white shadow-lg shadow-emerald-900/20' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}
+                  >
+                    Efectivo
+                  </button>
+                  <button 
+                    onClick={() => setNewPaymentMethod('transfer')}
+                    className={`py-2.5 rounded-xl border font-medium transition-all ${newPaymentMethod === 'transfer' ? 'bg-blue-500 border-blue-600 text-white shadow-lg shadow-blue-900/20' : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'}`}
+                  >
+                    Transferencia
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-gray-500 uppercase">Notas (Opcional)</label>
+                <textarea 
+                  value={newPaymentNotes}
+                  onChange={(e) => setNewPaymentNotes(e.target.value)}
+                  placeholder="Ej: Pago parcial, transferencia Bancolombia..."
+                  className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all h-20 resize-none text-sm text-gray-700 dark:text-gray-300"
+                />
+              </div>
+
+              <div className="pt-4 flex gap-3">
+                <button 
+                  onClick={() => setPaymentModalOrder(null)}
+                  className="flex-1 px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleAddPayment}
+                  disabled={isSubmittingPayment || !newPaymentAmount}
+                  className="flex-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold shadow-lg shadow-blue-900/20 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                >
+                  {isSubmittingPayment ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  Confirmar Pago
                 </button>
               </div>
             </div>

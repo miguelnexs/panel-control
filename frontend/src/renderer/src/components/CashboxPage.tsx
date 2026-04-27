@@ -281,7 +281,11 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
       const res = await fetch(`${apiBase}/api/cashbox/sessions/${currentSession.id}/close/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
-        body: JSON.stringify(closeForm)
+        body: JSON.stringify({
+          actual_cash: currentSession.expected_cash,
+          actual_bank: currentSession.expected_bank,
+          notes: closeForm.notes
+        })
       });
       if (res.ok) {
         setMsg({ type: 'success', text: 'Caja cerrada exitosamente' });
@@ -561,8 +565,19 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
                       {history.map((s) => (
                           <tr key={s.id} onClick={() => openSessionDetail(s)} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/20 transition-colors cursor-pointer group">
                               <td className="px-6 py-4">
-                                  <p className="text-sm font-bold text-gray-900 dark:text-white">ID #{s.id}</p>
-                                  <p className="text-[10px] text-gray-500">{new Date(s.start_time).toLocaleDateString()} {new Date(s.start_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p>
+                                  <p className="text-sm font-bold text-gray-900 dark:text-white">Sesión #{s.id}</p>
+                                  <div className="flex flex-col gap-0.5">
+                                      <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                                          <span className="font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-tighter">Ape:</span> 
+                                          {new Date(s.start_time).toLocaleDateString()} {new Date(s.start_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                                      </p>
+                                      {s.end_time && (
+                                          <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                                              <span className="font-black text-rose-600 dark:text-rose-500 uppercase tracking-tighter">Cie:</span> 
+                                              {new Date(s.end_time).toLocaleDateString()} {new Date(s.end_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                                          </p>
+                                      )}
+                                  </div>
                               </td>
                               <td className="px-6 py-4">
                                   <span className="text-xs font-bold text-gray-600 dark:text-gray-400">{s.user_username}</span>
@@ -991,45 +1006,27 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
                       <button onClick={() => setShowCloseModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-gray-500 dark:text-gray-400"><X size={20} /></button>
                   </div>
                   <div className="bg-blue-50 dark:bg-blue-500/10 p-4 border-b border-blue-100 dark:border-blue-500/20 space-y-1">
-                      <p className="text-[10px] text-blue-700 dark:text-blue-300 font-black uppercase tracking-widest">Resumen de Saldos Esperados</p>
+                      <p className="text-[10px] text-blue-700 dark:text-blue-300 font-black uppercase tracking-widest">Resumen de Saldos a Cerrar</p>
                       <div className="flex justify-between">
                         <span className="text-xs text-blue-600">Efectivo: <span className="font-bold">{formatCurrency(currentSession?.expected_cash)}</span></span>
                         <span className="text-xs text-blue-600">Banco: <span className="font-bold">{formatCurrency(currentSession?.expected_bank)}</span></span>
                       </div>
                   </div>
                   <form onSubmit={handleCloseBox} className="p-6 space-y-6">
-                      <div className="space-y-4">
-                        <div>
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Efectivo Físico Contado</label>
-                            <div className="relative">
-                                <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                <input 
-                                    value={closeForm.actual_cash}
-                                    onChange={(e) => setCloseForm({...closeForm, actual_cash: e.target.value})}
-                                    type="number" 
-                                    className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl font-bold" 
-                                    placeholder="0" 
-                                    required 
-                                />
-                            </div>
+                      <div className="text-center space-y-4">
+                        <div className="w-16 h-16 bg-rose-100 dark:bg-rose-500/10 rounded-full flex items-center justify-center mx-auto">
+                            <AlertTriangle className="w-8 h-8 text-rose-600" />
                         </div>
                         <div>
-                            <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Saldo Total en Banco / Extracto</label>
-                            <div className="relative">
-                                <Building className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                                <input 
-                                    value={closeForm.actual_bank}
-                                    onChange={(e) => setCloseForm({...closeForm, actual_bank: e.target.value})}
-                                    type="number" 
-                                    className="w-full pl-12 pr-4 py-4 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-transparent focus:border-blue-500 rounded-2xl font-bold" 
-                                    placeholder="0" 
-                                    required 
-                                />
-                            </div>
+                            <h4 className="text-lg font-bold text-gray-900 dark:text-white">¿Estás seguro de cerrar la caja?</h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                                Se finalizará el turno actual y se registrarán los saldos esperados como saldos finales. Esta acción no se puede deshacer.
+                            </p>
                         </div>
                       </div>
+
                       <div>
-                          <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Notas de Cierre</label>
+                          <label className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 block">Notas de Cierre (Opcional)</label>
                           <textarea 
                             value={closeForm.notes}
                             onChange={(e) => setCloseForm({...closeForm, notes: e.target.value})}
@@ -1037,9 +1034,15 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
                             placeholder="Cualquier observación..." 
                           />
                       </div>
-                      <Button type="submit" disabled={saving} className="w-full py-6 rounded-2xl bg-rose-600 font-bold shadow-lg shadow-rose-900/20 text-white transition-all">
-                          {saving ? 'Cerrando...' : 'Finalizar Turno y Bloquear Caja'}
-                      </Button>
+                      
+                      <div className="flex gap-3">
+                        <Button type="button" onClick={() => setShowCloseModal(false)} className="flex-1 py-4 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-bold">
+                            Cancelar
+                        </Button>
+                        <Button type="submit" disabled={saving} className="flex-1 py-4 rounded-2xl bg-rose-600 font-bold shadow-lg shadow-rose-900/20 text-white transition-all">
+                            {saving ? 'Cerrando...' : 'Sí, Cerrar Caja'}
+                        </Button>
+                      </div>
                   </form>
               </div>
           </div>

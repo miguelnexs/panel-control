@@ -1,0 +1,23 @@
+TÉRMINOS Y CONDICIONES DE USO - ASSENT DASHBOARD
+
+Al instalar y utilizar Assent Dashboard (en adelante, "el Software"), usted acepta los siguientes términos y condiciones:
+
+1. LICENCIA DE USO
+Assent concede al usuario una licencia limitada, no exclusiva e intransferible para utilizar el Software de acuerdo con los términos aquí establecidos. El uso del Software está condicionado al pago de la suscripción correspondiente, si aplica.
+
+2. SEGURIDAD Y PRIVACIDAD
+Assent Dashboard implementa medidas de seguridad de grado empresarial para proteger su información. Al utilizar este Software, usted acepta que ciertos datos operativos sean sincronizados con nuestros servidores seguros para garantizar la funcionalidad de respaldo y sincronización multi-dispositivo.
+
+3. RESPONSABILIDADES DEL USUARIO
+El usuario es responsable de mantener la confidencialidad de sus credenciales de acceso. Cualquier actividad realizada bajo su cuenta será su responsabilidad.
+
+4. ACTUALIZACIONES
+Assent Dashboard incluye un sistema de actualización automática para garantizar que siempre cuente con las últimas mejoras en seguridad y funcionalidad. Al instalar este software, usted acepta recibir dichas actualizaciones de manera periódica.
+
+5. PROPIEDAD INTELECTUAL
+Todos los derechos de propiedad intelectual del Software, incluyendo su diseño, código fuente y logotipos, son propiedad exclusiva de Assent o sus licenciantes.
+
+6. LIMITACIÓN DE RESPONSABILIDAD
+En la medida máxima permitida por la ley, Assent no será responsable de ningún daño indirecto, incidental o consecuente derivado del uso o la imposibilidad de uso del Software.
+
+Para soporte técnico o consultas legales, por favor contacte a: soporte@softwarebycg.shop

@@ -57,7 +57,10 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: Assent Dashboard
   deleteAppDataOnUninstall: false
-  # include: build/installer.nsh
+  installerSidebar: build/installerSidebar.png
+  installerHeader: build/installerHeader.png
+  license: build/license_es.txt
+  runAfterFinish: true
   installerLanguages:
     - es-ES
     - en-US

@@ -131,7 +131,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, 
         </div>
         <div>
           <StatCardV2 
-            title="Ventas Totales" 
+            title="Ventas Diarias" 
             value={Number(stats.salesAmount).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
             trend="up"
             icon={Activity}

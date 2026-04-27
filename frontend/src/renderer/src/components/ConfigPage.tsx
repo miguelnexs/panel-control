@@ -30,11 +30,18 @@ interface CompanySettings {
   primary_color: string;
   secondary_color: string;
   logo: string | null;
+  // Ventas
   printer_type?: string;
   printer_name?: string;
   paper_width_mm?: number;
   auto_print?: boolean;
   receipt_footer?: string;
+  // Servicios
+  service_printer_type?: string;
+  service_printer_name?: string;
+  service_paper_width_mm?: number;
+  service_auto_print?: boolean;
+  service_receipt_footer?: string;
 }
 
 interface PrinterOptions {
@@ -89,10 +96,29 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
     logo_url: '',
     logo_width_mm: 45,
   });
+  const [servicePrinterOpts, setServicePrinterOpts] = useState<PrinterOptions>({
+    show_logo: true,
+    header1: '',
+    header2: '',
+    align: 'center',
+    font_size: 11,
+    margin_top: 10,
+    margin_bottom: 10,
+    show_qr: false,
+    logo_mode: 'company',
+    logo_url: '',
+    logo_width_mm: 45,
+  });
+  const [printerTab, setPrinterTab] = useState<'venta' | 'servicio'>('venta');
   const hasElectronIpc = Boolean((window as any)?.electron?.ipcRenderer?.invoke);
   const [uiIpcAvailable, setUiIpcAvailable] = useState(true);
   const [uiPreset, setUiPreset] = useState<'default' | 'compact' | 'normal' | 'large' | 'fullhd' | 'maximized'>('default');
   const [uiZoom, setUiZoom] = useState<number>(0.9);
+  
+  // Modal Preview Helpers
+  const modalMaxWidth = Number(printerOpts.font_size || 11) >= 16 ? 'max-w-4xl' : Number(printerOpts.font_size || 11) >= 13 ? 'max-w-2xl' : 'max-w-xl';
+  const previewWidth = `${(Number(settings.paper_width_mm) || 58) + Math.max(0, (Number(printerOpts.font_size || 11) - 11) * 5)}mm`;
+  const iframeMinHeight = `${Math.max(400, 400 + (Number(printerOpts.font_size || 11) - 11) * 30)}px`;
 
   useEffect(() => {
     if (forcedTab) setTab(forcedTab);
@@ -213,12 +239,20 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
         primary_color: data.primary_color || '#0ea5e9',
         secondary_color: data.secondary_color || '#1f2937',
         logo: data.logo || null,
+        // Ventas
         printer_type: data.printer_type || 'system',
         printer_name: data.printer_name || '',
         paper_width_mm: data.paper_width_mm || 58,
         auto_print: !!data.auto_print,
         receipt_footer: data.receipt_footer || '',
+        // Servicios
+        service_printer_type: data.service_printer_type || 'system',
+        service_printer_name: data.service_printer_name || '',
+        service_paper_width_mm: data.service_paper_width_mm || 58,
+        service_auto_print: !!data.service_auto_print,
+        service_receipt_footer: data.service_receipt_footer || '',
       });
+      // Parse Ventas Options
       try {
         const raw = data.receipt_footer || '';
         const obj = typeof raw === 'string' ? JSON.parse(raw) : null;
@@ -237,12 +271,30 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
             logo_width_mm: Number(obj.logo_width_mm || 45),
           });
           setSettings((s) => ({ ...s, receipt_footer: obj.message ?? '' }));
-        } else {
-          setPrinterOpts((p) => ({ ...p }));
         }
-      } catch {
-        setPrinterOpts((p) => ({ ...p }));
-      }
+      } catch {}
+
+      // Parse Servicios Options
+      try {
+        const raw = data.service_receipt_footer || '';
+        const obj = typeof raw === 'string' ? JSON.parse(raw) : null;
+        if (obj && typeof obj === 'object') {
+          setServicePrinterOpts({
+            show_logo: obj.show_logo !== false,
+            header1: obj.header1 || '',
+            header2: obj.header2 || '',
+            align: obj.align || 'center',
+            font_size: Number(obj.font_size || 11),
+            margin_top: Number((obj.margins && obj.margins.top) || obj.margin_top || 10),
+            margin_bottom: Number((obj.margins && obj.margins.bottom) || obj.margin_bottom || 10),
+            show_qr: !!obj.show_qr,
+            logo_mode: obj.logo_mode || 'company',
+            logo_url: obj.logo_url || '',
+            logo_width_mm: Number(obj.logo_width_mm || 45),
+          });
+          setSettings((s) => ({ ...s, service_receipt_footer: obj.message ?? '' }));
+        }
+      } catch {}
     } catch (e: any) {
       setMsg({ type: 'error', text: e.message });
     } finally {
@@ -269,11 +321,18 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
     try {
       if (tab === 'impresora') {
         const payloadBase = {
+          // Ventas
           printer_type: settings.printer_type || 'system',
           printer_name: settings.printer_name || '',
           paper_width_mm: Number(settings.paper_width_mm || 58),
           auto_print: !!settings.auto_print,
+          // Servicios
+          service_printer_type: settings.service_printer_type || 'system',
+          service_printer_name: settings.service_printer_name || '',
+          service_paper_width_mm: Number(settings.service_paper_width_mm || 58),
+          service_auto_print: !!settings.service_auto_print,
         };
+        
         const receiptPayload = {
           message: settings.receipt_footer || '',
           show_logo: !!printerOpts.show_logo,
@@ -287,25 +346,34 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
           logo_url: printerOpts.logo_url || '',
           logo_width_mm: Number(printerOpts.logo_width_mm || 45),
         };
-        const payload = { ...payloadBase, receipt_footer: JSON.stringify(receiptPayload) };
+
+        const serviceReceiptPayload = {
+          message: settings.service_receipt_footer || '',
+          show_logo: !!servicePrinterOpts.show_logo,
+          header1: servicePrinterOpts.header1 || '',
+          header2: servicePrinterOpts.header2 || '',
+          align: servicePrinterOpts.align || 'center',
+          font_size: Number(servicePrinterOpts.font_size || 11),
+          margins: { top: Number(servicePrinterOpts.margin_top || 10), bottom: Number(servicePrinterOpts.margin_bottom || 10) },
+          show_qr: !!servicePrinterOpts.show_qr,
+          logo_mode: servicePrinterOpts.logo_mode || 'company',
+          logo_url: servicePrinterOpts.logo_url || '',
+          logo_width_mm: Number(servicePrinterOpts.logo_width_mm || 45),
+        };
+
+        const payload = { 
+          ...payloadBase, 
+          receipt_footer: JSON.stringify(receiptPayload),
+          service_receipt_footer: JSON.stringify(serviceReceiptPayload)
+        };
+
         const res = await fetch(`${apiBase}/webconfig/settings/`, { method: 'PUT', headers: headers(token, true), body: JSON.stringify(payload) });
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'No se pudieron guardar cambios');
-        setMsg({ type: 'success', text: 'Configuración de impresora guardada' });
-        setSettings((s) => ({
-          ...s,
-          printer_type: data.printer_type ?? s.printer_type,
-          printer_name: data.printer_name ?? s.printer_name,
-          paper_width_mm: data.paper_width_mm ?? s.paper_width_mm,
-          auto_print: data.auto_print ?? s.auto_print,
-          receipt_footer: (() => {
-            try {
-              const raw = data.receipt_footer;
-              const obj = typeof raw === 'string' ? JSON.parse(raw) : null;
-              return obj && obj.message ? obj.message : s.receipt_footer;
-            } catch { return s.receipt_footer; }
-          })(),
-        }));
+        setMsg({ type: 'success', text: 'Configuraciones de impresora guardadas' });
+        
+        // Reload all to be sure
+        loadSettings();
         setSaving(false);
         return;
       }
@@ -394,7 +462,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
 
   const previewServiceSample = () => {
     try {
-      const paperW = Number(settings.paper_width_mm || 58);
+      const paperW = Number(settings.service_paper_width_mm || 58);
       const primary = settings.primary_color || '#000';
       const brand = (settings.company_name || 'Mi Empresa de Servicios');
       const nit = (settings.company_nit || '900.000.000');
@@ -403,12 +471,12 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
       const logo = settings.logo || '';
       
       const absUrlFn = (path: string | null) => { try { if (!path) return ''; if (String(path).startsWith('http://') || String(path).startsWith('https://')) return path; if (String(path).startsWith('/')) return `${apiBase}${path}`; return `${apiBase}/${path}`; } catch { return path; } };
-      const logoSrc = printerOpts.logo_mode === 'custom' && printerOpts.logo_url ? printerOpts.logo_url : logo;
-      const logoTag = printerOpts.show_logo && logoSrc ? `<div class="c"><img src="${logoSrc.startsWith('http') ? logoSrc : absUrlFn(logoSrc)}" style="width:${Number(printerOpts.logo_width_mm || 45)}mm;height:auto;object-fit:contain"/></div>` : '';
+      const logoSrc = servicePrinterOpts.logo_mode === 'custom' && servicePrinterOpts.logo_url ? servicePrinterOpts.logo_url : logo;
+      const logoTag = servicePrinterOpts.show_logo && logoSrc ? `<div class="c"><img src="${logoSrc.startsWith('http') ? logoSrc : absUrlFn(logoSrc)}" style="width:${Number(servicePrinterOpts.logo_width_mm || 45)}mm;height:auto;object-fit:contain"/></div>` : '';
       
-      const alignCls = printerOpts.align === 'left' ? 'l' : printerOpts.align === 'right' ? 'r' : 'c';
+      const alignCls = servicePrinterOpts.align === 'left' ? 'l' : servicePrinterOpts.align === 'right' ? 'r' : 'c';
       
-      const css = `@page{size:${paperW}mm auto;margin:0} *{box-sizing:border-box} html{background:#fff} html,body{margin:0;padding:0} body{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#fff;font-family:Arial, sans-serif;width:${paperW}mm;margin:0 auto;padding:${Number(printerOpts.margin_top || 10)}px 10px ${Number(printerOpts.margin_bottom || 10)}px} img{max-width:100%;height:auto} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap} .tab{width:100%;border-collapse:collapse;table-layout:fixed} .tab th,.tab td{padding:4px 0;font-size:${Number(printerOpts.font_size || 11)}px;vertical-align:top} .tab td{word-break:break-word} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(printerOpts.font_size || 11) - 2)}px}`;
+      const css = `@page{size:${paperW}mm auto;margin:0} *{box-sizing:border-box} html{background:#fff} html,body{margin:0;padding:0} body{-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#fff;font-family:Arial, sans-serif;width:${paperW}mm;margin:0 auto;padding:${Number(servicePrinterOpts.margin_top || 10)}px 10px ${Number(servicePrinterOpts.margin_bottom || 10)}px} img{max-width:100%;height:auto} .c{text-align:center} .l{text-align:left} .r{text-align:right} .t{font-weight:600} .hr{height:1px;background:linear-gradient(90deg, ${primary}, transparent);margin:6px 0} .row{display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap} .tab{width:100%;border-collapse:collapse;table-layout:fixed} .tab th,.tab td{padding:4px 0;font-size:${Number(servicePrinterOpts.font_size || 11)}px;vertical-align:top} .tab td{word-break:break-word} .tab thead th{border-bottom:1px dashed #999;text-align:left} .tab tfoot td{border-top:1px dashed #999} .small{font-size:${Math.max(9, Number(servicePrinterOpts.font_size || 11) - 2)}px}`;
       
       const header = `
         ${logoTag}
@@ -417,8 +485,8 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
           <div class="small">${nit}</div>
           <div class="small">${addr}</div>
           <div class="small">${phone}</div>
-          ${printerOpts.header1 ? `<div class="small">${printerOpts.header1}</div>` : ''}
-          ${printerOpts.header2 ? `<div class="small">${printerOpts.header2}</div>` : ''}
+          ${servicePrinterOpts.header1 ? `<div class="small">${servicePrinterOpts.header1}</div>` : ''}
+          ${servicePrinterOpts.header2 ? `<div class="small">${servicePrinterOpts.header2}</div>` : ''}
         </div>
         <div class="hr"></div>
         <div class="row small"><div>Servicio: #12345</div><div>${new Date().toLocaleString()}</div></div>
@@ -441,8 +509,8 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
         </table>
       `;
       
-      const qr = printerOpts.show_qr ? `<div class="c"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('SVC-12345')}" style="width:35mm;height:35mm;object-fit:contain"/></div>` : '';
-      const footer = `<div class="hr"></div><div class="${alignCls} small">${settings.receipt_footer || ''}</div>${qr}`;
+      const qr = servicePrinterOpts.show_qr ? `<div class="c"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('SVC-12345')}" style="width:35mm;height:35mm;object-fit:contain"/></div>` : '';
+      const footer = `<div class="hr"></div><div class="${alignCls} small">${settings.service_receipt_footer || ''}</div>${qr}`;
       
       const html = `<!doctype html><html><head><meta charset="utf-8"><title>Recibo Servicio</title><style>${css}</style></head><body>${header}${table}${footer}</body></html>`;
       
@@ -787,70 +855,30 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
               </div>
 
               <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
-                <h4 className="text-gray-900 dark:text-white font-medium mb-4 flex items-center gap-2">
-                  <Palette size={18} className="text-blue-600 dark:text-blue-400" /> Branding y Marca
-                </h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Colores de Marca</label>
-                      <div className="flex gap-4">
-                        <div className="flex-1 space-y-1">
-                          <span className="text-xs text-gray-500 dark:text-gray-500">Primario</span>
-                          <div className="flex items-center gap-2 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                            <input 
-                              type="color" 
-                              name="primary_color" 
-                              value={settings.primary_color} 
-                              onChange={handleSettingsChange} 
-                              className="w-8 h-8 rounded cursor-pointer border-none p-0 bg-transparent" 
-                            />
-                            <span className="text-sm text-gray-600 dark:text-gray-300 font-mono">{settings.primary_color}</span>
-                          </div>
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          <span className="text-xs text-gray-500 dark:text-gray-500">Secundario</span>
-                          <div className="flex items-center gap-2 p-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                            <input 
-                              type="color" 
-                              name="secondary_color" 
-                              value={settings.secondary_color} 
-                              onChange={handleSettingsChange} 
-                              className="w-8 h-8 rounded cursor-pointer border-none p-0 bg-transparent" 
-                            />
-                            <span className="text-sm text-gray-600 dark:text-gray-300 font-mono">{settings.secondary_color}</span>
-                          </div>
-                        </div>
-                      </div>
+                <div className="space-y-4">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
+                    <ImageIcon size={14} /> Logo de la Empresa
+                  </label>
+                  <div className="flex items-start gap-4">
+                    <div className="w-24 h-24 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-800 flex items-center justify-center shrink-0">
+                      {logoFile ? (
+                        <img src={URL.createObjectURL(logoFile)} alt="Preview" className="w-full h-full object-contain" />
+                      ) : settings.logo ? (
+                        <img src={absUrl(settings.logo)} alt="Logo" className="w-full h-full object-contain" />
+                      ) : (
+                        <ImageIcon className="text-gray-400 dark:text-gray-600" size={32} />
+                      )}
                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
-                      <ImageIcon size={14} /> Logo
-                    </label>
-                    <div className="flex items-start gap-4">
-                      <div className="w-24 h-24 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center shrink-0">
-                        {logoFile ? (
-                          <img src={URL.createObjectURL(logoFile)} alt="Preview" className="w-full h-full object-contain" />
-                        ) : settings.logo ? (
-                          <img src={absUrl(settings.logo)} alt="Logo" className="w-full h-full object-contain" />
-                        ) : (
-                          <ImageIcon className="text-gray-400 dark:text-gray-600" size={32} />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          onChange={handleLogo} 
-                          className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer" 
-                        />
-                        <p className="mt-2 text-xs text-gray-500 dark:text-gray-500">
-                          Recomendado: PNG con fondo transparente, mín. 200x200px.
-                        </p>
-                      </div>
+                    <div className="flex-1">
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleLogo} 
+                        className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer" 
+                      />
+                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-500">
+                        Recomendado: PNG con fondo transparente, mín. 200x200px.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -873,23 +901,41 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
         {/* Impresora */}
         {tab === 'impresora' && (
           <div className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 md:p-8 animate-fade-in shadow-sm dark:shadow-none">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">
-                <Printer size={24} />
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                  <Printer size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Configuración de Impresión</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Personaliza el formato de tus recibos y facturas POS</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Configuración de Impresión</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Personaliza el formato de tus recibos y facturas POS</p>
+              
+              <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                <button 
+                  onClick={() => setPrinterTab('venta')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${printerTab === 'venta' ? 'bg-white dark:bg-purple-600 text-purple-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                >
+                  Ventas
+                </button>
+                <button 
+                  onClick={() => setPrinterTab('servicio')}
+                  className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${printerTab === 'servicio' ? 'bg-white dark:bg-purple-600 text-purple-600 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                >
+                  Servicios
+                </button>
               </div>
             </div>
 
             <form onSubmit={saveSettings} className="space-y-8">
+              {/* Common Printer Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Tipo de Impresión</label>
                   <select 
-                    name="printer_type" 
-                    value={settings.printer_type || 'system'} 
+                    name={printerTab === 'venta' ? "printer_type" : "service_printer_type"} 
+                    value={(printerTab === 'venta' ? settings.printer_type : settings.service_printer_type) || 'system'} 
                     onChange={handleSettingsChange} 
                     className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all"
                   >
@@ -901,8 +947,8 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Nombre del Dispositivo</label>
                   <input 
-                    name="printer_name" 
-                    value={settings.printer_name || ''} 
+                    name={printerTab === 'venta' ? "printer_name" : "service_printer_name"} 
+                    value={(printerTab === 'venta' ? settings.printer_name : settings.service_printer_name) || ''} 
                     onChange={handleSettingsChange} 
                     className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                     placeholder="Ej: EPSON TM-T20"
@@ -914,8 +960,8 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                   <div className="relative">
                     <input 
                       type="number" 
-                      name="paper_width_mm" 
-                      value={settings.paper_width_mm ?? ''} 
+                      name={printerTab === 'venta' ? "paper_width_mm" : "service_paper_width_mm"} 
+                      value={(printerTab === 'venta' ? settings.paper_width_mm : settings.service_paper_width_mm) ?? ''} 
                       onChange={handleSettingsChange} 
                       className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
                     />
@@ -926,44 +972,52 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                 <div className="flex items-center gap-3 pt-6">
                   <input 
                     type="checkbox" 
-                    id="auto_print"
-                    name="auto_print" 
-                    checked={!!settings.auto_print} 
-                    onChange={(e) => setSettings((s) => ({ ...s, auto_print: e.target.checked }))}
+                    id="auto_print_toggle"
+                    name={printerTab === 'venta' ? "auto_print" : "service_auto_print"} 
+                    checked={!!(printerTab === 'venta' ? settings.auto_print : settings.service_auto_print)} 
+                    onChange={(e) => setSettings((s) => ({ ...s, [printerTab === 'venta' ? "auto_print" : "service_auto_print"]: e.target.checked }))}
                     className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500 bg-white dark:bg-gray-800"
                   />
-                  <label htmlFor="auto_print" className="text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
-                    Imprimir automáticamente al registrar venta
+                  <label htmlFor="auto_print_toggle" className="text-sm text-gray-600 dark:text-gray-300 cursor-pointer">
+                    Imprimir automáticamente al registrar {printerTab === 'venta' ? 'venta' : 'servicio'}
                   </label>
                 </div>
               </div>
 
               <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
                 <h4 className="text-gray-900 dark:text-white font-medium mb-6 flex items-center gap-2">
-                  <FileText size={18} className="text-purple-600 dark:text-purple-400" /> Diseño del Recibo
+                  <FileText size={18} className="text-purple-600 dark:text-purple-400" /> Diseño del Recibo ({printerTab === 'venta' ? 'Ventas' : 'Servicios'})
                 </h4>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                   <div className="md:col-span-2 flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
                     <input 
                       type="checkbox" 
-                      id="show_logo"
-                      checked={!!printerOpts.show_logo} 
-                      onChange={(e) => setPrinterOpts((p) => ({ ...p, show_logo: e.target.checked }))} 
+                      id="show_logo_toggle"
+                      checked={!!(printerTab === 'venta' ? printerOpts.show_logo : servicePrinterOpts.show_logo)} 
+                      onChange={(e) => {
+                        const val = e.target.checked;
+                        if (printerTab === 'venta') setPrinterOpts(p => ({ ...p, show_logo: val }));
+                        else setServicePrinterOpts(p => ({ ...p, show_logo: val }));
+                      }} 
                       className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500 bg-white dark:bg-gray-800"
                     />
-                    <label htmlFor="show_logo" className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer flex-1">
+                    <label htmlFor="show_logo_toggle" className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer flex-1">
                       Incluir Logo en el Encabezado
                     </label>
                   </div>
 
-                  {printerOpts.show_logo && (
+                  {(printerTab === 'venta' ? printerOpts.show_logo : servicePrinterOpts.show_logo) && (
                     <>
                       <div className="space-y-2">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Fuente del Logo</label>
                         <select 
-                          value={printerOpts.logo_mode} 
-                          onChange={(e) => setPrinterOpts((p) => ({ ...p, logo_mode: e.target.value }))} 
+                          value={printerTab === 'venta' ? printerOpts.logo_mode : servicePrinterOpts.logo_mode} 
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (printerTab === 'venta') setPrinterOpts(p => ({ ...p, logo_mode: val }));
+                            else setServicePrinterOpts(p => ({ ...p, logo_mode: val }));
+                          }} 
                           className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 outline-none"
                         >
                           <option value="company">Usar Logo de la Empresa</option>
@@ -975,18 +1029,26 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                          <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Ancho del Logo (mm)</label>
                          <input 
                            type="number" 
-                           value={printerOpts.logo_width_mm} 
-                           onChange={(e) => setPrinterOpts((p) => ({ ...p, logo_width_mm: e.target.value === '' ? '' as any : Number(e.target.value) }))} 
+                           value={printerTab === 'venta' ? printerOpts.logo_width_mm : servicePrinterOpts.logo_width_mm} 
+                           onChange={(e) => {
+                             const val = e.target.value === '' ? 0 : Number(e.target.value);
+                             if (printerTab === 'venta') setPrinterOpts(p => ({ ...p, logo_width_mm: val }));
+                             else setServicePrinterOpts(p => ({ ...p, logo_width_mm: val }));
+                           }} 
                            className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 outline-none"
                          />
                       </div>
 
-                      {printerOpts.logo_mode === 'custom' && (
+                      {(printerTab === 'venta' ? printerOpts.logo_mode : servicePrinterOpts.logo_mode) === 'custom' && (
                         <div className="md:col-span-2 space-y-2">
                           <label className="text-sm font-medium text-gray-700 dark:text-gray-400">URL de la Imagen</label>
                           <input 
-                            value={printerOpts.logo_url} 
-                            onChange={(e) => setPrinterOpts((p) => ({ ...p, logo_url: e.target.value }))} 
+                            value={printerTab === 'venta' ? printerOpts.logo_url : servicePrinterOpts.logo_url} 
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (printerTab === 'venta') setPrinterOpts(p => ({ ...p, logo_url: val }));
+                              else setServicePrinterOpts(p => ({ ...p, logo_url: val }));
+                            }} 
                             className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 outline-none"
                             placeholder="https://ejemplo.com/logo-ticket.png" 
                           />
@@ -997,15 +1059,15 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                       <div className="md:col-span-2 mt-4">
                         <label className="text-sm font-medium text-gray-700 dark:text-gray-400 mb-2 block">Vista Previa del Logo</label>
                         <div className="flex justify-center p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
-                          {printerOpts.logo_mode === 'company' ? (
+                          {(printerTab === 'venta' ? printerOpts.logo_mode : servicePrinterOpts.logo_mode) === 'company' ? (
                             settings.logo ? (
                                <img src={absUrl(settings.logo)} alt="Logo Preview" className="h-24 object-contain" />
                             ) : (
                                <div className="text-gray-500 dark:text-gray-500 text-sm italic">Sin logo de empresa configurado (ve a la pestaña Empresa)</div>
                             )
                           ) : (
-                            printerOpts.logo_url ? (
-                               <img src={printerOpts.logo_url} alt="Logo Preview" className="h-24 object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                            (printerTab === 'venta' ? printerOpts.logo_url : servicePrinterOpts.logo_url) ? (
+                               <img src={printerTab === 'venta' ? printerOpts.logo_url : servicePrinterOpts.logo_url} alt="Logo Preview" className="h-24 object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
                             ) : (
                                <div className="text-gray-500 dark:text-gray-500 text-sm italic">Ingrese una URL válida</div>
                             )
@@ -1018,8 +1080,12 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Encabezado Línea 1</label>
                     <input 
-                      value={printerOpts.header1} 
-                      onChange={(e) => setPrinterOpts((p) => ({ ...p, header1: e.target.value }))} 
+                      value={printerTab === 'venta' ? printerOpts.header1 : servicePrinterOpts.header1} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (printerTab === 'venta') setPrinterOpts(p => ({ ...p, header1: val }));
+                        else setServicePrinterOpts(p => ({ ...p, header1: val }));
+                      }} 
                       className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 outline-none"
                       placeholder="Ej: Régimen Común" 
                     />
@@ -1028,8 +1094,12 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Encabezado Línea 2</label>
                     <input 
-                      value={printerOpts.header2} 
-                      onChange={(e) => setPrinterOpts((p) => ({ ...p, header2: e.target.value }))} 
+                      value={printerTab === 'venta' ? printerOpts.header2 : servicePrinterOpts.header2} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (printerTab === 'venta') setPrinterOpts(p => ({ ...p, header2: val }));
+                        else setServicePrinterOpts(p => ({ ...p, header2: val }));
+                      }} 
                       className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 outline-none"
                       placeholder="Ej: Resolución DIAN No..." 
                     />
@@ -1039,19 +1109,25 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Alineación de Texto</label>
                     <div className="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 border border-gray-200 dark:border-gray-700">
                       {[
-                        { val: 'left', icon: <Type size={16} /> }, // Using generic Type icon for left (conceptually) or I need specific Align icons
+                        { val: 'left', icon: <Type size={16} /> },
                         { val: 'center', icon: <AlignCenter size={16} /> },
                         { val: 'right', icon: <Type size={16} /> }
-                      ].map((opt, i) => (
-                        <button
-                          key={opt.val}
-                          type="button"
-                          onClick={() => setPrinterOpts((p) => ({ ...p, align: opt.val }))}
-                          className={`flex-1 flex justify-center items-center py-2 rounded-lg transition-all ${printerOpts.align === opt.val ? 'bg-purple-600 text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
-                        >
-                          {opt.icon}
-                        </button>
-                      ))}
+                      ].map((opt, i) => {
+                        const currentAlign = printerTab === 'venta' ? printerOpts.align : servicePrinterOpts.align;
+                        return (
+                          <button
+                            key={opt.val}
+                            type="button"
+                            onClick={() => {
+                              if (printerTab === 'venta') setPrinterOpts(p => ({ ...p, align: opt.val }));
+                              else setServicePrinterOpts(p => ({ ...p, align: opt.val }));
+                            }}
+                            className={`flex-1 flex justify-center items-center py-2 rounded-lg transition-all ${currentAlign === opt.val ? 'bg-purple-600 text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                          >
+                            {opt.icon}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1059,8 +1135,12 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Tamaño Fuente (px)</label>
                     <input 
                       type="number" 
-                      value={printerOpts.font_size} 
-                      onChange={(e) => setPrinterOpts((p) => ({ ...p, font_size: e.target.value === '' ? '' as any : Number(e.target.value) }))} 
+                      value={printerTab === 'venta' ? printerOpts.font_size : servicePrinterOpts.font_size} 
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? 0 : Number(e.target.value);
+                        if (printerTab === 'venta') setPrinterOpts(p => ({ ...p, font_size: val }));
+                        else setServicePrinterOpts(p => ({ ...p, font_size: val }));
+                      }} 
                       className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 outline-none"
                     />
                   </div>
@@ -1068,8 +1148,8 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                   <div className="md:col-span-2 space-y-2">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Pie de Página</label>
                     <textarea 
-                      name="receipt_footer" 
-                      value={settings.receipt_footer || ''} 
+                      name={printerTab === 'venta' ? "receipt_footer" : "service_receipt_footer"} 
+                      value={(printerTab === 'venta' ? settings.receipt_footer : settings.service_receipt_footer) || ''} 
                       onChange={handleSettingsChange} 
                       className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-purple-500 outline-none min-h-[80px] resize-none" 
                       placeholder="Gracias por su compra. Vuelva pronto." 
@@ -1079,12 +1159,16 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                   <div className="md:col-span-2 flex items-center gap-3 pt-2">
                     <input 
                       type="checkbox" 
-                      id="show_qr"
-                      checked={!!printerOpts.show_qr} 
-                      onChange={(e) => setPrinterOpts((p) => ({ ...p, show_qr: e.target.checked }))} 
+                      id="show_qr_toggle"
+                      checked={!!(printerTab === 'venta' ? printerOpts.show_qr : servicePrinterOpts.show_qr)} 
+                      onChange={(e) => {
+                        const val = e.target.checked;
+                        if (printerTab === 'venta') setPrinterOpts(p => ({ ...p, show_qr: val }));
+                        else setServicePrinterOpts(p => ({ ...p, show_qr: val }));
+                      }} 
                       className="w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500 bg-white dark:bg-gray-800"
                     />
-                    <label htmlFor="show_qr" className="text-sm text-gray-600 dark:text-gray-300 cursor-pointer flex items-center gap-2">
+                    <label htmlFor="show_qr_toggle" className="text-sm text-gray-600 dark:text-gray-300 cursor-pointer flex items-center gap-2">
                       <QrCode size={16} /> Incluir Código QR al final
                     </label>
                   </div>
@@ -1097,33 +1181,57 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                     type="button" 
                     onClick={() => {
                       setMsg(null);
-                      setSettings((s) => ({
-                        ...s,
-                        printer_type: 'system',
-                        printer_name: '',
-                        paper_width_mm: 58,
-                        auto_print: false,
-                        receipt_footer: '',
-                      }));
-                      setPrinterOpts({
-                        show_logo: true,
-                        header1: '',
-                        header2: '',
-                        align: 'center',
-                        font_size: 11,
-                        margin_top: 10,
-                        margin_bottom: 10,
-                        show_qr: false,
-                        logo_mode: 'company',
-                        logo_url: '',
-                        logo_width_mm: 45,
-                      });
+                      if (printerTab === 'venta') {
+                        setSettings((s) => ({
+                          ...s,
+                          printer_type: 'system',
+                          printer_name: '',
+                          paper_width_mm: 58,
+                          auto_print: true,
+                          receipt_footer: '',
+                        }));
+                        setPrinterOpts({
+                          show_logo: true,
+                          header1: '',
+                          header2: '',
+                          align: 'center',
+                          font_size: 11,
+                          margin_top: 10,
+                          margin_bottom: 10,
+                          show_qr: false,
+                          logo_mode: 'company',
+                          logo_url: '',
+                          logo_width_mm: 45,
+                        });
+                      } else {
+                        setSettings((s) => ({
+                          ...s,
+                          service_printer_type: 'system',
+                          service_printer_name: '',
+                          service_paper_width_mm: 58,
+                          service_auto_print: true,
+                          service_receipt_footer: '',
+                        }));
+                        setServicePrinterOpts({
+                          show_logo: true,
+                          header1: '',
+                          header2: '',
+                          align: 'center',
+                          font_size: 11,
+                          margin_top: 10,
+                          margin_bottom: 10,
+                          show_qr: false,
+                          logo_mode: 'company',
+                          logo_url: '',
+                          logo_width_mm: 45,
+                        });
+                      }
                       setPreviewHtml(null);
-                      setMsg({ type: 'success', text: 'Impresora restablecida a valores predeterminados.' });
+                      setMsg({ type: 'success', text: `Configuración de ${printerTab} restablecida.` });
                     }} 
                     className="flex-1 md:flex-none px-4 py-3 rounded-xl bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-white font-medium border border-gray-200 dark:border-gray-700 transition-colors text-sm"
                   >
-                    Restablecer
+                    Restablecer {printerTab === 'venta' ? 'Venta' : 'Servicio'}
                   </button>
                   <button 
                     type="button" 
@@ -1146,7 +1254,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
                   className="flex items-center justify-center gap-2 px-8 py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-medium shadow-lg shadow-purple-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed w-full md:w-auto"
                 >
                   <Save size={18} />
-                  {saving ? 'Guardando...' : 'Guardar Configuración'}
+                  {saving ? 'Guardando...' : 'Guardar Configuraciones'}
                 </button>
               </div>
             </form>
@@ -1158,10 +1266,10 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
           <GoogleConfig token={token} apiBase={apiBase} />
         )}
       </div>
-      {/* Print Preview Modal */}
+
       {previewHtml && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className={`bg-white rounded-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh] ${Number(printerOpts.font_size || 11) >= 16 ? 'max-w-4xl' : Number(printerOpts.font_size || 11) >= 13 ? 'max-w-2xl' : 'max-w-xl'}`}>
+          <div className={`bg-white rounded-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh] ${modalMaxWidth}`}>
              {/* Preview Header */}
              <div className="p-4 bg-gray-100 border-b flex justify-between items-center">
                 <h3 className="font-bold text-gray-800">Vista Previa de Configuración</h3>
@@ -1172,12 +1280,12 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
              
              {/* Receipt Content - Iframe */}
              <div className="flex-1 overflow-hidden bg-gray-200 flex justify-center p-4">
-                <div className="shadow-lg bg-white overflow-hidden" style={{ width: `${(Number(settings.paper_width_mm) || 58) + Math.max(0, (Number(printerOpts.font_size || 11) - 11) * 5)}mm`, maxHeight: '100%', overflowY: 'auto' }}>
+                <div className="shadow-lg bg-white overflow-hidden" style={{ width: previewWidth, maxHeight: '100%', overflowY: 'auto' }}>
                   <iframe 
                     srcDoc={previewHtml} 
                     className="w-full h-full border-none bg-white"
                     title="Config Preview"
-                    style={{ minHeight: `${Math.max(400, 400 + (Number(printerOpts.font_size || 11) - 11) * 30)}px` }}
+                    style={{ minHeight: iframeMinHeight }}
                   />
                 </div>
              </div>

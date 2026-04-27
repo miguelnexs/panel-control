@@ -547,14 +547,15 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, rol
                   <ArrowUpDown className="w-4 h-4" />
                 </div>
               </button>
+            {canCreateSafe && (
               <button 
                 onClick={() => { if (onCreate && canCreateSafe) onCreate(); }} 
-                disabled={!canCreateSafe}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-900/20"
               >
                 <Plus className="w-4 h-4" />
                 <span>Nuevo</span>
               </button>
+            )}
             </div>
           </div>
         </div>
@@ -669,25 +670,24 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, rol
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button 
-                            onClick={() => {
-                              if (!onEdit || !canEditSafe) return;
-                              onEdit(p);
-                            }} 
-                            disabled={!canEditSafe}
-                            className="p-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-500/10 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                            title="Editar"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button 
-                            onClick={() => { if (canDeleteSafe) removeProduct(p.id); }} 
-                            disabled={!canDeleteSafe}
-                            className="p-2 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/10 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
-                            title="Eliminar"
-                          >
-                            <Trash className="w-4 h-4" />
-                          </button>
+                          {canEditSafe && (
+                            <button 
+                              onClick={() => { if (onEdit && canEditSafe) onEdit(p); }} 
+                              className="p-2 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-500/10 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                              title="Editar"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          )}
+                          {canDeleteSafe && (
+                            <button 
+                              onClick={() => { if (canDeleteSafe) removeProduct(p.id); }} 
+                              className="p-2 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-500/10 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+                              title="Eliminar"
+                            >
+                              <Trash className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </SortableRow>

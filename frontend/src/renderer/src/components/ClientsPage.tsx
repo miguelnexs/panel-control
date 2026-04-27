@@ -140,7 +140,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
   const validateForm = () => {
     const e: Record<string, string> = {};
     if (!form.full_name || form.full_name.trim().length < 3) e.full_name = 'Nombre obligatorio';
-    if (!/^[0-9]{6,12}$/.test(form.cedula || '')) e.cedula = 'Cédula 6-12 dígitos';
+    if (form.cedula && !/^[0-9]{6,15}$/.test(form.cedula)) e.cedula = 'Cédula 6-15 dígitos';
     if (!/^\S+@\S+\.\S+$/.test(form.email || '')) e.email = 'Correo inválido';
     if (form.phone && !/^\+?[0-9\s-]{7,20}$/.test(form.phone)) e.phone = 'Teléfono inválido';
     if (!form.address || form.address.trim().length < 5) e.address = 'Dirección obligatoria';
