@@ -1,0 +1,150 @@
+{% extends 'users/base_tenant.html' %}
+
+{% block title %}Métodos de Pago - Tenant{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Configuración de Pagos</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#paymentMethodModal" onclick="resetForm()">
+        Nuevo Método de Pago
+    </button>
+</div>
+
+<div class="row">
+    {% for method in payment_methods %}
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{{ method.name }}</h5>
+                <h6 class="card-subtitle mb-2 text-muted">{{ method.provider }}</h6>
+                <p class="card-text">
+                    Estado: <span class="badge bg-{{ method.active|yesno:'success,danger' }}">{{ method.active|yesno:'Activo,Inactivo' }}</span><br>
+                    Comisión: {{ method.fee_percent }}%
+                </p>
+                <button class="btn btn-sm btn-outline-primary" onclick='editMethod({{ method.id }}, "{{ method.name }}", "{{ method.provider }}", {{ method.fee_percent }}, "{{ method.active }}", {{ method.extra_config|safe }})' data-bs-toggle="modal" data-bs-target="#paymentMethodModal">
+                    Configurar
+                </button>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info">No hay métodos de pago configurados.</div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="paymentMethodModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{% url 'tenant_payment_settings' %}">
+                {% csrf_token %}
+                <input type="hidden" name="method_id" id="method_id">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Nuevo Método de Pago</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre</label>
+                        <input type="text" class="form-control" name="name" id="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Proveedor</label>
+                        <select class="form-select" name="provider" id="provider" required onchange="updateConfigFields()">
+                            <option value="STRIPE">Stripe</option>
+                            <option value="PAYPAL">PayPal</option>
+                            <option value="MERCADOPAGO">MercadoPago</option>
+                            <option value="WOMPI">Wompi</option>
+                            <option value="NEQUI">Nequi</option>
+                            <option value="DAVIPLATA">DaviPlata</option>
+                            <option value="CASH">Efectivo</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Comisión (%)</label>
+                        <input type="number" step="0.01" class="form-control" name="fee_percent" id="fee_percent" value="0">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" name="active" id="active">
+                        <label class="form-check-label">Activo</label>
+                    </div>
+                    
+                    <hr>
+                    <h6>Configuración Específica</h6>
+                    <div id="config-fields">
+                        <div class="mb-3 config-field" data-providers="STRIPE,MERCADOPAGO,WOMPI">
+                            <label class="form-label">Public Key / Client ID</label>
+                            <input type="text" class="form-control" name="public_key" id="public_key">
+                        </div>
+                        <div class="mb-3 config-field" data-providers="STRIPE,MERCADOPAGO,WOMPI">
+                            <label class="form-label">Private Key / Secret Key / Access Token</label>
+                            <input type="password" class="form-control" name="private_key" id="private_key" placeholder="Dejar en blanco para no cambiar">
+                        </div>
+                        <div class="mb-3 config-field" data-providers="NEQUI,DAVIPLATA">
+                            <label class="form-label">Número de Teléfono</label>
+                            <input type="text" class="form-control" name="phone_number" id="phone_number">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function updateConfigFields() {
+    const provider = document.getElementById('provider').value;
+    const fields = document.querySelectorAll('.config-field');
+    fields.forEach(field => {
+        const providers = field.dataset.providers.split(',');
+        if (providers.includes(provider)) {
+            field.style.display = 'block';
+        } else {
+            field.style.display = 'none';
+        }
+    });
+}
+
+function resetForm() {
+    document.getElementById('method_id').value = '';
+    document.getElementById('name').value = '';
+    document.getElementById('provider').value = 'STRIPE';
+    document.getElementById('fee_percent').value = '0';
+    document.getElementById('active').checked = true;
+    document.getElementById('public_key').value = '';
+    document.getElementById('private_key').value = '';
+    document.getElementById('phone_number').value = '';
+    document.getElementById('modalTitle').innerText = 'Nuevo Método de Pago';
+    updateConfigFields();
+}
+
+function editMethod(id, name, provider, fee, active, config) {
+    document.getElementById('method_id').value = id;
+    document.getElementById('name').value = name;
+    document.getElementById('provider').value = provider;
+    document.getElementById('fee_percent').value = fee;
+    document.getElementById('active').checked = (active === 'True' || active === true);
+    
+    // Load config
+    if (config) {
+        if (config.public_key) document.getElementById('public_key').value = config.public_key;
+        if (config.phone_number) document.getElementById('phone_number').value = config.phone_number;
+        // Don't load private key for security
+    }
+    
+    document.getElementById('modalTitle').innerText = 'Editar Método de Pago';
+    updateConfigFields();
+}
+
+document.addEventListener('DOMContentLoaded', updateConfigFields);
+</script>
+{% endblock %}
