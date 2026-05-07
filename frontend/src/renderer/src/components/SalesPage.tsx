@@ -110,6 +110,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated, ca
   const [pageSize] = useState(30);
   const [total, setTotal] = useState(0);
   const [debouncedSearch, setDebouncedSearch] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
   
   const [colorOptions, setColorOptions] = useState<Record<number, Color[]>>({});
   const [selectedColorMap, setSelectedColorMap] = useState<Record<number, string>>({});
@@ -215,6 +216,16 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated, ca
     };
     if (token) loadCatalog();
   }, [token, page, debouncedSearch, selectedCategory]);
+
+  useEffect(() => {
+    // Small delay on mount to ensure DOM and animations are ready
+    const timer = setTimeout(() => {
+        if (!selectingProduct && !openCart && searchRef.current) {
+            searchRef.current.focus();
+        }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [selectingProduct, openCart]);
 
   useEffect(() => {
     if (gridRef.current) {
@@ -425,7 +436,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated, ca
     
     const payload = {
       client_id: selectedClientId,
-      status: isSeparado ? 'apartado' : 'pending',
+      status: isSeparado ? 'apartado' : (['cash', 'transfer'].includes(paymentMethod) ? 'delivered' : 'pending'),
       payment_method: paymentMethod,
       cash_amount: Number(paymentSummary.cashPart || 0),
       transfer_amount: Number(paymentSummary.transferPart || 0),
@@ -515,7 +526,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated, ca
       {/* Main Layout */}
       <div className="flex flex-col h-[calc(100vh-140px)]">
         {/* Header / Toolbar */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4 shrink-0 shadow-sm dark:shadow-none">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-4 shrink-0 shadow-theme">
             <div className="flex items-center gap-3 w-full md:w-auto">
                 <div className="p-2 bg-emerald-100 dark:bg-emerald-500/10 rounded-lg">
                     <CreditCard className="w-5 h-5 text-emerald-600 dark:text-emerald-500" />
@@ -527,9 +538,17 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated, ca
                 <div className="relative group w-full md:w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500 group-focus-within:text-blue-500 transition-colors" />
                     <input
+                        ref={searchRef}
+                        autoFocus
                         type="text"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && products.length > 0) {
+                                addToCart(products[0]);
+                                setSearch('');
+                            }
+                        }}
                         placeholder="Buscar por nombre o SKU..."
                         className="w-full pl-9 pr-4 py-2.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
                     />
@@ -581,7 +600,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated, ca
                     const displayPrice = basePrice + (selectedVariant ? Number(selectedVariant.extra_price) : 0);
 
                     return (
-                        <div key={p.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden hover:border-gray-300 dark:hover:border-gray-600 transition-all group flex flex-col shadow-sm dark:shadow-none">
+                        <div key={p.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden hover:border-gray-300 dark:hover:border-gray-600 transition-all group flex flex-col shadow-theme">
                             <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative overflow-hidden">
                                 <SafeImage 
                                     src={imgSrc} 
@@ -649,7 +668,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated, ca
 
             {/* Pagination Controls */}
             {total > pageSize && (
-                <div className="mt-6 mb-20 flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-2xl shadow-sm">
+                <div className="mt-6 mb-20 flex items-center justify-between bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-4 rounded-2xl shadow-theme">
                     <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
                         Mostrando <span className="text-gray-900 dark:text-white">{Math.min(products.length, pageSize)}</span> de <span className="text-gray-900 dark:text-white">{total}</span> productos
                     </div>

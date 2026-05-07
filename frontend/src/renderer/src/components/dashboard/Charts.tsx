@@ -106,12 +106,17 @@ export const ActivityChart: React.FC<ChartProps> = ({ data, labels, label = 'Act
         backgroundColor: (context: any) => {
           const ctx = context.chart.ctx;
           const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-          gradient.addColorStop(0, color.replace('1)', '0.5)'));
-          gradient.addColorStop(1, color.replace('1)', '0.0)'));
+          gradient.addColorStop(0, 'rgba(99, 102, 241, 0.4)');
+          gradient.addColorStop(0.5, 'rgba(168, 85, 247, 0.2)');
+          gradient.addColorStop(1, 'rgba(236, 72, 153, 0.0)');
           return gradient;
         },
         fill,
-        borderWidth: 2,
+        borderWidth: 3,
+        pointBackgroundColor: '#fff',
+        pointBorderColor: 'rgba(99, 102, 241, 1)',
+        pointHoverBackgroundColor: 'rgba(99, 102, 241, 1)',
+        pointHoverBorderColor: '#fff',
       },
     ],
   };
@@ -150,8 +155,22 @@ export const PerformanceChart: React.FC<ChartProps> = ({ data, labels }) => {
       {
         label: 'Rendimiento',
         data,
-        backgroundColor: 'rgba(59, 130, 246, 0.8)',
-        hoverBackgroundColor: 'rgba(59, 130, 246, 1)',
+        backgroundColor: [
+          'rgba(59, 130, 246, 0.8)',
+          'rgba(168, 85, 247, 0.8)',
+          'rgba(236, 72, 153, 0.8)',
+          'rgba(245, 158, 11, 0.8)',
+          'rgba(16, 185, 129, 0.8)',
+          'rgba(99, 102, 241, 0.8)',
+        ],
+        hoverBackgroundColor: [
+          'rgba(59, 130, 246, 1)',
+          'rgba(168, 85, 247, 1)',
+          'rgba(236, 72, 153, 1)',
+          'rgba(245, 158, 11, 1)',
+          'rgba(16, 185, 129, 1)',
+          'rgba(99, 102, 241, 1)',
+        ],
       },
     ],
   };

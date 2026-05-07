@@ -53,14 +53,15 @@ const StatCardV2: React.FC<{
   icon: React.ElementType; 
   color: string;
 }> = ({ title, value, subValue, trend, icon: Icon, color }) => (
-  <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 transition-all hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-lg hover:shadow-black/5 dark:hover:shadow-black/50 group">
-    <div className={`absolute top-0 right-0 p-4 opacity-5 dark:opacity-10 group-hover:opacity-10 dark:group-hover:opacity-20 transition-opacity ${color}`}>
-      <Icon size={80} />
+  <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-6 transition-all hover:border-gray-300 dark:hover:border-gray-700 shadow-theme group hover:scale-[1.01]">
+    <div className={`absolute top-0 left-0 w-full h-1 ${color.split(' ')[0].replace('text-', 'bg-')} opacity-70`} />
+    <div className={`absolute -top-2 -right-2 p-0 opacity-[0.12] dark:opacity-10 group-hover:opacity-[0.18] dark:group-hover:opacity-20 transition-all duration-500 ${color.split(' ')[0]} -rotate-12 group-hover:rotate-0 group-hover:scale-110`}>
+      <Icon size={110} strokeWidth={1.5} />
     </div>
     <div className="relative z-10">
       <div className="flex items-center gap-3 mb-4">
-        <div className={`p-2 rounded-lg bg-gray-100 dark:bg-gray-800 ${color} bg-opacity-10 text-opacity-100`}>
-          <Icon size={20} className={color.replace('text-', 'text-').replace('bg-', '')} /> 
+        <div className={`p-2.5 rounded-xl bg-gradient-to-br ${color.split(' ')[0].replace('text-', 'from-')}/20 ${color.split(' ')[0].replace('text-', 'to-')}/5 dark:bg-gray-800 ${color.split(' ')[0]} shadow-sm shadow-black/5`}>
+          <Icon size={22} className={color.split(' ')[0].replace('text-', 'text-')} strokeWidth={2.5} /> 
         </div>
         <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</h3>
       </div>
@@ -106,7 +107,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, 
             subValue={`+${stats.clientsNewMonth} nuevos`}
             trend="up"
             icon={Users}
-            color="text-blue-400"
+            color="text-blue-600 dark:text-blue-400"
           />
         </div>
         <div>
@@ -116,7 +117,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, 
             subValue="Por despachar"
             trend="neutral"
             icon={MonitorCheck}
-            color="text-amber-400"
+            color="text-amber-600 dark:text-amber-400"
           />
         </div>
         <div>
@@ -126,7 +127,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, 
             subValue="En tránsito"
             trend="up"
             icon={Clock}
-            color="text-emerald-400"
+            color="text-emerald-600 dark:text-emerald-400"
           />
         </div>
         <div>
@@ -135,7 +136,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, 
             value={Number(stats.salesAmount).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
             trend="up"
             icon={Activity}
-            color="text-purple-400"
+            color="text-purple-600 dark:text-purple-400"
           />
         </div>
       </div>
@@ -143,7 +144,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, 
       {/* Section 2: Charts & System Health */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Chart */}
-        <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 shadow-sm dark:shadow-none">
+        <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-6 shadow-theme">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Actividad de Ventas (Últimos 7 días)</h3>
           </div>
@@ -154,7 +155,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, 
 
         {/* Sales Status Breakdown */}
         <div className="space-y-4">
-          <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 h-full flex flex-col shadow-sm dark:shadow-none">
+          <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-6 h-full flex flex-col shadow-theme">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Estado de Pedidos</h3>
             <div className="space-y-3 flex-1">
               <SystemHealthCard label="Pendientes" status="warning" value={stats.statusCounts.pending.toString()} icon={Clock} />
@@ -176,7 +177,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, 
       {/* Section 3: Aggregated Data (Top Products & Status) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Top Products Table */}
-        <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm dark:shadow-none">
+        <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 overflow-hidden shadow-theme">
           <div className="p-6 border-b border-gray-200 dark:border-gray-800">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Productos Más Vendidos</h3>
           </div>
@@ -215,7 +216,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, 
         </div>
 
         {/* Order Status Summary */}
-        <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 shadow-sm dark:shadow-none">
+        <div className="rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-6 shadow-theme">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Resumen de Pedidos</h3>
           <div className="space-y-6">
             {[

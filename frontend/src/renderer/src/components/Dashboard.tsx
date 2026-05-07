@@ -245,6 +245,35 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
   }, [token]);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Solo disparar si se presiona Ctrl y no estamos en un input/textarea
+      if (e.ctrlKey && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
+        const key = e.key;
+        const mapping: Record<string, string> = {
+          '1': 'ventas',
+          '2': 'caja',
+          '3': 'pedidos',
+          '4': 'clientes',
+          '5': 'productos',
+          '6': 'dashboard',
+          '7': 'users_empleados',
+          '8': 'configuracion_empresa',
+          '9': 'ventas_estadisticas',
+          '0': 'web'
+        };
+
+        if (mapping[key]) {
+          e.preventDefault();
+          navigate(mapping[key]);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [token, permissions, role]); // Dependencias para asegurar canAccess actualizado
+
+  useEffect(() => {
     let active = true;
     const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     let intervalId: ReturnType<typeof setInterval>;
@@ -302,7 +331,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
   }, [role, apiBase]);
 
   return (
-    <div className="h-full bg-gradient-to-br from-blue-100 via-blue-50/50 to-blue-100 dark:bg-none dark:bg-[#0B0D14] flex overflow-hidden transition-colors duration-300">
+    <div className="h-full bg-white dark:bg-none dark:bg-[#0B0D14] flex overflow-hidden transition-colors duration-300">
         <Sidebar 
           view={view} 
           setView={navigate} 

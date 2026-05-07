@@ -372,7 +372,7 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, rol
   const StatCard = ({ label, value, icon: Icon, color, filterKey, onClick, isActive }: any) => (
     <div
       onClick={onClick}
-      className={`rounded-xl p-4 flex items-center justify-between shadow-sm transition-all group ${
+      className={`rounded-xl p-4 flex items-center justify-between shadow-theme transition-all group ${
         isActive
           ? 'ring-2 ring-blue-500 border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-500/10'
           : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700'
@@ -463,7 +463,7 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, rol
       )}
 
       {/* Main Content */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-sm">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl overflow-hidden shadow-theme">
         {/* Toolbar */}
         <div className="p-5 border-b border-gray-200 dark:border-gray-800 flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-gray-50 dark:bg-gray-900/50">
           <div className="flex items-center gap-3">
@@ -735,7 +735,7 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, rol
       {/* Product Details Modal */}
       {viewing && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-3xl shadow-2xl scale-100 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-3xl shadow-theme scale-100 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-100 dark:bg-blue-500/10 rounded-lg">

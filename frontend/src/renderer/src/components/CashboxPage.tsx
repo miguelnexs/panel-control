@@ -20,9 +20,12 @@ import {
   ChevronRight,
   Building,
   Edit,
-  Trash2
+  Trash2,
+  Download
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Transaction {
   id: number;
@@ -72,6 +75,7 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
+  const [deletingSession, setDeletingSession] = useState<CashSession | null>(null);
   
   const [moveForm, setMoveForm] = useState({
     type: 'income',
@@ -155,21 +159,16 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
     }
   }, [token]);
 
-  const handleOpenBox = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget as HTMLFormElement);
-    const initial_cash = formData.get('initial_cash');
-    const initial_bank = formData.get('initial_bank');
-    
+  const handleOpenBox = async () => {
     setSaving(true);
     try {
       const res = await fetch(`${apiBase}/api/cashbox/sessions/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ 
-            initial_cash: initial_cash || 0, 
-            initial_bank: initial_bank || 0,
-            notes: 'Apertura de caja' 
+            initial_cash: 0, 
+            initial_bank: 0,
+            notes: 'Apertura de caja rápida' 
         })
       });
       if (res.ok) {
@@ -236,6 +235,29 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
     }
   };
 
+  const handleDeleteSession = async (id: number) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${apiBase}/api/cashbox/sessions/${id}/`, {
+        method: 'DELETE',
+        headers: authHeaders
+      });
+      if (res.ok) {
+        setMsg({ type: 'success', text: 'Turno eliminado correctamente' });
+        fetchHistory();
+        if (currentSession?.id === id) setCurrentSession(null);
+        setDeletingSession(null);
+      } else {
+        const data = await res.json();
+        setMsg({ type: 'error', text: data.detail || 'Error al eliminar turno' });
+      }
+    } catch (e) {
+      setMsg({ type: 'error', text: 'Error de conexión' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleUpdateTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingTransaction) return;
@@ -273,6 +295,77 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
     setShowEditModal(true);
   };
 
+  const generatePDFReport = (session: CashSession) => {
+    const doc = new jsPDF();
+    const now = new Date();
+    
+    // Header
+    doc.setFontSize(22);
+    doc.setTextColor(40, 40, 40);
+    doc.text("Reporte de Cierre de Caja", 14, 22);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Fecha de impresión: ${now.toLocaleString()}`, 14, 30);
+    doc.text(`Sesión ID: #${session.id}`, 160, 30);
+    
+    // Summary Info
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Resumen de Turno", 14, 45);
+    
+    const summaryData = [
+        ["Usuario", session.user_username],
+        ["Apertura", new Date(session.start_time).toLocaleString()],
+        ["Cierre", session.end_time ? new Date(session.end_time).toLocaleString() : 'Cierre forzado'],
+        ["Saldo Final Efectivo", formatCurrency(session.actual_cash)],
+        ["Saldo Final Banco", formatCurrency(session.actual_bank)],
+        ["Total de Turno", formatCurrency(Number(session.actual_cash) + Number(session.actual_bank))],
+        ["Notas", session.notes || "Sin observaciones"]
+    ];
+
+    autoTable(doc, {
+        startY: 50,
+        head: [["Concepto", "Valor"]],
+        body: summaryData,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] }
+    });
+
+    // Transactions Table
+    const finalY = (doc as any).lastAutoTable.finalY + 15;
+    doc.text("Detalle de Movimientos (Entradas y Salidas)", 14, finalY);
+
+    const txData = (session.transactions || []).map(t => [
+        new Date(t.created_at).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}),
+        getTransactionLabel(t.type),
+        t.description,
+        ['expense', 'transfer_out'].includes(t.type) ? '-' + formatCurrency(t.amount) : '+' + formatCurrency(t.amount)
+    ]);
+
+    autoTable(doc, {
+        startY: finalY + 5,
+        head: [["Hora", "Tipo", "Descripción", "Monto"]],
+        body: txData,
+        theme: 'grid',
+        headStyles: { fillColor: [31, 41, 55] },
+        columnStyles: {
+            3: { halign: 'right', fontStyle: 'bold' }
+        }
+    });
+
+    // Footer
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Página ${i} de ${pageCount} - Generado por Assent Dashboard`, 14, doc.internal.pageSize.height - 10);
+    }
+
+    doc.save(`Cierre_Caja_#${session.id}_${now.toISOString().split('T')[0]}.pdf`);
+  };
+
   const handleCloseBox = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentSession) return;
@@ -288,7 +381,16 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
         })
       });
       if (res.ok) {
-        setMsg({ type: 'success', text: 'Caja cerrada exitosamente' });
+        const closedSession = await res.json();
+        // Since the backend response for close might not include the full transaction list,
+        // we use our local currentSession data but update the status/notes from response.
+        const sessionToReport = { ...currentSession, ...closedSession };
+        
+        setMsg({ type: 'success', text: 'Caja cerrada exitosamente. Generando reporte PDF...' });
+        
+        // Generate PDF
+        generatePDFReport(sessionToReport);
+        
         setCurrentSession(null);
         fetchHistory();
         setShowCloseModal(false);
@@ -355,10 +457,11 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
         <div className="flex items-center gap-3">
           {!currentSession ? (
             <Button 
-                onClick={() => setShowOpenModal(true)}
+                onClick={handleOpenBox}
+                disabled={saving}
                 className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-6 rounded-2xl font-bold shadow-lg shadow-emerald-900/20"
             >
-                <Plus className="mr-2 h-5 w-5" /> Abrir Nueva Caja
+                <Plus className="mr-2 h-5 w-5" /> {saving ? 'Abriendo...' : 'Abrir Caja'}
             </Button>
           ) : (
             <Button 
@@ -496,13 +599,6 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
                                         </div>
                                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
                                             <button 
-                                                onClick={() => openEditModal(t)}
-                                                className="p-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 rounded-lg transition-colors"
-                                                title="Editar"
-                                            >
-                                                <Edit size={14} />
-                                            </button>
-                                            <button 
                                                 onClick={() => setDeletingTransaction(t)}
                                                 className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
                                                 title="Eliminar"
@@ -533,10 +629,11 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
                 <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Caja Cerrada</h2>
                 <p className="text-gray-500 dark:text-gray-400 mb-8">Debes iniciar una nueva sesión de caja para registrar ventas y movimientos hoy.</p>
                 <Button 
-                    onClick={() => setShowOpenModal(true)}
+                    onClick={handleOpenBox}
+                    disabled={saving}
                     className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-6 rounded-2xl font-bold shadow-xl shadow-blue-900/20"
                 >
-                    Iniciar Turno de Caja
+                    {saving ? 'Iniciando...' : 'Iniciar Turno de Caja'}
                 </Button>
             </div>
         </div>
@@ -555,8 +652,7 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
                       <tr className="bg-gray-50/50 dark:bg-gray-800/30">
                           <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-500">Sesión / Fecha</th>
                           <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-500">Usuario</th>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-500 text-right">Efectivo Final</th>
-                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-500 text-right">Banco Final</th>
+                          <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-500 text-right">Total Turno</th>
                           <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-gray-500 text-right">Estado</th>
                           <th className="px-6 py-4"></th>
                       </tr>
@@ -583,10 +679,7 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
                                   <span className="text-xs font-bold text-gray-600 dark:text-gray-400">{s.user_username}</span>
                               </td>
                               <td className="px-6 py-4 text-right">
-                                  <span className="text-xs font-bold text-gray-500">{formatCurrency(s.actual_cash)}</span>
-                              </td>
-                              <td className="px-6 py-4 text-right">
-                                  <span className="text-xs font-black text-gray-900 dark:text-white">{formatCurrency(s.actual_bank)}</span>
+                                  <span className="text-sm font-black text-gray-900 dark:text-white">{formatCurrency(Number(s.actual_cash) + Number(s.actual_bank))}</span>
                               </td>
                               <td className="px-6 py-4 text-right">
                                   {s.status === 'closed' ? (
@@ -596,7 +689,16 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
                                   )}
                               </td>
                               <td className="px-6 py-4 text-right">
-                                  <ChevronRight className="w-5 h-5 text-gray-300 dark:text-gray-600 group-hover:text-blue-500 transition-colors ml-auto" />
+                                  <div className="flex items-center justify-end gap-2">
+                                      <button 
+                                          onClick={(e) => { e.stopPropagation(); setDeletingSession(s); }}
+                                          className="p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10 text-gray-300 hover:text-rose-600 dark:hover:text-rose-400 transition-all opacity-0 group-hover:opacity-100"
+                                          title="Eliminar Turno"
+                                      >
+                                          <Trash2 size={16} />
+                                      </button>
+                                      <ChevronRight className="w-5 h-5 text-gray-300 dark:text-gray-600 group-hover:text-blue-500 transition-colors" />
+                                  </div>
                               </td>
                           </tr>
                       ))}
@@ -634,6 +736,13 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
                 ) : (
                   <span className="text-[10px] font-black px-2.5 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-full uppercase tracking-widest">Cerrada</span>
                 )}
+                <button 
+                    onClick={() => generatePDFReport(selectedSession)}
+                    className="p-2 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl text-blue-600 dark:text-blue-400 transition-colors"
+                    title="Descargar Reporte PDF"
+                >
+                    <Download size={20} />
+                </button>
                 <button onClick={() => setSelectedSession(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-gray-500 dark:text-gray-400">
                   <X size={20} />
                 </button>
@@ -674,7 +783,6 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
                       <span className="text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wide">Efectivo</span>
                     </div>
                     {[
-                      { label: 'Inicial', value: selectedSession.initial_cash },
                       { label: 'Esperado', value: selectedSession.expected_cash },
                       { label: 'Contado Real', value: selectedSession.actual_cash, highlight: true },
                     ].map(row => (
@@ -706,7 +814,6 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
                       <span className="text-xs font-black text-gray-700 dark:text-gray-300 uppercase tracking-wide">Banco / Transferencia</span>
                     </div>
                     {[
-                      { label: 'Inicial', value: selectedSession.initial_bank },
                       { label: 'Esperado', value: selectedSession.expected_bank },
                       { label: 'Contado Real', value: selectedSession.actual_bank, highlight: true },
                     ].map(row => (
@@ -991,6 +1098,41 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
                   className="flex-1 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium shadow-lg shadow-rose-900/20 transition-all transform hover:scale-[1.02] disabled:opacity-50"
                 >
                   {saving ? 'Eliminando...' : 'Eliminar ahora'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal for Sessions */}
+      {deletingSession && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-md shadow-2xl scale-100 animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-rose-100 dark:bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8 text-rose-600 dark:text-rose-500" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Eliminar historial de turno?</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
+                Estás a punto de eliminar el registro del turno <span className="font-bold text-gray-900 dark:text-white">#{deletingSession.id}</span>. 
+                <br/><br/>
+                <span className="text-rose-600 font-bold text-xs uppercase tracking-widest">Atención:</span> Esta acción borrará permanentemente los datos de este cierre, pero no afectará las ventas ya registradas.
+              </p>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setDeletingSession(null)}
+                  className="flex-1 px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={() => handleDeleteSession(deletingSession.id)}
+                  disabled={saving}
+                  className="flex-1 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium shadow-lg shadow-rose-900/20 transition-all transform hover:scale-[1.02] disabled:opacity-50"
+                >
+                  {saving ? 'Eliminando...' : 'Eliminar Turno'}
                 </button>
               </div>
             </div>

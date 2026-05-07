@@ -151,7 +151,7 @@ const App = () => {
   };
 
   return (
-    <div className="relative h-screen overflow-hidden bg-[#0B0D14]">
+    <div className="relative h-screen overflow-hidden bg-theme-background transition-colors duration-300">
       <TitleBar />
       <div className="h-full w-full overflow-hidden transition-colors duration-300 pt-10">
         {token ? (

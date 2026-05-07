@@ -20,18 +20,18 @@ const TitleBar: React.FC = () => {
 
   return (
     <div 
-      className="fixed top-0 left-0 right-0 h-10 flex items-center justify-between select-none z-[2000] bg-[#0B0D14]/80 backdrop-blur-xl border-b border-white/5" 
+      className="fixed top-0 left-0 right-0 h-10 flex items-center justify-between select-none z-[2000] bg-white/80 dark:bg-[#0B0D14]/80 backdrop-blur-xl border-b border-gray-100 dark:border-white/5" 
       style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
     >
       {/* Left side: App Info */}
       <div className="flex items-center gap-3 px-4 h-full">
-        <div className="flex items-center justify-center w-5 h-5 rounded-md bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/20">
-          <Layout size={12} className="text-white" />
+        <div className="flex items-center justify-center w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/40 transition-transform hover:scale-110">
+          <Layout size={14} className="text-white" />
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-bold tracking-widest text-white/90 uppercase">Asenting</span>
-          <div className="w-1 h-1 rounded-full bg-white/20" />
-          <span className="text-[11px] font-medium text-white/50">Dashboard Principal</span>
+          <span className="text-[11px] font-bold tracking-widest text-theme-text dark:text-white/90 uppercase">Asenting</span>
+          <div className="w-1 h-1 rounded-full bg-theme-text/20 dark:bg-white/20" />
+          <span className="text-[11px] font-medium text-theme-textSecondary dark:text-white/50">Dashboard Principal</span>
         </div>
       </div>
 
@@ -43,7 +43,7 @@ const TitleBar: React.FC = () => {
         {/* Minimize */}
         <button 
           onClick={() => handleAction('minimize')}
-          className="w-12 h-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/5 transition-colors group"
+          className="w-12 h-full flex items-center justify-center text-theme-textSecondary dark:text-white/40 hover:text-theme-text dark:hover:text-white hover:bg-theme-text/5 dark:hover:bg-white/5 transition-colors group"
         >
           <Minus size={16} className="transition-transform group-hover:scale-x-125" />
         </button>
@@ -51,7 +51,7 @@ const TitleBar: React.FC = () => {
         {/* Maximize/Restore */}
         <button 
           onClick={() => handleAction('maximize')}
-          className="w-12 h-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/5 transition-colors group"
+          className="w-12 h-full flex items-center justify-center text-theme-textSecondary dark:text-white/40 hover:text-theme-text dark:hover:text-white hover:bg-theme-text/5 dark:hover:bg-white/5 transition-colors group"
         >
           {isMaximized ? (
             <Copy size={14} className="transition-transform group-hover:rotate-12" />
@@ -63,7 +63,7 @@ const TitleBar: React.FC = () => {
         {/* Close */}
         <button 
           onClick={() => handleAction('close')}
-          className="w-12 h-full flex items-center justify-center text-white/40 hover:text-white hover:bg-red-500 transition-colors group"
+          className="w-12 h-full flex items-center justify-center text-theme-textSecondary dark:text-white/40 hover:text-white hover:bg-red-500 transition-colors group"
         >
           <X size={18} className="transition-transform group-hover:rotate-90" />
         </button>

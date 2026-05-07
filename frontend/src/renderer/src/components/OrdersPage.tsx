@@ -10,6 +10,7 @@ import {
   DollarSign, 
   Package, 
   TrendingUp, 
+  TrendingDown,
   Clock, 
   CheckCircle, 
   XCircle, 
@@ -20,8 +21,12 @@ import {
   MapPin,
   CreditCard,
   Printer,
-  Mail
+  Mail,
+  FileText,
+  ChevronDown
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 import SyncStatusBanner from './SyncStatusBanner';
 import SafeImage from './SafeImage';
@@ -428,12 +433,14 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
     const totalOrders = total;
     const amountSum = orders.reduce((acc, o) => acc + Number(o.total_amount || 0), 0);
     const now = new Date();
-    const todayCount = orders.filter((o) => {
+    const todayOrders = orders.filter((o) => {
       const d = new Date(o.created_at);
       return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
-    }).length;
-    const pendingCount = orders.filter(o => o.status === 'pending').length;
-    return { totalOrders, amountSum, todayCount, pendingCount };
+    });
+    const todayCount = todayOrders.length;
+    const todayAmount = todayOrders.reduce((acc, o) => acc + Number(o.total_amount || 0), 0);
+    const pendingCount = orders.filter(o => ['pending', 'apartado', 'processing'].includes(o.status || '')).length;
+    return { totalOrders, amountSum, todayCount, pendingCount, todayAmount };
   }, [orders, total]);
 
   const StatCard = ({ label, value, icon: Icon, color, subValue }: any) => (
@@ -451,16 +458,19 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
     </div>
   );
 
+  const [showReportsMenu, setShowReportsMenu] = useState(false);
+  
   const getStatusColor = (status: string = 'pending') => {
     switch(status.toLowerCase()) {
       case 'completed':
-      case 'delivered': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20';
-      case 'pending': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20';
+      case 'delivered': return 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20';
+      case 'pending': return 'bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20';
+      case 'apartado': return 'bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-500/20';
       case 'canceled':
-      case 'cancelled': return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20';
-      case 'processing': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20';
-      case 'shipped': return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20';
-      default: return 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20';
+      case 'cancelled': return 'bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20';
+      case 'processing': return 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20';
+      case 'shipped': return 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20';
+      default: return 'bg-gray-100 dark:bg-gray-500/10 text-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-500/20';
     }
   };
 
@@ -605,6 +615,97 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
     }
   };
 
+  const downloadReport = async (period: 'day' | 'month' | 'year') => {
+    try {
+      setLoading(true);
+      const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+      // Buscamos una cantidad grande para cubrir el periodo (en un sistema real se filtraría por fecha en el backend)
+      const response = await fetch(`${apiBase}/sales/list/?page_size=1000`, { headers });
+      const data = await response.json();
+      const allOrders = data.results || data;
+
+      const now = new Date();
+      const filtered = allOrders.filter((o: any) => {
+        const d = new Date(o.created_at);
+        if (period === 'day') {
+          return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+        } else if (period === 'month') {
+          return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+        } else if (period === 'year') {
+          return d.getFullYear() === now.getFullYear();
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        alert('No se encontraron pedidos para este periodo.');
+        return;
+      }
+
+      const doc = new jsPDF();
+      const periodLabel = period === 'day' ? 'Diario' : period === 'month' ? 'Mensual' : 'Anual';
+      
+      // Header
+      doc.setFillColor(30, 41, 59);
+      doc.rect(0, 0, 210, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.setFont('helvetica', 'bold');
+      doc.text('REPORTE DE PEDIDOS', 14, 25);
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`TIPO: ${periodLabel.toUpperCase()}`, 14, 33);
+      doc.text(`FECHA GENERACIÓN: ${new Date().toLocaleString()}`, 120, 33);
+
+      const tableData = filtered.map((o: any) => [
+        o.order_number,
+        new Date(o.created_at).toLocaleDateString(),
+        o.client?.full_name || 'N/A',
+        getStatusLabel(o.status),
+        o.payment_method === 'cash' ? 'Efectivo' : o.payment_method === 'transfer' ? 'Transferencia' : 'Mixto',
+        new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(o.total_amount)
+      ]);
+
+      autoTable(doc, {
+        startY: 50,
+        head: [['Nº Orden', 'Fecha', 'Cliente', 'Estado', 'Método Pago', 'Total']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255], fontStyle: 'bold' },
+        styles: { fontSize: 9, cellPadding: 3 },
+        columnStyles: {
+          5: { halign: 'right', fontStyle: 'bold' }
+        }
+      });
+
+      const totalAmount = filtered.reduce((acc: number, o: any) => acc + Number(o.total_amount), 0);
+      const finalY = (doc as any).lastAutoTable.finalY + 10;
+
+      doc.setFillColor(248, 250, 252);
+      doc.rect(130, finalY, 66, 20, 'F');
+      doc.setDrawColor(226, 232, 240);
+      doc.rect(130, finalY, 66, 20, 'S');
+
+      doc.setTextColor(71, 85, 105);
+      doc.setFontSize(10);
+      doc.text('TOTAL PERIODO:', 135, finalY + 8);
+      
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(totalAmount), 135, finalY + 16);
+
+      doc.save(`Reporte_Pedidos_${periodLabel}_${now.toISOString().split('T')[0]}.pdf`);
+    } catch (err) {
+      console.error(err);
+      alert('Error al generar el reporte');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const mediaUrl = (path: string | undefined) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
@@ -640,9 +741,9 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
           color={{ bg: 'bg-blue-500', text: 'text-blue-500' }} 
         />
         <StatCard 
-          label="Ventas Totales" 
-          value={stats.amountSum.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })} 
-          icon={DollarSign} 
+          label="Ventas del Día" 
+          value={stats.todayAmount.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })} 
+          icon={TrendingUp} 
           color={{ bg: 'bg-emerald-500', text: 'text-emerald-500' }} 
         />
         <StatCard 
@@ -703,6 +804,49 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
 
             {/* Actions */}
             <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-800 pl-2 ml-2">
+              <div className="relative">
+                <button 
+                  onClick={() => setShowReportsMenu(!showReportsMenu)}
+                  className={`flex items-center gap-2 px-3 py-2 ${showReportsMenu ? 'bg-indigo-700' : 'bg-indigo-600'} hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition-all shadow-sm`}
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Reportes</span>
+                  <ChevronDown className={`w-3 h-3 opacity-60 transition-transform ${showReportsMenu ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {showReportsMenu && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowReportsMenu(false)} 
+                    />
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl animate-in fade-in zoom-in duration-200 z-50 overflow-hidden">
+                      <button 
+                        onClick={() => { downloadReport('day'); setShowReportsMenu(false); }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 flex items-center gap-3 transition-colors"
+                      >
+                        <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                        Reporte Diario
+                      </button>
+                      <button 
+                        onClick={() => { downloadReport('month'); setShowReportsMenu(false); }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 flex items-center gap-3 border-t border-gray-100 dark:border-gray-700 transition-colors"
+                      >
+                        <div className="w-2 h-2 rounded-full bg-blue-500" />
+                        Reporte Mensual
+                      </button>
+                      <button 
+                        onClick={() => { downloadReport('year'); setShowReportsMenu(false); }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 flex items-center gap-3 border-t border-gray-100 dark:border-gray-700 transition-colors"
+                      >
+                        <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                        Reporte Anual
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+
               <button onClick={loadOrders} className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title="Recargar">
                 <RefreshCw className="w-4 h-4" />
               </button>
@@ -750,22 +894,22 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
                         {o.payment_method === 'cash' && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
                             Efectivo
                           </span>
                         )}
                         {o.payment_method === 'transfer' && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20">
                             Transferencia
                           </span>
                         )}
                         {o.payment_method === 'mixed' && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-200 dark:border-purple-500/20">
                             Mixto
                           </span>
                         )}
                         {!o.payment_method && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
                             Sin especificar
                           </span>
                         )}

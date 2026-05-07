@@ -315,7 +315,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
   const tooltipClass = collapsed ? 'absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap px-2 py-1 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-xs shadow-xl border border-gray-200 dark:border-white/10 opacity-0 group-hover:opacity-100 pointer-events-none z-50' : 'hidden'
   // Use padding transition for centering instead of justify-content change to avoid snapping
   const itemBase = `group relative w-full flex items-center ${collapsed ? 'justify-center px-0 gap-0' : 'px-2 gap-2'} py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-300 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white`
-  const activeClass = 'bg-gray-100 dark:bg-white/5 text-gray-900 dark:text-white shadow-sm ring-1 ring-gray-200 dark:ring-white/10'
+  const activeClass = 'bg-blue-50/80 dark:bg-blue-600/10 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-blue-100 dark:ring-blue-500/20'
   const toneClasses = (key: string) => {
     if (key === 'dashboard') return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-700 dark:group-hover:text-blue-300'
     if (key === 'users') return 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 group-hover:bg-cyan-500/20 group-hover:text-cyan-700 dark:group-hover:text-cyan-300'
@@ -339,7 +339,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
 
   return (
     <aside 
-      className={`${asideClass} shrink-0 bg-blue-50/50 dark:bg-[#0B0D14] border-r border-blue-100 dark:border-white/5 text-gray-900 dark:text-gray-200 flex flex-col relative z-50 h-full transition-all duration-300 ease-in-out`}
+      className={`${asideClass} shrink-0 bg-white dark:bg-[#0B0D14] border-r border-gray-100 dark:border-white/5 text-gray-900 dark:text-gray-200 flex flex-col relative z-50 h-full transition-all duration-300 ease-in-out`}
     >
       <style>{`
         .sidebar-scrollbar::-webkit-scrollbar {
@@ -364,7 +364,10 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
       `}</style>
       <div className={`px-3 py-3 flex items-center ${collapsed ? 'justify-center flex-col gap-2' : 'justify-between'} shrink-0 h-auto min-h-[56px]`}>
         <div className={`flex items-center overflow-hidden transition-all duration-300 ${collapsed ? 'justify-center w-full gap-0' : 'gap-3'}`}>
-          <img src={asentingLogo} alt="Asenting" className="w-8 h-8 object-contain drop-shadow-lg shrink-0" />
+          <div className="relative">
+            <div className="absolute inset-0 bg-blue-500/20 blur-xl rounded-full dark:hidden" />
+            <img src={asentingLogo} alt="Asenting" className="relative w-9 h-9 object-contain drop-shadow-[0_0_8px_rgba(59,130,246,0.5)] shrink-0 transition-transform hover:scale-110" />
+          </div>
           <div className={`${textClass} flex flex-col`}>
              <div className="flex items-center gap-2">
                 <span className="text-base font-semibold text-gray-900 dark:text-white tracking-tight leading-none">Asenting</span>
@@ -427,95 +430,36 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
             <span className={tooltipClass}>Solicitudes Web</span>
           </button>
         )}
-        {(canAccess('ventas') || canAccess('ventas_estadisticas') || canAccess('caja')) && (
-        <div className="relative">
-          <button className={`${itemBase} ${['ventas', 'caja', 'ventas_estadisticas'].includes(view) ? activeClass : ''}`} onClick={toggleVentasMenu} title="Ventas">
-            {['ventas', 'caja', 'ventas_estadisticas'].includes(view) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-            <span className={`${iconBoxClass} ${toneClasses('ventas')} ${['ventas', 'caja', 'ventas_estadisticas'].includes(view) ? 'ring-1 ring-white/20' : ''}`}>
-              <Icon name="sales" className="w-4 h-4" />
-            </span>
-            <span className={textClass}>Ventas</span>
-            <span className={tooltipClass}>Ventas</span>
-            {!collapsed && (
-              <svg className={`w-3.5 h-3.5 ml-auto text-gray-500 dark:text-gray-400 transition-transform ${ventasMenuPos || isVentasOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            )}
-          </button>
-          
-          {ventasMenuPos && collapsed && (
-            <div 
-              style={{ 
-                position: 'fixed', 
-                top: ventasMenuPos.top, 
-                left: ventasMenuPos.left,
-                zIndex: 9999
-              }}
-              className="w-56 max-h-[70vh] overflow-y-auto thin-scrollbar bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 ml-2"
-            >
-              {canAccess('ventas') && (
-              <button 
-                onClick={(e) => { e.stopPropagation(); setView('ventas'); setVentasMenuPos(null); }} 
-                className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'ventas' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
-              >
-                <Icon name="sales" className="w-3 h-3" />
-                <span>Registrar Venta</span>
-              </button>
-              )}
-              {canAccess('ventas_estadisticas') && (
-              <button 
-                onClick={(e) => { e.stopPropagation(); setView('ventas_estadisticas'); setVentasMenuPos(null); }} 
-                className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'ventas_estadisticas' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
-              >
-                <Icon name="dashboard" className="w-3 h-3" />
-                <span>Estadísticas</span>
-              </button>
-              )}
-              {canAccess('caja') && (
-              <button 
-                onClick={(e) => { e.stopPropagation(); setView('caja'); setVentasMenuPos(null); }} 
-                className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'caja' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
-              >
-                <Icon name="sales" className="w-3 h-3" />
-                <span>Caja</span>
-              </button>
-              )}
-            </div>
-          )}
 
-          {isVentasOpen && !collapsed && (
-            <div className="mt-1 ml-1 space-y-1 bg-gray-50 dark:bg-black/20 rounded-md p-1">
-              {canAccess('ventas') && (
-              <button 
-                onClick={(e) => { e.stopPropagation(); setView('ventas'); }} 
-                className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'ventas' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
-              >
-                <Icon name="sales" className="w-4 h-4" />
-                <span>Registrar Venta</span>
-              </button>
-              )}
-              {canAccess('ventas_estadisticas') && (
-              <button 
-                onClick={(e) => { e.stopPropagation(); setView('ventas_estadisticas'); }} 
-                className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'ventas_estadisticas' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
-              >
-                <Icon name="dashboard" className="w-4 h-4" />
-                <span>Estadísticas</span>
-              </button>
-              )}
-              {canAccess('caja') && (
-              <button 
-                onClick={(e) => { e.stopPropagation(); setView('caja'); }} 
-                className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'caja' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
-              >
-                <Icon name="sales" className="w-4 h-4" />
-                <span>Caja</span>
-              </button>
-              )}
-            </div>
-          )}
+        <div className={`px-4 pt-4 pb-2 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ${collapsed ? 'hidden' : 'block'}`}>
+          Operaciones
         </div>
+
+        {/* Nueva Venta - Fast Access */}
+        {canAccess('ventas') && (
+        <button className={`${itemBase} ${view === 'ventas' ? activeClass : ''}`} onClick={() => setView('ventas')} title="Nueva Venta">
+          {view === 'ventas' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
+          <span className={`${iconBoxClass} bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ${view === 'ventas' ? 'ring-1 ring-white/20' : ''}`}>
+            <Icon name="sales" className="w-4 h-4" />
+          </span>
+          <span className={textClass}>Nueva Venta</span>
+          <span className={tooltipClass}>Nueva Venta</span>
+        </button>
         )}
+
+        {/* Caja - Fast Access */}
+        {canAccess('caja') && (
+        <button className={`${itemBase} ${view === 'caja' ? activeClass : ''}`} onClick={() => setView('caja')} title="Caja Registradora">
+          {view === 'caja' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
+          <span className={`${iconBoxClass} bg-blue-500/10 text-blue-600 dark:text-blue-400 ${view === 'caja' ? 'ring-1 ring-white/20' : ''}`}>
+            <Icon name="sales" className="w-4 h-4" />
+          </span>
+          <span className={textClass}>Caja</span>
+          <span className={tooltipClass}>Caja</span>
+        </button>
+        )}
+
+        {/* Pedidos - Fast Access */}
         {canAccess('pedidos') && (
         <button className={`${itemBase} ${view === 'pedidos' ? activeClass : ''}`} onClick={() => setView('pedidos')} title="Pedidos" aria-current={view === 'pedidos' ? 'page' : undefined}>
           {view === 'pedidos' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
@@ -530,10 +474,27 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
               </span>
             )}
           </span>
-          <span className={textClass}>Pedidos</span>
-          <span className={tooltipClass}>Pedidos</span>
+          <span className={textClass}>Historial Pedidos</span>
+          <span className={tooltipClass}>Historial Pedidos</span>
         </button>
         )}
+
+        {/* Ventas Stats Submenu */}
+        {canAccess('ventas_estadisticas') && (
+        <button className={`${itemBase} ${view === 'ventas_estadisticas' ? activeClass : ''}`} onClick={() => setView('ventas_estadisticas')} title="Estadísticas de Venta">
+          {view === 'ventas_estadisticas' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
+          <span className={`${iconBoxClass} bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ${view === 'ventas_estadisticas' ? 'ring-1 ring-white/20' : ''}`}>
+            <Icon name="dashboard" className="w-4 h-4" />
+          </span>
+          <span className={textClass}>Estadísticas</span>
+          <span className={tooltipClass}>Estadísticas</span>
+        </button>
+        )}
+
+        {/* Clientes */}
+        <div className={`px-4 pt-4 pb-2 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ${collapsed ? 'hidden' : 'block'}`}>
+          Catálogo y Clientes
+        </div>
         {canAccess('clientes') && (
         <button className={`${itemBase} ${view === 'clientes' ? activeClass : ''}`} onClick={() => setView('clientes')} title="Clientes" aria-current={view === 'clientes' ? 'page' : undefined}>
           {view === 'clientes' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
@@ -633,6 +594,9 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
           )}
         </div>
         )}
+        <div className={`px-4 pt-4 pb-2 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ${collapsed ? 'hidden' : 'block'}`}>
+          Configuración
+        </div>
         {(role === 'super_admin' || role === 'admin') && (
           <div className="relative">
             <button className={`${itemBase} ${['users', 'users_empleados', 'users_permisos', 'users_actividades', 'users_estadisticas'].includes(view) ? activeClass : ''}`} onClick={toggleUsersMenu} title="Usuarios">

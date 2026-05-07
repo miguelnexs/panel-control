@@ -24,6 +24,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } 
 import { CSS } from '@dnd-kit/utilities';
 
 import SiteEditor from './dashboard/SiteEditor';
+import SafeImage from './SafeImage';
 
 interface Category {
   id: number;
@@ -183,6 +184,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
   const [pageSize] = useState(30);
   const [totalProducts, setTotalProducts] = useState(0);
   const [productChanges, setProductChanges] = useState<Record<number, boolean>>({});
+  const [categoryChanges, setCategoryChanges] = useState<Record<number, boolean>>({});
   const [savingChanges, setSavingChanges] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
   const [editorTargetUrl, setEditorTargetUrl] = useState('');
@@ -300,12 +302,12 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
         fetch(`${apiBase}/webconfig/site-url/status/`, { headers: headersAuth }),
         fetch(`${apiBase}/webconfig/settings/`, { headers: headersAuth }),
         fetch(`${apiBase}/webconfig/payments/`, { headers: headersAuth }),
-        fetch(`${apiBase}/categories/`, { headers: headersAuth }),
+        fetch(`${apiBase}/products/categories/`, { headers: headersAuth }),
       ]);
 
       const prodsData = await prodsRes.json();
-      const vis = await visRes.json();
-      const visCats = await visCatsRes.json();
+      const visData = await visRes.json();
+      const visCatsData = await visCatsRes.json();
       const urlData = await urlRes.json();
       const settingsData = await settingsRes.json();
       const payData = await payRes.json();
@@ -315,18 +317,35 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
         setProducts(prodsData.results);
         setTotalProducts(prodsData.count || 0);
       } else {
-        setProducts(prodsData);
-        setTotalProducts(prodsData.length || 0);
+        setProducts(Array.isArray(prodsData) ? prodsData : []);
+        setTotalProducts(Array.isArray(prodsData) ? prodsData.length : 0);
       }
       
-      setCategories(catsData.results || catsData);
-      setVisible(vis);
-      setVisibleCats(visCats);
+      setCategories(Array.isArray(catsData) ? catsData : (catsData.results || []));
+
+      // Convert arrays to maps if necessary
+      const visMap: Record<number, boolean> = {};
+      if (Array.isArray(visData)) {
+        visData.forEach((v: any) => { if (v.visible) visMap[v.id] = true; });
+      } else {
+        Object.assign(visMap, visData);
+      }
+      setVisible(visMap);
+
+      const visCatsMap: Record<number, boolean> = {};
+      if (Array.isArray(visCatsData)) {
+        visCatsData.forEach((v: any) => { if (v.visible) visCatsMap[v.id] = true; });
+      } else {
+        Object.assign(visCatsMap, visCatsData);
+      }
+      setVisibleCats(visCatsMap);
+
       setUrlStatus(urlData);
       setSiteUrl(urlData.site_url || '');
       setAppSettings(settingsData);
-      setPaymentMethods(payData);
+      setPaymentMethods(Array.isArray(payData) ? payData : (payData.results || []));
       setProductChanges({});
+      setCategoryChanges({});
     } catch (e) {
       console.error("Error loading WebPageManager data", e);
     } finally {
@@ -337,14 +356,45 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
   const saveProductsChanges = async () => {
     setSavingChanges(true);
     try {
+      const items = Object.entries(productChanges).map(([id, visible]) => ({
+        product_id: Number(id),
+        visible
+      }));
+
       const res = await fetch(`${apiBase}/webconfig/visible-products/bulk-update/`, {
         method: 'POST',
         headers: headers(token),
-        body: JSON.stringify({ changes: productChanges })
+        body: JSON.stringify({ items })
       });
       if (res.ok) {
         setProductChanges({});
         setMsg({ type: 'success', text: 'Cambios de visibilidad guardados' });
+        loadData();
+      }
+    } catch (e) {
+      setMsg({ type: 'error', text: 'Error al guardar cambios' });
+    } finally {
+      setSavingChanges(false);
+    }
+  };
+
+  const saveCategoriesChanges = async () => {
+    setSavingChanges(true);
+    try {
+      const items = Object.entries(categoryChanges).map(([id, visible]) => ({
+        category_id: Number(id),
+        visible
+      }));
+
+      const res = await fetch(`${apiBase}/webconfig/visible-categories/bulk-update/`, {
+        method: 'POST',
+        headers: headers(token),
+        body: JSON.stringify({ items })
+      });
+      if (res.ok) {
+        setCategoryChanges({});
+        setMsg({ type: 'success', text: 'Cambios de categorías guardados' });
+        loadData();
       }
     } catch (e) {
       setMsg({ type: 'error', text: 'Error al guardar cambios' });
@@ -389,11 +439,9 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
   };
 
 
-  const toggleVisibleCat = async (c: Category, value: boolean) => {
+  const toggleVisibleCat = (c: Category, value: boolean) => {
     setVisibleCats((m) => ({ ...m, [c.id]: value }));
-    try {
-      await fetch(`${apiBase}/webconfig/visible-categories/${c.id}/`, { method: 'PUT', headers: headers(token), body: JSON.stringify({ active: !!value }) });
-    } catch {}
+    setCategoryChanges((prev) => ({ ...prev, [c.id]: value }));
   };
 
   const saveSiteUrl = async (e: React.FormEvent) => {
@@ -1042,14 +1090,26 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
         {/* Categorias Tab */}
         {tab === 'categorias' && (
           <div className="p-6 space-y-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-              <input 
-                value={query} 
-                onChange={(e) => setQuery(e.target.value)} 
-                className="w-full md:w-1/2 pl-9 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" 
-                placeholder="Buscar categoría..." 
-              />
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <input 
+                  value={query} 
+                  onChange={(e) => setQuery(e.target.value)} 
+                  className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50" 
+                  placeholder="Buscar categoría..." 
+                />
+              </div>
+              {Object.keys(categoryChanges).length > 0 && (
+                <button 
+                  onClick={saveCategoriesChanges}
+                  disabled={savingChanges}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium transition-all shadow-lg flex items-center gap-2"
+                >
+                  {savingChanges ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                  Guardar Cambios Categorías ({Object.keys(categoryChanges).length})
+                </button>
+              )}
             </div>
 
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>

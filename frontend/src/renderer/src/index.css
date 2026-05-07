@@ -663,6 +663,7 @@
 .bg-theme-accent { background-color: var(--color-accent); }
 .bg-theme-background { background-color: var(--color-background); }
 .bg-theme-surface { background-color: var(--color-surface); }
+.shadow-theme { box-shadow: var(--shadow-card); }
 
 .text-theme-primary { color: var(--color-primary); }
 .text-theme-secondary { color: var(--color-secondary); }
@@ -846,6 +847,7 @@
   --color-success: #059669;
   --color-warning: #d97706;
   --color-error: #dc2626;
+  --shadow-card: none;
   /* Variables específicas para sidebar */
   --color-sidebar-background: #1f2937;
   --color-sidebar-surface: #111827;
@@ -892,16 +894,17 @@
   --color-primary: #3b82f6; /* Azul más claro para tema claro */
   --color-secondary: #f3f4f6;
   --color-accent: #3b82f6; /* Azul para tema claro */
-  --color-background: #ffffff;
-  --color-surface: #f9fafb;
-  --color-text: #111827; /* Negro para tema claro */
-  --color-textSecondary: #6b7280;
-  --color-textMuted: #9ca3af;
+  --color-background: #ffffff; /* Blanco puro */
+  --color-surface: #ffffff; /* Blanco */
+  --color-text: #0f172a; /* Slate-900 */
+  --color-textSecondary: #475569; /* Slate-600 */
+  --color-textMuted: #94a3b8; /* Slate-400 */
   --color-textInverse: #ffffff;
-  --color-border: #e5e7eb;
+  --color-border: #f1f5f9; /* Gris muy claro para bordes sutiles */
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
+  --shadow-card: 0 12px 30px -10px rgba(0, 0, 0, 0.15), 0 4px 10px -5px rgba(0, 0, 0, 0.1);
   /* Variables específicas para sidebar mejorado en tema claro */
   --color-sidebar-background: #1e293b; /* Slate-800 más elegante */
   --color-sidebar-surface: #334155; /* Slate-600 */
