@@ -1003,3 +1003,49 @@ class ProductFeatureDetailView(RetrieveUpdateDestroyAPIView):
             if _get_user_role(self.request.user) != 'super_admin':
                 qs = ProductFeature.objects.none()
         return qs
+
+
+class ResolveSKUView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        sku_code = request.query_params.get('sku', '').strip()
+        if not sku_code:
+            return Response({'detail': 'SKU parameter required'}, status=400)
+            
+        tenant = _get_user_tenant(request.user)
+        
+        # 1. Search in ProductSKU first (specific color/variant combination)
+        sku_obj = ProductSKU.objects.filter(sku__iexact=sku_code, product__tenant=tenant, active=True).select_related('product', 'color', 'variant').first()
+        if sku_obj:
+            product = sku_obj.product
+            # Fetch all skus and info for the product to match what the frontend expects
+            from .api import ProductSerializer
+            prod_serializer = ProductSerializer(product, context={'request': request})
+            return Response({
+                'found': True,
+                'type': 'combination',
+                'product': prod_serializer.data,
+                'color_id': sku_obj.color_id,
+                'variant_id': sku_obj.variant_id,
+                'stock': sku_obj.stock,
+                'sku': sku_obj.sku,
+            })
+            
+        # 2. Search in main Product SKU
+        product = Product.objects.filter(sku__iexact=sku_code, tenant=tenant, active=True).first()
+        if product:
+            from .api import ProductSerializer
+            prod_serializer = ProductSerializer(product, context={'request': request})
+            return Response({
+                'found': True,
+                'type': 'product',
+                'product': prod_serializer.data,
+                'color_id': None,
+                'variant_id': None,
+                'stock': product.inventory_qty,
+                'sku': product.sku,
+            })
+            
+        return Response({'found': False, 'detail': 'SKU no encontrado'}, status=200)
+

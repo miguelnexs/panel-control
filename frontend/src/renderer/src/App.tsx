@@ -157,7 +157,6 @@ const App = () => {
         {token ? (
           <>
             <Dashboard 
-              key={token}
               token={token} 
               role={role!} 
               userId={Number(userId)} 

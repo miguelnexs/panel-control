@@ -4,27 +4,27 @@
 
 @layer base {
   :root {
-    /* Tech Store Color Palette */
-    --background: 220 20% 97%;
-    --foreground: 222 100% 14%;
+    /* Tech Store Color Palette — Modo Claro Mejorado */
+    --background: 220 18% 91%;  /* Gris azulado suave #E3E8F0 — no tan brillante */
+    --foreground: 222 47% 11%;  /* Texto oscuro con buena legibilidad */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 100% 14%;
+    --card: 0 0% 100%;           /* Cards blancas para contraste sobre el fondo */
+    --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 100% 14%;
+    --popover-foreground: 222 47% 11%;
 
     /* Primary - Corporate Blue #005BC5 */
     --primary: 212 100% 39%;
     --primary-foreground: 0 0% 100%;
 
     /* Secondary - Medium Blue #012677 */
-    --secondary: 221 98% 24%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 220 14% 86%;   /* Fondo de elementos secundarios, más visible */
+    --secondary-foreground: 222 47% 11%;
 
     /* Muted */
-    --muted: 220 20% 94%;
-    --muted-foreground: 222 30% 45%;
+    --muted: 220 16% 84%;        /* Más oscuro que antes para mejor contraste */
+    --muted-foreground: 222 22% 35%;  /* Texto secundario más visible */
 
     /* Accent - Light Blue #00B4FC */
     --accent: 196 100% 49%;
@@ -32,7 +32,7 @@
 
     /* Highlight - Cyan #17F9FF */
     --highlight: 182 100% 55%;
-    --highlight-foreground: 222 100% 14%;
+    --highlight-foreground: 222 47% 11%;
 
     /* Dark Blue #001449 */
     --navy: 222 100% 14%;
@@ -41,21 +41,21 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 20% 88%;
-    --input: 220 20% 88%;
+    --border: 220 16% 80%;      /* Bordes más visibles */
+    --input: 220 16% 80%;
     --ring: 212 100% 39%;
 
     --radius: 0.75rem;
 
     /* Gradients */
     --gradient-hero: linear-gradient(135deg, hsl(222 100% 14%) 0%, hsl(221 98% 24%) 50%, hsl(212 100% 39%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 20% 97%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 18% 91%) 100%);
     --gradient-accent: linear-gradient(90deg, hsl(196 100% 49%) 0%, hsl(182 100% 55%) 100%);
     --gradient-button: linear-gradient(135deg, hsl(212 100% 39%) 0%, hsl(196 100% 49%) 100%);
     --gradient-dark: linear-gradient(180deg, hsl(221 98% 24%) 0%, hsl(222 100% 14%) 100%);
 
-    /* Shadows */
-    --shadow-card: 0 4px 20px -4px hsl(222 100% 14% / 0.1);
+    /* Shadows — más pronunciadas para separar cards del fondo */
+    --shadow-card: 0 2px 12px -2px hsl(222 30% 20% / 0.12), 0 1px 4px hsl(222 30% 20% / 0.06);
     --shadow-button: 0 4px 14px -3px hsl(212 100% 39% / 0.4);
     --shadow-glow: 0 0 30px hsl(182 100% 55% / 0.3);
     --shadow-hover: 0 8px 30px -6px hsl(212 100% 39% / 0.3);
@@ -658,6 +658,18 @@
 }
 
 /* Clases utilitarias para usar las variables CSS */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}
 .bg-theme-primary { background-color: var(--color-primary); }
 .bg-theme-secondary { background-color: var(--color-secondary); }
 .bg-theme-accent { background-color: var(--color-accent); }
@@ -715,26 +727,6 @@
   transform: translateX(4px);
 }
 
-/* Mejoras específicas para el tema claro */
-[data-theme="light"] .sidebar-glass {
-  background: rgba(30, 41, 59, 0.98);
-  backdrop-filter: blur(25px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-}
-
-[data-theme="light"] .sidebar-item-hover:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateX(6px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-}
-
-[data-theme="light"] .sidebar-item-active {
-  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-  transform: translateX(6px);
-}
-
 /* Animaciones suaves para el sidebar */
 .sidebar-nav-item {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -766,19 +758,6 @@
 .compact-mode .h-16 { height: 3rem; }
 .compact-mode .gap-4 { gap: 0.75rem; }
 .compact-mode .gap-6 { gap: 1rem; }
-
-/* Animaciones */
-.animations-enabled .transition-all {
-  transition: all 0.3s ease;
-}
-
-.animations-enabled .hover\:scale-105:hover {
-  transform: scale(1.05);
-}
-
-.animations-enabled .hover\:scale-110:hover {
-  transform: scale(1.1);
-}
 
 /* Sin animaciones */
 *:not(.animations-enabled *) {
@@ -848,14 +827,11 @@
   --color-warning: #d97706;
   --color-error: #dc2626;
   --shadow-card: none;
-  /* Variables específicas para sidebar */
   --color-sidebar-background: #1f2937;
   --color-sidebar-surface: #111827;
   --color-sidebar-border: #374151;
   --color-sidebar-text: #ffffff;
   --color-sidebar-textSecondary: #9ca3af;
-  
-  /* Variables RGB para efectos de transparencia */
   --color-surface-rgb: 31, 41, 55;
   --color-border-rgb: 55, 65, 81;
   --color-accent-rgb: 99, 102, 241;
@@ -868,7 +844,7 @@
   --color-accent: #3b82f6;
   --color-background: #0f172a;
   --color-surface: #1e293b;
-  --color-text: #ffffff; /* Blanco para tema azul oscuro */
+  --color-text: #ffffff;
   --color-textSecondary: #94a3b8;
   --color-textMuted: #64748b;
   --color-textInverse: #0f172a;
@@ -876,55 +852,66 @@
   --color-success: #059669;
   --color-warning: #d97706;
   --color-error: #dc2626;
-  /* Variables específicas para sidebar */
   --color-sidebar-background: #1e293b;
   --color-sidebar-surface: #334155;
   --color-sidebar-border: #475569;
   --color-sidebar-text: #ffffff;
   --color-sidebar-textSecondary: #94a3b8;
-  
-  /* Variables RGB para efectos de transparencia */
   --color-surface-rgb: 30, 41, 59;
   --color-border-rgb: 51, 65, 85;
   --color-accent-rgb: 59, 130, 246;
   --color-success-rgb: 5, 150, 105;
 }
 
-[data-theme="light"] {
-  --color-primary: #3b82f6; /* Azul más claro para tema claro */
-  --color-secondary: #f3f4f6;
-  --color-accent: #3b82f6; /* Azul para tema claro */
-  --color-background: #ffffff; /* Blanco puro */
-  --color-surface: #ffffff; /* Blanco */
-  --color-text: #0f172a; /* Slate-900 */
-  --color-textSecondary: #475569; /* Slate-600 */
-  --color-textMuted: #94a3b8; /* Slate-400 */
-  --color-textInverse: #ffffff;
-  --color-border: #f1f5f9; /* Gris muy claro para bordes sutiles */
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --shadow-card: 0 12px 30px -10px rgba(0, 0, 0, 0.15), 0 4px 10px -5px rgba(0, 0, 0, 0.1);
-  /* Variables específicas para sidebar mejorado en tema claro */
-  --color-sidebar-background: #1e293b; /* Slate-800 más elegante */
-  --color-sidebar-surface: #334155; /* Slate-600 */
-  --color-sidebar-border: #475569; /* Slate-500 */
-  --color-sidebar-text: #ffffff;
-  --color-sidebar-textSecondary: #94a3b8; /* Slate-400 más suave */
-  --color-sidebar-hover: #475569; /* Slate-500 para hover */
-  --color-sidebar-active: #3b82f6; /* Blue-500 para elementos activos */
-  
-  /* Variables RGB para efectos de transparencia */
-  --color-surface-rgb: 255, 255, 255;
-  --color-border-rgb: 229, 231, 235;
-  --color-accent-rgb: 59, 130, 246; /* RGB para azul */
-  --color-success-rgb: 16, 185, 129;
-  --color-sidebar-rgb: 30, 41, 59; /* RGB para sidebar */
+/* Mejoras específicas para el tema claro — sidebar */
+[data-theme="light"] .sidebar-glass {
+  background: rgba(30, 41, 59, 0.98);
+  backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
-/* Estilos específicos para el tema claro */
-[data-theme="light"] .bg-theme-primary {
-  background-color: #3b82f6; /* Azul más claro */
+[data-theme="light"] .sidebar-item-hover:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateX(6px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .sidebar-item-active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+  transform: translateX(6px);
+}
+
+[data-theme="light"] {
+  --color-primary: #2563eb;        /* Azul más intenso para buena visibilidad */
+  --color-secondary: #e5e9f2;      /* Gris azulado suave para fondos secundarios */
+  --color-accent: #2563eb;
+  --color-background: #e8ecf4;     /* Fondo principal — gris azulado, no blanco puro */
+  --color-surface: #ffffff;        /* Cards/paneles: blanco para contraste sobre el fondo */
+  --color-text: #0d1b2e;           /* Texto principal: azul muy oscuro, mejor legibilidad */
+  --color-textSecondary: #374151;  /* Texto secundario: gris oscuro (antes muy claro) */
+  --color-textMuted: #6b7280;      /* Texto tenue: gris medio */
+  --color-textInverse: #ffffff;
+  --color-border: #c8d0e0;         /* Bordes visibles (antes casi invisibles) */
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+  --shadow-card: 0 2px 8px -1px rgba(14, 30, 62, 0.10), 0 1px 3px rgba(14, 30, 62, 0.06);
+  /* Variables específicas para sidebar en tema claro */
+  --color-sidebar-background: #1e293b;
+  --color-sidebar-surface: #334155;
+  --color-sidebar-border: #475569;
+  --color-sidebar-text: #ffffff;
+  --color-sidebar-textSecondary: #94a3b8;
+  --color-sidebar-hover: #475569;
+  --color-sidebar-active: #3b82f6;
+  /* Variables RGB */
+  --color-surface-rgb: 255, 255, 255;
+  --color-border-rgb: 200, 208, 224;
+  --color-accent-rgb: 37, 99, 235;
+  --color-success-rgb: 5, 150, 105;
+  --color-sidebar-rgb: 30, 41, 59;
 }
 
 [data-theme="light"] .text-theme-primary {

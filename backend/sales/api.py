@@ -194,7 +194,7 @@ class SaleView(APIView):
                 unit_price=unit_price,
                 line_total=line_total,
                 product_name=product.name or '',
-                product_sku=product.sku or '',
+                product_sku=(sku_obj.sku if sku_obj and sku_obj.sku else (product.sku or '')),
             )
             total += line_total
 
@@ -398,7 +398,7 @@ class SalesListView(ListAPIView):
                         'id': p.id if p else None,
                         'name': (p.name if p else si.product_name),
                         'description': (p.description if p else ''),
-                        'sku': (p.sku if p else si.product_sku),
+                        'sku': (si.product_sku if si.product_sku else (p.sku if p else '')),
                         'category_name': (getattr(p.category, 'name', None) if p else None),
                         'image': (abs_url(getattr(p, 'image', None) and p.image.url) if p and getattr(p, 'image', None) else None),
                         'active': (p.active if p else False),

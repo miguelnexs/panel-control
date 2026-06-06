@@ -60,6 +60,11 @@ interface Client {
 interface OrderItem {
   product?: Product;
   color?: Color;
+  variant?: {
+    id: number;
+    name: string;
+    extra_price: number | string;
+  };
   quantity: number;
   unit_price: number | string;
   line_total: number | string;
@@ -1295,10 +1300,15 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
                           </div>
                           
                           <div className="mt-2 flex flex-wrap gap-2">
-                            {it.color && (
+                             {it.color && (
                               <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-white dark:bg-gray-800 text-xs text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700">
                                 <span className="w-3 h-3 rounded-full border border-gray-200 dark:border-gray-600" style={{ backgroundColor: it.color.hex }}></span>
                                 {it.color.name}
+                              </span>
+                            )}
+                            {it.variant && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 dark:bg-blue-500/10 text-xs font-bold text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20 uppercase">
+                                {it.variant.name}
                               </span>
                             )}
                             {it.product?.category_name && (

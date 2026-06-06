@@ -70,6 +70,18 @@ class ClientsListCreateView(ListCreateAPIView):
 
     def get_queryset(self):
         tenant = _get_user_tenant(self.request.user)
+        if tenant:
+            Client.objects.get_or_create(
+                tenant=tenant,
+                full_name='Cliente',
+                defaults={
+                    'client_type': 'person',
+                    'cedula': '99999999',
+                    'phone': '',
+                    'email': None,
+                    'address': ''
+                }
+            )
         qs = Client.objects.all()
         if tenant:
             qs = qs.filter(tenant=tenant)

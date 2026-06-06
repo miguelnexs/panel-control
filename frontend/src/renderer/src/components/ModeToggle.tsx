@@ -1,4 +1,5 @@
 import React from 'react';
+import { flushSync } from 'react-dom';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from './theme-provider';
 
@@ -10,8 +11,92 @@ interface ModeToggleProps {
 export function ModeToggle({ className, collapsed }: ModeToggleProps) {
   const { theme, setTheme } = useTheme();
 
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
+  const toggleTheme = (e: React.MouseEvent) => {
+    // Resolver el tema actual en caso de que sea 'system'
+    const actualTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+    const isDark = actualTheme === 'dark';
+    const nextTheme = isDark ? 'light' : 'dark';
+
+    // Fallback if browser doesn't support View Transitions API
+    if (!document.startViewTransition) {
+      setTheme(nextTheme);
+      return;
+    }
+
+    const x = e.clientX;
+    const y = e.clientY;
+    const endRadius = Math.hypot(
+      Math.max(x, innerWidth - x),
+      Math.max(y, innerHeight - y)
+    );
+
+    const transition = document.startViewTransition(() => {
+      flushSync(() => {
+        setTheme(nextTheme);
+      });
+      // Forzar el cambio en el DOM inmediatamente para que lo capture
+      document.documentElement.classList.remove("light", "dark");
+      document.documentElement.classList.add(nextTheme);
+    });
+
+    transition.ready.then(() => {
+      const animations = [
+        // 1. Círculo expansivo desde el cursor (Original)
+        {
+          clipPath: [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${endRadius}px at ${x}px ${y}px)`
+          ],
+          easing: "ease-out"
+        },
+        // 2. Barrido hacia arriba (Cortina)
+        {
+          clipPath: [
+            'inset(100% 0 0 0)',
+            'inset(0% 0 0 0)'
+          ],
+          easing: "ease-in-out"
+        },
+        // 3. Apertura vertical desde el centro (Puertas corredizas)
+        {
+          clipPath: [
+            'inset(0 50% 0 50%)',
+            'inset(0 0% 0 0%)'
+          ],
+          easing: "ease-out"
+        },
+        // 4. Apertura horizontal desde el centro (Persiana)
+        {
+          clipPath: [
+            'inset(50% 0 50% 0)',
+            'inset(0% 0 0% 0)'
+          ],
+          easing: "ease-out"
+        },
+        // 5. Círculo expansivo desde el centro de la pantalla (Iris)
+        {
+          clipPath: [
+            `circle(0px at 50% 50%)`,
+            `circle(150% at 50% 50%)`
+          ],
+          easing: "ease-in-out"
+        }
+      ];
+
+      // Seleccionar una animación aleatoria
+      const selectedAnim = animations[Math.floor(Math.random() * animations.length)];
+
+      document.documentElement.animate(
+        {
+          clipPath: selectedAnim.clipPath,
+        },
+        {
+          duration: 500,
+          easing: selectedAnim.easing,
+          pseudoElement: "::view-transition-new(root)",
+        }
+      );
+    });
   };
 
   return (

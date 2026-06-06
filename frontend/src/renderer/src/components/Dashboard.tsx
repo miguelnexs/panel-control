@@ -31,7 +31,7 @@ const UsersEmployeesPage = React.lazy(() => import('./dashboard/UsersEmployeesPa
 const UsersPermissionsPage = React.lazy(() => import('./dashboard/UsersPermissionsPage'));
 const UsersActivitiesPage = React.lazy(() => import('./dashboard/UsersActivitiesPage'));
 import UserSwitcherModal from './UserSwitcherModal';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, MessageSquare, EyeOff } from 'lucide-react';
 const UsersStatsPage = React.lazy(() => import('./dashboard/UsersStatsPage'));
 const SuperAdminWebRequests = React.lazy(() => import('./SuperAdminWebRequests'));
 
@@ -68,6 +68,23 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
   const [webStoreEnabled, setWebStoreEnabled] = useState<boolean | null>(null);
   const [webSyncEnabled, setWebSyncEnabled] = useState<boolean>(true);
   const [webAdvertisingEnabled, setWebAdvertisingEnabled] = useState<boolean>(true);
+  const [hideFloatingWidgets, setHideFloatingWidgets] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('hide_floating_widgets') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleFloatingWidgets = () => {
+    setHideFloatingWidgets(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('hide_floating_widgets', String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   const canAccess = (targetView: string): boolean => {
     if (role === 'admin' || role === 'super_admin') return true;
@@ -331,7 +348,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
   }, [role, apiBase]);
 
   return (
-    <div className="h-full bg-white dark:bg-none dark:bg-[#0B0D14] flex overflow-hidden transition-colors duration-300">
+    <div className="h-full bg-[#e8ecf4] dark:bg-none dark:bg-[#0B0D14] flex overflow-hidden transition-colors duration-300">
         <Sidebar 
           view={view} 
           setView={navigate} 
@@ -347,8 +364,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
           webStoreEnabled={webStoreEnabled}
           webSyncEnabled={webSyncEnabled}
         />
-      <main className="flex-1 p-6 space-y-6 relative overflow-y-auto">
-        {(role === 'admin' || role === 'super_admin') && (
+      <main className="flex-1 p-6 space-y-6 relative overflow-y-auto bg-[#e8ecf4] dark:bg-transparent">
+        {!hideFloatingWidgets && (role === 'admin' || role === 'super_admin') && (
           <SupportChatWidget 
             token={token} 
             apiBase={apiBase} 
@@ -358,7 +375,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
             setOpenExternal={(o) => setActiveChat(o ? 'support' : null)}
           />
         )}
-        {token && (
+        {!hideFloatingWidgets && token && (
           <AIChatAssistant 
             token={token} 
             apiBase={apiBase} 
@@ -427,6 +444,15 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
               )}
               <div className="text-sm text-gray-500 dark:text-gray-400 font-medium px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">Rol: <span className="text-gray-900 dark:text-white ml-1">{role}</span></div>
               
+              <button 
+                onClick={toggleFloatingWidgets}
+                className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border transition-all ${hideFloatingWidgets ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20 hover:bg-indigo-600 hover:text-white' : 'bg-gray-500/10 text-gray-600 dark:text-gray-400 border-gray-500/20 hover:bg-gray-600 hover:text-white'}`}
+                title={hideFloatingWidgets ? "Mostrar chats flotantes" : "Ocultar chats flotantes"}
+              >
+                {hideFloatingWidgets ? <MessageSquare size={14} /> : <EyeOff size={14} />}
+                <span>{hideFloatingWidgets ? "Mostrar Chats" : "Ocultar Chats"}</span>
+              </button>
+
               <button 
                 onClick={() => setShowUserSwitcher(true)}
                 className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs font-bold hover:bg-blue-600 hover:text-white transition-all group"

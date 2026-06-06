@@ -3,6 +3,7 @@ from . import api as api_views
 
 urlpatterns = [
     path('check-sku/', api_views.CheckSKUView.as_view(), name='check_sku'),
+    path('resolve-sku/', api_views.ResolveSKUView.as_view(), name='resolve_sku'),
     path('', api_views.ProductListCreateView.as_view(), name='products_list_create'),
     path('<int:pk>/', api_views.ProductDetailView.as_view(), name='products_detail'),
     path('categories/', api_views.CategoryListCreateView.as_view(), name='categories_list_create'),

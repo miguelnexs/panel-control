@@ -56,11 +56,9 @@ autoUpdater.on('download-progress', (progressObj) => {
 });
 
 autoUpdater.on('update-downloaded', (_info) => {
-  mainWindow?.webContents.send('update-status', { status: 'downloaded', message: 'Actualización descargada. Instalando...' });
-  // Automatically quit and install after a short delay
-  setTimeout(() => {
-    autoUpdater.quitAndInstall();
-  }, 3000);
+  mainWindow?.webContents.send('update-status', { status: 'downloaded', message: 'Actualización descargada y lista para instalar.' });
+  // Se elimina el quitAndInstall automático para evitar cerrar la app mientras el usuario trabaja.
+  // El usuario podrá decidir cuándo instalar desde la interfaz o al cerrar la app.
 });
 
 // Templates Server Configuration

@@ -314,20 +314,20 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
   const textClass = `transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${collapsed ? 'max-w-0 opacity-0' : 'max-w-[200px] opacity-100'}`
   const tooltipClass = collapsed ? 'absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap px-2 py-1 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-xs shadow-xl border border-gray-200 dark:border-white/10 opacity-0 group-hover:opacity-100 pointer-events-none z-50' : 'hidden'
   // Use padding transition for centering instead of justify-content change to avoid snapping
-  const itemBase = `group relative w-full flex items-center ${collapsed ? 'justify-center px-0 gap-0' : 'px-2 gap-2'} py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-300 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white`
-  const activeClass = 'bg-blue-50/80 dark:bg-blue-600/10 text-blue-600 dark:text-blue-400 shadow-sm ring-1 ring-blue-100 dark:ring-blue-500/20'
+  const itemBase = `group relative w-full flex items-center ${collapsed ? 'justify-center px-0 gap-0' : 'px-2 gap-2'} py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-all duration-300 text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-medium`
+  const activeClass = 'bg-blue-100/60 dark:bg-blue-600/10 text-blue-700 dark:text-blue-400 shadow-sm ring-1 ring-blue-200 dark:ring-blue-500/20'
   const toneClasses = (key: string) => {
-    if (key === 'dashboard') return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-700 dark:group-hover:text-blue-300'
-    if (key === 'users') return 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 group-hover:bg-cyan-500/20 group-hover:text-cyan-700 dark:group-hover:text-cyan-300'
-    if (key === 'inventory') return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-500/20 group-hover:text-indigo-700 dark:group-hover:text-indigo-300'
-    if (key === 'productos') return 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-500/20 group-hover:text-indigo-700 dark:group-hover:text-indigo-300'
-    if (key === 'categorias') return 'bg-violet-500/10 text-violet-600 dark:text-violet-400 group-hover:bg-violet-500/20 group-hover:text-violet-700 dark:group-hover:text-violet-300'
-    if (key === 'clientes') return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-700 dark:group-hover:text-blue-300'
-    if (key === 'ventas') return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500/20 group-hover:text-emerald-700 dark:group-hover:text-emerald-300'
-    if (key === 'pedidos') return 'bg-rose-500/10 text-rose-600 dark:text-rose-400 group-hover:bg-rose-500/20 group-hover:text-rose-700 dark:group-hover:text-rose-300'
-    if (key === 'web') return 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 group-hover:bg-cyan-500/20 group-hover:text-cyan-700 dark:group-hover:text-cyan-300'
-    if (key === 'servicios') return 'bg-pink-500/10 text-pink-600 dark:text-pink-400 group-hover:bg-pink-500/20 group-hover:text-pink-700 dark:group-hover:text-pink-300'
-    return 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
+    if (key === 'dashboard') return 'bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:bg-blue-200 dark:group-hover:bg-blue-500/20 group-hover:text-blue-700 dark:group-hover:text-blue-300'
+    if (key === 'users') return 'bg-cyan-100 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 group-hover:bg-cyan-200 dark:group-hover:bg-cyan-500/20 group-hover:text-cyan-700 dark:group-hover:text-cyan-300'
+    if (key === 'inventory') return 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-500/20 group-hover:text-indigo-700 dark:group-hover:text-indigo-300'
+    if (key === 'productos') return 'bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-200 dark:group-hover:bg-indigo-500/20 group-hover:text-indigo-700 dark:group-hover:text-indigo-300'
+    if (key === 'categorias') return 'bg-violet-100 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 group-hover:bg-violet-200 dark:group-hover:bg-violet-500/20 group-hover:text-violet-700 dark:group-hover:text-violet-300'
+    if (key === 'clientes') return 'bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 group-hover:bg-blue-200 dark:group-hover:bg-blue-500/20 group-hover:text-blue-700 dark:group-hover:text-blue-300'
+    if (key === 'ventas') return 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-500/20 group-hover:text-emerald-700 dark:group-hover:text-emerald-300'
+    if (key === 'pedidos') return 'bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 group-hover:bg-rose-200 dark:group-hover:bg-rose-500/20 group-hover:text-rose-700 dark:group-hover:text-rose-300'
+    if (key === 'web') return 'bg-cyan-100 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 group-hover:bg-cyan-200 dark:group-hover:bg-cyan-500/20 group-hover:text-cyan-700 dark:group-hover:text-cyan-300'
+    if (key === 'servicios') return 'bg-pink-100 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400 group-hover:bg-pink-200 dark:group-hover:bg-pink-500/20 group-hover:text-pink-700 dark:group-hover:text-pink-300'
+    return 'bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400'
   }
 
   const ToggleIcon = () => (
@@ -423,7 +423,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         {role === 'super_admin' && (
           <button className={`${itemBase} ${view === 'super_admin_requests' ? activeClass : ''}`} onClick={() => setView('super_admin_requests')} title="Solicitudes Web">
             {view === 'super_admin_requests' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-            <span className={`${iconBoxClass} bg-rose-500/10 text-rose-600 dark:text-rose-400 ${view === 'super_admin_requests' ? 'ring-1 ring-white/20' : ''}`}>
+            <span className={`${iconBoxClass} bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 ${view === 'super_admin_requests' ? 'ring-1 ring-white/20' : ''}`}>
               <Icon name="web" className="w-4 h-4" />
             </span>
             <span className={textClass}>Solicitudes Web</span>
@@ -439,7 +439,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         {canAccess('ventas') && (
         <button className={`${itemBase} ${view === 'ventas' ? activeClass : ''}`} onClick={() => setView('ventas')} title="Nueva Venta">
           {view === 'ventas' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-          <span className={`${iconBoxClass} bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ${view === 'ventas' ? 'ring-1 ring-white/20' : ''}`}>
+          <span className={`${iconBoxClass} bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 ${view === 'ventas' ? 'ring-1 ring-white/20' : ''}`}>
             <Icon name="sales" className="w-4 h-4" />
           </span>
           <span className={textClass}>Nueva Venta</span>
@@ -451,7 +451,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         {canAccess('caja') && (
         <button className={`${itemBase} ${view === 'caja' ? activeClass : ''}`} onClick={() => setView('caja')} title="Caja Registradora">
           {view === 'caja' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-          <span className={`${iconBoxClass} bg-blue-500/10 text-blue-600 dark:text-blue-400 ${view === 'caja' ? 'ring-1 ring-white/20' : ''}`}>
+          <span className={`${iconBoxClass} bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 ${view === 'caja' ? 'ring-1 ring-white/20' : ''}`}>
             <Icon name="sales" className="w-4 h-4" />
           </span>
           <span className={textClass}>Caja</span>
@@ -483,7 +483,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         {canAccess('ventas_estadisticas') && (
         <button className={`${itemBase} ${view === 'ventas_estadisticas' ? activeClass : ''}`} onClick={() => setView('ventas_estadisticas')} title="Estadísticas de Venta">
           {view === 'ventas_estadisticas' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-          <span className={`${iconBoxClass} bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ${view === 'ventas_estadisticas' ? 'ring-1 ring-white/20' : ''}`}>
+          <span className={`${iconBoxClass} bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ${view === 'ventas_estadisticas' ? 'ring-1 ring-white/20' : ''}`}>
             <Icon name="dashboard" className="w-4 h-4" />
           </span>
           <span className={textClass}>Estadísticas</span>

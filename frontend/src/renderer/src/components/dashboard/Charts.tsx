@@ -12,6 +12,7 @@ import {
   Filler,
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
+import { useTheme } from '../theme-provider';
 
 ChartJS.register(
   CategoryScale,
@@ -34,6 +35,16 @@ interface ChartProps {
 }
 
 export const ActivityChart: React.FC<ChartProps> = ({ data, labels, label = 'Actividad', color = 'rgba(99, 102, 241, 1)', fill = true }) => {
+  const { theme } = useTheme();
+  // Check actual theme by inspecting the DOM or using system preference if set to 'system'
+  const isDark = document.documentElement.classList.contains('dark');
+  const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.08)';
+  const ticksColor = isDark ? '#94a3b8' : '#64748b';
+  const tooltipBg = isDark ? 'rgba(17, 24, 39, 0.9)' : 'rgba(255, 255, 255, 0.9)';
+  const tooltipTitleColor = isDark ? '#fff' : '#0f172a';
+  const tooltipBodyColor = isDark ? '#cbd5e1' : '#334155';
+  const tooltipBorderColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -44,10 +55,10 @@ export const ActivityChart: React.FC<ChartProps> = ({ data, labels, label = 'Act
       tooltip: {
         mode: 'index' as const,
         intersect: false,
-        backgroundColor: 'rgba(17, 24, 39, 0.9)',
-        titleColor: '#fff',
-        bodyColor: '#cbd5e1',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
+        backgroundColor: tooltipBg,
+        titleColor: tooltipTitleColor,
+        bodyColor: tooltipBodyColor,
+        borderColor: tooltipBorderColor,
         borderWidth: 1,
       },
     },
@@ -58,7 +69,7 @@ export const ActivityChart: React.FC<ChartProps> = ({ data, labels, label = 'Act
           drawBorder: false,
         },
         ticks: {
-          color: '#94a3b8',
+          color: ticksColor,
           font: {
             size: 11,
           }
@@ -66,11 +77,11 @@ export const ActivityChart: React.FC<ChartProps> = ({ data, labels, label = 'Act
       },
       y: {
         grid: {
-          color: 'rgba(255, 255, 255, 0.05)',
+          color: gridColor,
           drawBorder: false,
         },
         ticks: {
-          color: '#94a3b8',
+          color: ticksColor,
           font: {
             size: 11,
           },
@@ -125,6 +136,10 @@ export const ActivityChart: React.FC<ChartProps> = ({ data, labels, label = 'Act
 };
 
 export const PerformanceChart: React.FC<ChartProps> = ({ data, labels }) => {
+  const { theme } = useTheme();
+  const isDark = document.documentElement.classList.contains('dark');
+  const ticksColor = isDark ? '#94a3b8' : '#64748b';
+
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -136,7 +151,7 @@ export const PerformanceChart: React.FC<ChartProps> = ({ data, labels }) => {
     scales: {
       x: {
         grid: { display: false },
-        ticks: { color: '#94a3b8' }
+        ticks: { color: ticksColor }
       },
       y: {
         display: false,

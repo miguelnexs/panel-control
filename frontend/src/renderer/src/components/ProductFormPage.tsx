@@ -200,6 +200,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
   const [hasAppliedFocusSku, setHasAppliedFocusSku] = useState(false);
   const [highlightVariantKey, setHighlightVariantKey] = useState<string | null>(null);
   const [hasAppliedFocusVariant, setHasAppliedFocusVariant] = useState(false);
+  const [dragOverVariantKey, setDragOverVariantKey] = useState<string | null>(null);
 
   // Offline detection
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -442,15 +443,38 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       
       // Caso 1: Hay colores y variantes
       if (colors.length > 0 && variants.length > 0) {
+        const linkedColorKeys = new Set<string>();
+        
+        // 1. Combinaciones combinadas (Color x Variante)
         variants.forEach((variant, vIdx) => {
           const vKey = variantKeyOf(variant, vIdx);
-          const linked = variantColorLinks?.[vKey];
-          const allowedColors =
-            linked == null
-              ? colors
-              : colors.filter((c, cIdx) => linked.includes(colorKeyOf(c, cIdx)));
+          const linked = variantColorLinks?.[vKey] || []; // Default to empty array (independent)
 
-          if (Array.isArray(linked) && allowedColors.length === 0) {
+          if (linked.length > 0) {
+            linked.forEach((cKey) => {
+              linkedColorKeys.add(cKey);
+              const color = colors.find((c, cIdx) => colorKeyOf(c, cIdx) === cKey);
+              if (color) {
+                const existing = findExisting(color, variant);
+                const existingUseMainSku =
+                  existing?.useMainSku ?? (existing != null && String(existing?.sku ?? '') === '');
+                newSkus.push({
+                  id: existing?.id || null,
+                  colorId: color.id ?? null,
+                  colorClientId: color.clientId ?? null,
+                  variantId: variant.id ?? null,
+                  variantClientId: variant.clientId ?? null,
+                  colorName: color.name,
+                  variantName: variant.name,
+                  sku: existingUseMainSku ? '' : (existing?.sku ?? defaultSkuFor(color.name, variant.name)),
+                  useMainSku: existingUseMainSku,
+                  stock: existing?.stock ?? '0',
+                  active: existing?.active ?? true
+                });
+              }
+            });
+          } else {
+            // Standalone variant (not linked to any color)
             const existing = findExisting(null, variant);
             const existingUseMainSku =
               existing?.useMainSku ?? (existing != null && String(existing?.sku ?? '') === '');
@@ -467,27 +491,30 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
               stock: existing?.stock ?? '0',
               active: existing?.active ?? true
             });
-            return;
           }
+        });
 
-          allowedColors.forEach((color) => {
-            const existing = findExisting(color, variant);
+        // 2. Colores independientes (solo si NO están vinculados a ninguna variante)
+        colors.forEach((color, cIdx) => {
+          const cKey = colorKeyOf(color, cIdx);
+          if (!linkedColorKeys.has(cKey)) {
+            const existing = findExisting(color, null);
             const existingUseMainSku =
               existing?.useMainSku ?? (existing != null && String(existing?.sku ?? '') === '');
             newSkus.push({
               id: existing?.id || null,
               colorId: color.id ?? null,
               colorClientId: color.clientId ?? null,
-              variantId: variant.id ?? null,
-              variantClientId: variant.clientId ?? null,
+              variantId: null,
+              variantClientId: null,
               colorName: color.name,
-              variantName: variant.name,
-              sku: existingUseMainSku ? '' : (existing?.sku ?? defaultSkuFor(color.name, variant.name)),
+              variantName: null,
+              sku: existingUseMainSku ? '' : (existing?.sku ?? defaultSkuFor(color.name, null)),
               useMainSku: existingUseMainSku,
               stock: existing?.stock ?? '0',
               active: existing?.active ?? true
             });
-          });
+          }
         });
       } 
       // Caso 2: Solo colores
@@ -721,6 +748,25 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
         });
         setSkus(loadedSkus);
         setInitialSkus(loadedSkus);
+
+        // Reconstruct variantColorLinks from loaded SKUs
+        const reconstructedLinks: Record<string, string[] | null> = {};
+        loadedVars.forEach((v) => {
+          const vKey = `variant-${v.id}`;
+          const variantSkus = skusList.filter((s: any) => s.variant === v.id);
+          if (variantSkus.length > 0) {
+            const hasUnassigned = variantSkus.some((s: any) => s.color === null);
+            if (hasUnassigned) {
+              reconstructedLinks[vKey] = [];
+            } else {
+              const colorIds = variantSkus
+                .filter((s: any) => s.color !== null)
+                .map((s: any) => `color-${s.color}`);
+              reconstructedLinks[vKey] = colorIds;
+            }
+          }
+        });
+        setVariantColorLinks(reconstructedLinks);
 
       } catch (_) {
         setColors([]);
@@ -2167,9 +2213,31 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                         <button
                           key={key}
                           type="button"
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', key);
+                            e.dataTransfer.setData('dragType', 'color');
+                          }}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            const draggedKey = e.dataTransfer.getData('text/plain');
+                            const type = e.dataTransfer.getData('dragType');
+                            if (draggedKey && type === 'variant') {
+                              setVariantColorLinks(prev => {
+                                const current = prev[draggedKey] || [];
+                                if (!current.includes(key)) {
+                                  return { ...prev, [draggedKey]: [...current, key] };
+                                }
+                                return prev;
+                              });
+                            }
+                          }}
                           onClick={() => setActiveColorKey((prev) => (prev === key ? null : key))}
-                          className={`w-11 h-11 rounded-full border transition-all flex items-center justify-center ${selected ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}
-                          title={String(c?.name || 'Color')}
+                          className={`w-11 h-11 rounded-full border transition-all cursor-grab active:cursor-grabbing flex items-center justify-center ${selected ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}
+                          title={String(c?.name || 'Color (Arrastra para combinar)')}
                         >
                           <div className="w-9 h-9 rounded-full border border-white/70" style={{ backgroundColor: c.hex }} />
                         </button>
@@ -2342,7 +2410,38 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                       return (
                       <div key={rowKey} id={`variant-row-${rowKey}`} className="space-y-2">
                         <div
-                          className={`flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 rounded-lg ${highlightVariantKey === rowKey ? 'ring-2 ring-blue-500/60' : ''}`}
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', rowKey);
+                            e.dataTransfer.setData('dragType', 'variant');
+                          }}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                          }}
+                          onDragEnter={() => setDragOverVariantKey(rowKey)}
+                          onDragLeave={() => setDragOverVariantKey(null)}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            setDragOverVariantKey(null);
+                            const cKey = e.dataTransfer.getData('text/plain');
+                            const type = e.dataTransfer.getData('dragType');
+                            if (cKey && type === 'color') {
+                              setVariantColorLinks(prev => {
+                                const current = prev[rowKey] || [];
+                                if (!current.includes(cKey)) {
+                                  return { ...prev, [rowKey]: [...current, cKey] };
+                                }
+                                return prev;
+                              });
+                            }
+                          }}
+                          className={`flex items-center justify-between p-3 border rounded-lg cursor-grab active:cursor-grabbing transition-all duration-200 ${
+                            highlightVariantKey === rowKey ? 'ring-2 ring-blue-500/60' : ''
+                          } ${
+                            dragOverVariantKey === rowKey
+                              ? 'border-dashed border-blue-500 bg-blue-50/50 dark:bg-blue-950/30 scale-[1.01]'
+                              : 'bg-gray-50 dark:bg-gray-800/30 border-gray-200 dark:border-gray-700'
+                          }`}
                         >
                           <div className="flex items-center gap-4 flex-1">
                             <input 
@@ -2442,8 +2541,8 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                   <div className="pt-8 border-t border-gray-100 dark:border-gray-800 space-y-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="text-sm font-bold text-gray-900 dark:text-white">Combinaciones de Inventario</h4>
-                        <p className="text-xs text-gray-500">Gestione el stock y SKU específico para cada combinación</p>
+                        <h4 className="text-sm font-bold text-gray-900 dark:text-white">Variaciones y SKUs de Inventario</h4>
+                        <p className="text-xs text-gray-500">Gestione el stock y SKU específico para cada variación</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Auto-generar</span>
@@ -2459,23 +2558,89 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
                     <div className="overflow-x-auto">
                       <table className="w-full text-left border-separate border-spacing-y-2">
-                        <thead>
-                          <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                            <th className="px-4 pb-2">Combinación</th>
-                            <th className="px-4 pb-2">SKU</th>
-                            <th className="px-4 pb-2">Principal</th>
-                            <th className="px-4 pb-2">Stock</th>
-                            <th className="px-4 pb-2 text-right">Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {skus.map((skuItem, idx) => {
-                            const rowKey = String(skuItem?.id ?? `${skuItem?.colorId ?? 'n'}-${skuItem?.variantId ?? 'n'}-${idx}`);
-                            return (
+                         <thead>
+                           <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                             <th className="px-4 pb-2">Variación / Color</th>
+                             <th className="px-4 pb-2">SKU</th>
+                             <th className="px-4 pb-2">Principal</th>
+                             <th className="px-4 pb-2">Stock</th>
+                             <th className="px-4 pb-2 text-right">Acciones</th>
+                           </tr>
+                         </thead>
+                         <tbody>
+                           {skus.map((skuItem, idx) => {
+                             const colorPart = skuItem && skuItem.colorId !== undefined && skuItem.colorId !== null 
+                               ? skuItem.colorId 
+                               : (skuItem && skuItem.colorClientId ? skuItem.colorClientId : 'n');
+                             const variantPart = skuItem && skuItem.variantId !== undefined && skuItem.variantId !== null 
+                               ? skuItem.variantId 
+                               : (skuItem && skuItem.variantClientId ? skuItem.variantClientId : 'n');
+                             const rowKey = skuItem && skuItem.id !== undefined && skuItem.id !== null 
+                               ? String(skuItem.id) 
+                               : `${colorPart}-${variantPart}-${idx}`;
+                             const isCombined = skuItem && skuItem.colorName && skuItem.variantName;
+                             const isColorOnly = skuItem && skuItem.colorName && !skuItem.variantName;
+                             const isVariantOnly = skuItem && !skuItem.colorName && skuItem.variantName;
+                             const vKey = skuItem ? (skuItem.variantClientId ? skuItem.variantClientId : (skuItem.variantId !== null && skuItem.variantId !== undefined ? `variant-${skuItem.variantId}` : null)) : null;
+                             const cKey = skuItem ? (skuItem.colorClientId ? skuItem.colorClientId : (skuItem.colorId !== null && skuItem.colorId !== undefined ? `color-${skuItem.colorId}` : null)) : null;
+                             const dragOverKey = (isVariantOnly && dragOverVariantKey === vKey) || (isColorOnly && dragOverVariantKey === cKey);
+
+                             return (
                             <tr
                               key={rowKey}
                               id={`sku-row-${rowKey}`}
-                              className={`bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden group ${!skuItem.active ? 'opacity-50' : ''} ${highlightSkuKey === rowKey ? 'ring-2 ring-blue-500/60' : ''}`}
+                              draggable={Boolean(isColorOnly || isVariantOnly)}
+                              onDragStart={(e) => {
+                                const dragKey = isColorOnly ? cKey : vKey;
+                                const dragType = isColorOnly ? 'color' : 'variant';
+                                if (dragKey) {
+                                  e.dataTransfer.setData('text/plain', dragKey);
+                                  e.dataTransfer.setData('dragType', dragType);
+                                }
+                              }}
+                              onDragOver={(e) => {
+                                if (isVariantOnly || isColorOnly) {
+                                  e.preventDefault();
+                                }
+                              }}
+                              onDragEnter={() => {
+                                if (isVariantOnly && vKey) {
+                                  setDragOverVariantKey(vKey);
+                                } else if (isColorOnly && cKey) {
+                                  setDragOverVariantKey(cKey);
+                                }
+                              }}
+                              onDragLeave={() => {
+                                if (isVariantOnly || isColorOnly) {
+                                  setDragOverVariantKey(null);
+                                }
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                setDragOverVariantKey(null);
+                                const draggedKey = e.dataTransfer.getData('text/plain');
+                                const dragType = e.dataTransfer.getData('dragType');
+                                if (!draggedKey) return;
+
+                                if (isVariantOnly && vKey && dragType === 'color') {
+                                  setVariantColorLinks(prev => {
+                                    const current = prev[vKey] || [];
+                                    if (!current.includes(draggedKey)) {
+                                      return { ...prev, [vKey]: [...current, draggedKey] };
+                                    }
+                                    return prev;
+                                  });
+                                } else if (isColorOnly && cKey && dragType === 'variant') {
+                                  setVariantColorLinks(prev => {
+                                    const current = prev[draggedKey] || [];
+                                    if (!current.includes(cKey)) {
+                                      return { ...prev, [draggedKey]: [...current, cKey] };
+                                    }
+                                    return prev;
+                                  });
+                                }
+                              }}
+                              className={`bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden group ${!skuItem.active ? 'opacity-50' : ''} ${highlightSkuKey === rowKey ? 'ring-2 ring-blue-500/60' : ''} ${(isColorOnly || isVariantOnly) ? 'cursor-grab active:cursor-grabbing hover:bg-gray-100/80 dark:hover:bg-gray-700/80' : ''} ${dragOverKey ? 'ring-2 ring-dashed ring-blue-500 bg-blue-500/10' : ''} transition-all duration-200`}
                             >
                               <td className="px-4 py-3 rounded-l-xl">
                                 <div className="flex items-center gap-2">
@@ -2486,9 +2651,24 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                                     </span>
                                   )}
                                   {skuItem.variantName && (
-                                    <span className="px-2 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:!text-white rounded-lg border border-blue-100 dark:border-blue-500/20 text-[10px] font-bold uppercase tracking-wider">
-                                      {skuItem.variantName}
-                                    </span>
+                                     <span className="px-2 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:!text-white rounded-lg border border-blue-100 dark:border-blue-500/20 text-[10px] font-bold uppercase tracking-wider">
+                                       {skuItem.variantName}
+                                       {(() => {
+                                         const vObj = skuItem.variantId != null 
+                                           ? variants.find(v => v.id === skuItem.variantId) 
+                                           : (skuItem.variantClientId ? variants.find(v => v.clientId === skuItem.variantClientId) : null);
+                                         if (vObj && Number(vObj.extra_price) > 0) {
+                                           return ` (+${formatCurrency(vObj.extra_price)})`;
+                                         }
+                                         return '';
+                                       })()}
+                                     </span>
+                                   )}
+                                  {isColorOnly && (
+                                    <span className="text-[9px] text-gray-400 font-medium select-none ml-1">(Arrastrar o soltar variante aquí)</span>
+                                  )}
+                                  {isVariantOnly && (
+                                    <span className="text-[9px] text-gray-400 font-medium select-none ml-1">(Arrastrar o soltar color aquí)</span>
                                   )}
                                 </div>
                               </td>
@@ -2537,12 +2717,28 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                                   className="w-24 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none"
                                 />
                               </td>
-                              <td className="px-4 py-3 rounded-r-xl text-right">
+                              <td className="px-4 py-3 rounded-r-xl text-right flex items-center justify-end gap-2">
+                                {isCombined && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (vKey && cKey) {
+                                        setVariantColorLinks(prev => {
+                                          const current = prev[vKey] || [];
+                                          return { ...prev, [vKey]: current.filter(k => k !== cKey) };
+                                        });
+                                      }
+                                    }}
+                                    className="px-2.5 py-1 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all transform active:scale-95 shadow-sm hover:shadow"
+                                  >
+                                    Separar
+                                  </button>
+                                )}
                                 <button
                                   type="button"
                                   onClick={() => setSkus(prev => prev.map((s, i) => i === idx ? { ...s, active: !s.active } : s))}
                                   className={`p-1.5 rounded-lg transition-colors ${skuItem.active ? 'text-gray-400 hover:text-emerald-500' : 'text-gray-300 hover:text-gray-500'}`}
-                                  title={skuItem.active ? 'Desactivar combinación' : 'Activar combinación'}
+                                  title={skuItem.active ? 'Desactivar variación' : 'Activar variación'}
                                 >
                                   {skuItem.active ? <CheckCircle2 className="w-4 h-4" /> : <X className="w-4 h-4" />}
                                 </button>
@@ -2559,7 +2755,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                         <Wand2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                       </div>
                       <p className="text-[11px] text-blue-700 dark:text-blue-300 leading-relaxed">
-                        <span className="font-bold">Generador Automático:</span> El sistema genera automáticamente todas las combinaciones posibles entre tus colores y variantes. Puedes asignar un stock diferente a cada una para tener un control total de tu inventario.
+                        <span className="font-bold">Variaciones y SKUs independientes:</span> El sistema mantiene tus colores y variantes independientes por defecto. Si deseas combinarlos, puedes <span className="font-bold">arrastrar un color y soltarlo encima de una variante</span> (ya sea en la lista superior o en esta tabla). Usa el botón <span className="font-bold text-rose-500">Separar</span> para dividirlos de nuevo.
                       </p>
                     </div>
                   </div>
