@@ -17,6 +17,18 @@ autoUpdater.allowPrerelease = false;
 
 const UPDATE_PROVIDER = process.env.UPDATE_PROVIDER || 'github';
 const UPDATE_URL = process.env.UPDATE_URL || '';
+const GH_TOKEN = process.env.GH_TOKEN;
+
+if (GH_TOKEN) {
+  autoUpdater.logger.info('GH_TOKEN cargado y configurado para auto-updates.');
+  autoUpdater.requestHeaders = {
+    'Authorization': `Bearer ${GH_TOKEN}`,
+    'Accept': 'application/vnd.github.v3+json'
+  };
+} else {
+  autoUpdater.logger.error('GH_TOKEN no encontrado. Las actualizaciones privadas fallarán.');
+}
+
 if (UPDATE_PROVIDER === 'generic' && UPDATE_URL) {
   autoUpdater.setFeedURL({ provider: 'generic', url: UPDATE_URL, channel: 'latest' });
 } else {
@@ -24,7 +36,10 @@ if (UPDATE_PROVIDER === 'generic' && UPDATE_URL) {
     provider: 'github',
     owner: process.env.GITHUB_OWNER || 'miguelnexs',
     repo: process.env.GITHUB_REPO || 'panel-control',
-    releaseType: 'release'
+    releaseType: 'release',
+    // @ts-ignore
+    private: true,
+    token: GH_TOKEN
   });
 }
 
@@ -61,132 +76,6 @@ autoUpdater.on('update-downloaded', (_info) => {
   // El usuario podrá decidir cuándo instalar desde la interfaz o al cerrar la app.
 });
 
-// Templates Server Configuration
-const TEMPLATES_ROOT = 'd:\\Desktop\\miguel\\cgbycaro\\Plantillas';
-const TEMPLATES_PORT = 9000;
-
-const mimeTypes = {
-  '.html': 'text/html',
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.json': 'application/json',
-  '.png': 'image/png',
-  '.jpg': 'image/jpg',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon',
-  '.wav': 'audio/wav',
-  '.mp4': 'video/mp4',
-  '.woff': 'application/font-woff',
-  '.ttf': 'application/font-ttf',
-  '.eot': 'application/vnd.ms-fontobject',
-  '.otf': 'application/font-otf',
-  '.wasm': 'application/wasm'
-};
-
-const templatesServer = http.createServer((req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    res.writeHead(200);
-    res.end();
-    return;
-  }
-
-  let urlPath = req.url || '/';
-  urlPath = urlPath.split('?')[0];
-  
-  if (urlPath.includes('..')) {
-    res.writeHead(403);
-    res.end('Forbidden');
-    return;
-  }
-
-  if (urlPath.startsWith('/templates/')) {
-    const parts = urlPath.split('/').filter(p => p);
-    if (parts.length < 2) {
-      res.writeHead(404);
-      res.end('Not Found');
-      return;
-    }
-    
-    const templateName = parts[1];
-    const relativePath = parts.slice(2).join('/');
-    
-    // Serve from dist folder
-    let filePath = path.join(TEMPLATES_ROOT, templateName, 'dist', relativePath);
-    
-    if (!relativePath || relativePath === '') {
-       filePath = path.join(TEMPLATES_ROOT, templateName, 'dist', 'index.html');
-    }
-
-    fs.stat(filePath, (err, stats) => {
-      if (err) {
-        // SPA Fallback: if file extension is missing or it's not found, try index.html
-        if (!path.extname(filePath) || path.extname(filePath) === '.html') {
-           const indexPath = path.join(TEMPLATES_ROOT, templateName, 'dist', 'index.html');
-           fs.readFile(indexPath, (err2, content) => {
-             if (err2) {
-               res.writeHead(404);
-               res.end(`File not found: ${req.url}`);
-               return;
-             }
-             res.writeHead(200, { 'Content-Type': 'text/html' });
-             res.end(content, 'utf-8');
-           });
-           return;
-        }
-        res.writeHead(404);
-        res.end(`File not found: ${req.url}`);
-        return;
-      }
-
-      if (stats.isDirectory()) {
-         const indexPath = path.join(filePath, 'index.html');
-         fs.readFile(indexPath, (err2, content) => {
-             if (err2) {
-               res.writeHead(404);
-               res.end(`Index not found`);
-               return;
-             }
-             res.writeHead(200, { 'Content-Type': 'text/html' });
-             res.end(content, 'utf-8');
-           });
-           return;
-      }
-
-      const extname = String(path.extname(filePath)).toLowerCase();
-      const contentType = mimeTypes[extname] || 'application/octet-stream';
-
-      fs.readFile(filePath, (error, content) => {
-        if (error) {
-           res.writeHead(500);
-           res.end('Server Error');
-        } else {
-          res.writeHead(200, { 'Content-Type': contentType });
-          res.end(content, 'utf-8');
-        }
-      });
-    });
-  } else {
-    res.writeHead(404);
-    res.end('Not Found');
-  }
-});
-
-templatesServer.on('error', (err: any) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${TEMPLATES_PORT} is already in use. Templates server skipped.`);
-  } else {
-    console.error('Templates server error:', err);
-  }
-});
-
-templatesServer.listen(TEMPLATES_PORT, () => {
-  console.log(`Templates server running at http://localhost:${TEMPLATES_PORT}/`);
-});
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -381,6 +270,16 @@ ipcMain.handle('ui:reset-settings', async () => {
   deleteUiSettings();
   if (mainWindow) applyUiSettings(mainWindow, 'default', 1);
   return { ok: true };
+});
+
+ipcMain.handle('open-external-url', async (_, url: string) => {
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to open external url:', error);
+    return { success: false, error: String(error) };
+  }
 });
 
 // Window control handlers

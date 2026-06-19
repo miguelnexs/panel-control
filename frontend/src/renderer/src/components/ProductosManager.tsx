@@ -572,6 +572,9 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, rol
                 <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
                   <th className="w-10 px-2"></th>
                   <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Producto</th>
+                  {role === 'super_admin' && (
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Inquilino / Admin</th>
+                  )}
                   <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Precio</th>
                   <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Categoría</th>
                   <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Stock</th>
@@ -610,6 +613,17 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, rol
                           </div>
                         </div>
                       </td>
+                      {role === 'super_admin' && (
+                        <td className="px-6 py-4">
+                          {p.tenant_admin ? (
+                            <span className="px-2.5 py-1 rounded-md bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 text-xs font-semibold border border-purple-200 dark:border-purple-500/20 shadow-sm">
+                              {p.tenant_admin}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">Global</span>
+                          )}
+                        </td>
+                      )}
                       <td className="px-6 py-4">
                         {p.is_sale && p.sale_price ? (
                           <div className="flex flex-col">

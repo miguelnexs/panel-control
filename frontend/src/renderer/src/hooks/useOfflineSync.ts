@@ -225,13 +225,6 @@ export function useOfflineSync(token: string | null): UseOfflineSyncReturn {
     if (isOnline) processQueue();
   }, [isOnline, processQueue]);
 
-  // Periodic sync every 10s when online
-  useEffect(() => {
-    const id = setInterval(() => {
-      if (navigator.onLine) processQueue();
-    }, 10_000);
-    return () => clearInterval(id);
-  }, [processQueue]);
 
   // ─── Public: loadProducts ──────────────────────────────────────
   const loadProducts = useCallback(

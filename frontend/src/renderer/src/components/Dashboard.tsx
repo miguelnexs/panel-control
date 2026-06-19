@@ -17,12 +17,12 @@ const WebOffersPage = React.lazy(() => import('./WebOffersPage'));
 const WebUrlsPage = React.lazy(() => import('./WebUrlsPage'));
 const WebPaymentsPage = React.lazy(() => import('./WebPaymentsPage'));
 const WebShippingPage = React.lazy(() => import('./WebShippingPage'));
-const TemplatesManager = React.lazy(() => import('./dashboard/TemplatesManager'));
 const PlansManager = React.lazy(() => import('./dashboard/PlansManager'));
 const ConfigProfilePage = React.lazy(() => import('./ConfigProfilePage'));
 const ConfigCompanyPage = React.lazy(() => import('./ConfigCompanyPage'));
 const ConfigPrinterPage = React.lazy(() => import('./ConfigPrinterPage'));
 const ConfigGoogleApiPage = React.lazy(() => import('./ConfigGoogleApiPage'));
+const ConfigAlegraPage = React.lazy(() => import('./ConfigAlegraPage'));
 const CashboxPage = React.lazy(() => import('./CashboxPage'));
 const ServicesPage = React.lazy(() => import('./ServicesPage'));
 const FullServiceFormPage = React.lazy(() => import('./FullServiceFormPage'));
@@ -34,9 +34,14 @@ import UserSwitcherModal from './UserSwitcherModal';
 import { RefreshCw, MessageSquare, EyeOff } from 'lucide-react';
 const UsersStatsPage = React.lazy(() => import('./dashboard/UsersStatsPage'));
 const SuperAdminWebRequests = React.lazy(() => import('./SuperAdminWebRequests'));
+const SuppliersPage = React.lazy(() => import('./SuppliersPage'));
+const PurchasesPage = React.lazy(() => import('./PurchasesPage'));
 
 import AIChatAssistant from './AIChatAssistant';
 import WebsiteRequestForm from './WebsiteRequestForm';
+
+const OnboardingWizard = React.lazy(() => import('./OnboardingWizard'));
+const AISupportPage = React.lazy(() => import('./AISupportPage'));
 
 interface DashboardProps {
   token: string | null;
@@ -115,11 +120,14 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
       configuracion_empresa: 'manage_settings',
       configuracion_impresora: 'manage_settings',
       configuracion_google: 'manage_settings',
+      configuracion_alegra: 'manage_settings',
       users: 'manage_users',
       users_empleados: 'manage_users',
       users_permisos: 'manage_users',
       users_actividades: 'manage_users',
       users_estadisticas: 'manage_users',
+      proveedores: 'view_products',
+      compras: 'view_products',
     };
     const required = map[targetView];
     if (!required) return true;
@@ -162,34 +170,35 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
     }
   };
 
+  const refreshWebSettings = async (): Promise<{ webStore: boolean; sync: boolean; advertising: boolean }> => {
+    const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    try {
+      const res = await fetch(`${apiBase}/webconfig/settings/`, { headers });
+      const data = await res.json();
+      const webStore = Boolean(data?.enable_web_store);
+      const sync = data?.enable_web_sync !== false;
+      const advertising = data?.enable_web_advertising !== false;
+      setWebStoreEnabled(webStore);
+      setWebSyncEnabled(sync);
+      setWebAdvertisingEnabled(advertising);
+      saveSetting('web_sync_enabled', sync).catch(() => {});
+      saveSetting('web_advertising_enabled', advertising).catch(() => {});
+      return { webStore, sync, advertising };
+    } catch {
+      return { webStore: false, sync: true, advertising: true };
+    }
+  };
+
   const navigate = (v: string) => {
     setAccessMsg(null);
     if (!canAccess(v)) {
       setAccessMsg('No tienes permiso para acceder a esta sección.');
       return;
     }
-    if (v === 'web' && (webStoreEnabled !== true || webSyncEnabled === false) && role !== 'super_admin') {
-      setView('web_request');
-      setNavLoading(false);
-      return;
-    }
     setNavLoading(true);
     setView(v);
     if (v === 'dashboard') {
-       // Refresh settings to check if web store was enabled
-       const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-        fetch(`${apiBase}/webconfig/settings/`, { headers })
-         .then(res => res.json())
-         .then(data => {
-           setWebStoreEnabled(Boolean(data?.enable_web_store));
-           const syncEnabled = data?.enable_web_sync !== false;
-           const adEnabled = data?.enable_web_advertising !== false;
-           setWebSyncEnabled(syncEnabled);
-           setWebAdvertisingEnabled(adEnabled);
-           saveSetting('web_sync_enabled', syncEnabled).catch(() => {});
-           saveSetting('web_advertising_enabled', adEnabled).catch(() => {});
-         })
-         .catch(() => {});
+       refreshWebSettings().catch(() => {});
     }
     setTimeout(() => setNavLoading(false), 800);
     if (v === 'pedidos') {
@@ -205,18 +214,37 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
       fetch(`${apiBase}/users/api/users/`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: [] })),
       fetch(`${apiBase}/clients/stats/`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: { total: 0 } })),
       fetch(`${apiBase}/sales/stats/`, { headers }).then((res) => res.json().then((d) => ({ ok: res.ok, d })) ).catch(() => ({ ok: false, d: { today_sales: 0 } })),
-    ]).then(([meRes, usersRes, clientsStats, salesStats]) => {
+      fetch(`${apiBase}/api/cashbox/sessions/current/`, { headers }).then((res) => res.ok ? res.json().then((d) => ({ ok: true, d })) : ({ ok: false, d: null })).catch(() => ({ ok: false, d: null })),
+    ]).then(([meRes, usersRes, clientsStats, salesStats, cashboxRes]) => {
       if (meRes.ok && meRes.d && meRes.d.subscription) {
-        setSubscription(meRes.d.subscription);
+        setSubscription({
+          ...meRes.d.subscription,
+          is_trial: meRes.d.is_trial,
+          trial_end_date: meRes.d.trial_end_date
+        });
       }
       if (meRes.ok && meRes.d) {
         setPermissionsEnforced(Boolean(meRes.d.permissions_enforced));
         setPermissions(Array.isArray(meRes.d.permissions) ? meRes.d.permissions : []);
+        
+        const isTrialLocal = meRes.d.is_trial;
+        const isAdminLocal = role === 'admin' || role === 'super_admin';
+        
+        if (!meRes.d.onboarding_completed && (isAdminLocal || isTrialLocal)) {
+            setView('onboarding');
+        }
       }
       const usersCount = usersRes.ok && Array.isArray(usersRes.d) ? usersRes.d.length : 0;
       const clientsNewMonth = clientsStats.ok ? Number(clientsStats.d.new_this_month || 0) : 0;
       const ordersTotal = salesStats.ok && salesStats.d.status_counts ? Object.values(salesStats.d.status_counts).reduce((a: any, b: any) => a + b, 0) as number : 0;
-      const salesAmount = salesStats.ok ? Number(salesStats.d.today_amount || 0) : 0;
+      
+      // Use cashbox current session total (cash + bank) as the daily sales metric, as requested
+      let salesAmount = 0;
+      if (cashboxRes.ok && cashboxRes.d) {
+        salesAmount = Number(cashboxRes.d.expected_cash || 0) + Number(cashboxRes.d.expected_bank || 0);
+      } else {
+        salesAmount = salesStats.ok ? Number(salesStats.d.today_amount || 0) : 0;
+      }
       
       if (salesStats.ok && salesStats.d.top_products) {
         setTopProducts(salesStats.d.top_products);
@@ -262,6 +290,10 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
   }, [token]);
 
   useEffect(() => {
+    // La validación de onboarding ahora se maneja en el fetch inicial para mayor seguridad
+  }, [token, role, subscription, userId]);
+
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Solo disparar si se presiona Ctrl y no estamos en un input/textarea
       if (e.ctrlKey && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
@@ -293,19 +325,17 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
   useEffect(() => {
     let active = true;
     const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-    let intervalId: ReturnType<typeof setInterval>;
     const poll = () => {
       fetch(`${apiBase}/sales/notifications/count/`, { headers })
         .then((res) => {
-          if (res.status === 401) { active = false; clearInterval(intervalId); onSignOut(); return null; }
+          if (res.status === 401) { active = false; onSignOut(); return null; }
           return res.json();
         })
         .then((d) => { if (active && d) setOrderNotif(Number(d.unread || 0)); })
         .catch(() => {});
     };
     poll();
-    intervalId = setInterval(poll, 3000);
-    return () => { active = false; clearInterval(intervalId); };
+    return () => { active = false; };
   }, [token]);
 
   useEffect(() => {
@@ -349,6 +379,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
 
   return (
     <div className="h-full bg-[#e8ecf4] dark:bg-none dark:bg-[#0B0D14] flex overflow-hidden transition-colors duration-300">
+      {view !== 'onboarding' && (
         <Sidebar 
           view={view} 
           setView={navigate} 
@@ -364,8 +395,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
           webStoreEnabled={webStoreEnabled}
           webSyncEnabled={webSyncEnabled}
         />
+      )}
       <main className="flex-1 p-6 space-y-6 relative overflow-y-auto bg-[#e8ecf4] dark:bg-transparent">
-        {!hideFloatingWidgets && (role === 'admin' || role === 'super_admin') && (
+        {!hideFloatingWidgets && view !== 'onboarding' && (role === 'admin' || role === 'super_admin') && (
           <SupportChatWidget 
             token={token} 
             apiBase={apiBase} 
@@ -375,7 +407,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
             setOpenExternal={(o) => setActiveChat(o ? 'support' : null)}
           />
         )}
-        {!hideFloatingWidgets && token && (
+        {!hideFloatingWidgets && view !== 'onboarding' && token && (
           <AIChatAssistant 
             token={token} 
             apiBase={apiBase} 
@@ -406,7 +438,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
           )}
           <div className="flex items-center justify-between mb-6 gap-4 pr-24">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
-              {view === 'dashboard' ? 'Dashboard' : 
+              {view === 'onboarding' ? 'Configuración Inicial' :
+               view === 'dashboard' ? 'Dashboard' : 
                view === 'users' || view === 'users_empleados' ? 'Usuarios / Empleados' :
                view === 'users_permisos' ? 'Usuarios / Permisos' :
                view === 'users_actividades' ? 'Usuarios / Actividades' :
@@ -430,10 +463,14 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
                view === 'configuracion_empresa' ? 'Configuración / Empresa' :
                view === 'configuracion_impresora' ? 'Configuración / Impresora' :
                view === 'configuracion_google' ? 'Configuración / Google API' :
+               view === 'configuracion_alegra' ? 'Configuración / Facturación Alegra' :
                view === 'caja' ? 'Caja' :
                view === 'servicios' ? 'Servicios' :
                view === 'service_form' ? 'Nuevo Servicio' :
                view === 'client_details' ? 'Detalle del Cliente' :
+               view === 'proveedores' ? 'Proveedores' :
+               view === 'compras' ? 'Compras / Recarga Stock' :
+               view === 'ai_support' ? 'Soporte y Diagnóstico Inteligente IA' :
                'Pedidos'}
             </h1>
             <div className="flex items-center gap-2">
@@ -521,6 +558,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
             <ClientsPage 
               token={token} 
               apiBase={apiBase} 
+              role={role}
               canCreate={permsUi.clients.create}
               canEdit={permsUi.clients.edit}
               canDelete={permsUi.clients.del}
@@ -614,9 +652,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
               setProductEditing={(p: any) => { setProductEditing(p); navigate('producto_form'); }}
             />
           )}
-          {view === 'plantillas' && (
-            <TemplatesManager />
-          )}
           {view === 'pedidos' && (
             <OrdersPage 
               token={token} 
@@ -650,6 +685,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
           {view === 'configuracion_google' && (
             <ConfigGoogleApiPage token={token} apiBase={apiBase} />
           )}
+          {view === 'configuracion_alegra' && (
+            <ConfigAlegraPage token={token} apiBase={apiBase} />
+          )}
           {view === 'caja' && (
             <CashboxPage token={token} apiBase={apiBase} />
           )}
@@ -666,6 +704,27 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
               apiBase={apiBase}
               onCancel={() => navigate('servicios')}
               onSaved={() => navigate('servicios')}
+            />
+          )}
+          {view === 'onboarding' && (
+            <OnboardingWizard
+              token={token}
+              apiBase={apiBase}
+              userId={userId}
+              onComplete={() => navigate('ventas')}
+            />
+          )}
+          {view === 'proveedores' && (
+            <SuppliersPage token={token} apiBase={apiBase} />
+          )}
+          {view === 'compras' && (
+            <PurchasesPage token={token} apiBase={apiBase} />
+          )}
+          {view === 'ai_support' && (
+            <AISupportPage
+              token={token}
+              apiBase={apiBase}
+              role={role}
             />
           )}
         </React.Suspense>

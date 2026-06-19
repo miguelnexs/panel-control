@@ -32,6 +32,10 @@ interface Client {
   email: string;
   phone?: string;
   address: string;
+  identification_type?: string;
+  tax_regime?: string;
+  city?: string;
+  department?: string;
 }
 
 interface Order {
@@ -54,6 +58,10 @@ interface ClientForm {
   email: string;
   phone: string;
   address: string;
+  identification_type: string;
+  tax_regime: string;
+  city: string;
+  department: string;
 }
 
 interface CityStat {
@@ -80,9 +88,10 @@ interface ClientsPageProps {
   canCreate?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
+  role?: string;
 }
 
-const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient, canCreate, canEdit, canDelete }) => {
+const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient, canCreate, canEdit, canDelete, role }) => {
   const offlineSync = useOfflineSync(token);
   const canCreateSafe = typeof canCreate === 'boolean' ? canCreate : true;
   const canEditSafe = typeof canEdit === 'boolean' ? canEdit : true;
@@ -95,7 +104,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
   const [total, setTotal] = useState(0);
   const [ordering, setOrdering] = useState('-created_at');
   const [search, setSearch] = useState('');
-  const [form, setForm] = useState<ClientForm>({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '' });
+  const [form, setForm] = useState<ClientForm>({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '', identification_type: 'CC', tax_regime: 'O-99', city: '', department: '' });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [stats, setStats] = useState<ClientStats>({ total: 0, new_this_month: 0, top_cities: [], new_today: 0 });
   const [open, setOpen] = useState(false);
@@ -104,7 +113,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
   const [viewServices, setViewServices] = useState<any[]>([]);
   const [viewLoading, setViewLoading] = useState(false);
   const [editClient, setEditClient] = useState<Client | null>(null);
-  const [editForm, setEditForm] = useState<ClientForm>({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '' });
+  const [editForm, setEditForm] = useState<ClientForm>({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '', identification_type: 'CC', tax_regime: 'O-99', city: '', department: '' });
   const [deletingClient, setDeletingClient] = useState<Client | null>(null);
 
   const authHeaders = (tkn: string) => ({ ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) });
@@ -159,11 +168,15 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
       fd.append('email', form.email);
       fd.append('phone', form.phone);
       fd.append('address', form.address);
+      fd.append('identification_type', form.identification_type);
+      fd.append('tax_regime', form.tax_regime);
+      fd.append('city', form.city);
+      fd.append('department', form.department);
       const res = await fetch(`${apiBase}/clients/`, { method: 'POST', headers: authHeaders(token), body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'No se pudo registrar el cliente');
       setMsg({ type: 'success', text: 'Cliente registrado' });
-      setForm({ full_name: '', cedula: '', email: '', phone: '', address: '' });
+      setForm({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '', identification_type: 'CC', tax_regime: 'O-99', city: '', department: '' });
       setOpen(false);
       loadClients();
       loadStats();
@@ -315,7 +328,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
               </button>
               {canCreateSafe && (
                 <button 
-                  onClick={() => { setForm({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '' }); setErrors({}); setOpen(true); }}
+                  onClick={() => { setForm({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '', identification_type: 'CC', tax_regime: 'O-99', city: '', department: '' }); setErrors({}); setOpen(true); }}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-900/20"
                 >
                   <Plus className="w-4 h-4" />
@@ -332,6 +345,9 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
+                {role === 'super_admin' && (
+                  <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Inquilino / Admin</th>
+                )}
                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Contacto</th>
                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Ubicación</th>
                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Acciones</th>
@@ -354,6 +370,17 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
                       </div>
                     </div>
                   </td>
+                  {role === 'super_admin' && (
+                    <td className="px-6 py-4">
+                      {c.tenant_admin ? (
+                        <span className="px-2.5 py-1 rounded-md bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 text-xs font-semibold border border-purple-200 dark:border-purple-500/20 shadow-sm">
+                          {c.tenant_admin}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">Global</span>
+                      )}
+                    </td>
+                  )}
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
@@ -417,7 +444,11 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
                               cedula: c.cedula || '', 
                               email: c.email || '', 
                               phone: c.phone || '', 
-                              address: c.address || '' 
+                              address: c.address || '',
+                              identification_type: c.identification_type || 'CC',
+                              tax_regime: c.tax_regime || 'O-99',
+                              city: c.city || '',
+                              department: c.department || ''
                             }); 
                           }}
                           className="p-2 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-500/10 text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors"
@@ -509,7 +540,7 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
               </button>
             </div>
             
-            <form onSubmit={async (e) => { e.preventDefault(); setLoading(true); setErrors({}); try { const res = await fetch(`${apiBase}/clients/`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders(token) }, body: JSON.stringify(form) }); const data = await res.json(); if (res.ok) { setMsg({ type: 'success', text: 'Cliente registrado' }); setForm({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '' }); setOpen(false); loadClients(); loadStats(); } else { setErrors(data); } } catch(_) { setMsg({ type: 'error', text: 'Error de red' }); } finally { setLoading(false); } }} className="p-8 space-y-6">
+            <form onSubmit={async (e) => { e.preventDefault(); setLoading(true); setErrors({}); try { const res = await fetch(`${apiBase}/clients/`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders(token) }, body: JSON.stringify(form) }); const data = await res.json(); if (res.ok) { setMsg({ type: 'success', text: 'Cliente registrado' }); setForm({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '', identification_type: 'CC', tax_regime: 'O-99', city: '', department: '' }); setOpen(false); loadClients(); loadStats(); } else { setErrors(data); } } catch(_) { setMsg({ type: 'error', text: 'Error de red' }); } finally { setLoading(false); } }} className="p-8 space-y-6">
               {/* Client Type Selector */}
               <div className="flex bg-gray-100 dark:bg-gray-800 p-1.5 rounded-2xl shadow-inner">
                 <button
@@ -606,6 +637,56 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
                   />
                 </div>
                 {errors.address && <p className="mt-1 text-xs text-rose-400">{errors.address}</p>}
+              </div>
+
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Datos de Facturación Electrónica DIAN</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Tipo de Documento</label>
+                    <select
+                      value={form.identification_type}
+                      onChange={(e) => setForm(f => ({ ...f, identification_type: e.target.value }))}
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none"
+                    >
+                      <option value="CC">Cédula de Ciudadanía (CC)</option>
+                      <option value="NIT">NIT</option>
+                      <option value="CE">Cédula de Extranjería (CE)</option>
+                      <option value="PP">Pasaporte</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Régimen Fiscal</label>
+                    <select
+                      value={form.tax_regime}
+                      onChange={(e) => setForm(f => ({ ...f, tax_regime: e.target.value }))}
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none"
+                    >
+                      <option value="O-99">No responsable de IVA (O-99)</option>
+                      <option value="O-47">Responsable de IVA (O-47)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Ciudad</label>
+                    <input
+                      type="text"
+                      value={form.city}
+                      onChange={(e) => setForm(f => ({ ...f, city: e.target.value }))}
+                      placeholder="Ej. Bogotá"
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Departamento</label>
+                    <input
+                      type="text"
+                      value={form.department}
+                      onChange={(e) => setForm(f => ({ ...f, department: e.target.value }))}
+                      placeholder="Ej. Cundinamarca"
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="pt-6 flex gap-4">
@@ -939,6 +1020,56 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
                   />
                 </div>
                 {errors.address && <p className="mt-1 text-xs text-rose-400">{errors.address}</p>}
+              </div>
+
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Datos de Facturación Electrónica DIAN</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Tipo de Documento</label>
+                    <select
+                      value={editForm.identification_type}
+                      onChange={(e) => setEditForm(f => ({ ...f, identification_type: e.target.value }))}
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none"
+                    >
+                      <option value="CC">Cédula de Ciudadanía (CC)</option>
+                      <option value="NIT">NIT</option>
+                      <option value="CE">Cédula de Extranjería (CE)</option>
+                      <option value="PP">Pasaporte</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Régimen Fiscal</label>
+                    <select
+                      value={editForm.tax_regime}
+                      onChange={(e) => setEditForm(f => ({ ...f, tax_regime: e.target.value }))}
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none"
+                    >
+                      <option value="O-99">No responsable de IVA (O-99)</option>
+                      <option value="O-47">Responsable de IVA (O-47)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Ciudad</label>
+                    <input
+                      type="text"
+                      value={editForm.city}
+                      onChange={(e) => setEditForm(f => ({ ...f, city: e.target.value }))}
+                      placeholder="Ej. Bogotá"
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Departamento</label>
+                    <input
+                      type="text"
+                      value={editForm.department}
+                      onChange={(e) => setEditForm(f => ({ ...f, department: e.target.value }))}
+                      placeholder="Ej. Cundinamarca"
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="pt-6 flex gap-4">

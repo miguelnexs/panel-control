@@ -105,6 +105,9 @@ class TenantPlanSerializer(serializers.ModelSerializer):
     plan_name = serializers.SerializerMethodField()
     plan_id = serializers.SerializerMethodField()
     db_alias = serializers.SerializerMethodField()
+    trial_end_date = serializers.SerializerMethodField()
+    has_paid = serializers.SerializerMethodField()
+    is_trial_active = serializers.SerializerMethodField()
     
     clients_count = serializers.SerializerMethodField()
     sales_count = serializers.SerializerMethodField()
@@ -112,7 +115,7 @@ class TenantPlanSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'admin_id', 'plan_name', 'plan_id', 'db_alias', 'clients_count', 'sales_count', 'products_count']
+        fields = ['id', 'username', 'email', 'admin_id', 'plan_name', 'plan_id', 'db_alias', 'clients_count', 'sales_count', 'products_count', 'trial_end_date', 'has_paid', 'is_trial_active']
 
     def get_plan_name(self, obj):
         try:
@@ -121,7 +124,7 @@ class TenantPlanSerializer(serializers.ModelSerializer):
                 return tenant.subscription_plan.name
         except:
             pass
-        return "Sin Plan"
+        return "Plan Desactivado"
 
     def get_plan_id(self, obj):
         try:
@@ -140,6 +143,33 @@ class TenantPlanSerializer(serializers.ModelSerializer):
         except:
             pass
         return "N/A"
+
+    def get_trial_end_date(self, obj):
+        try:
+            tenant = getattr(obj, 'tenant', None)
+            if tenant and tenant.trial_end_date:
+                return tenant.trial_end_date.isoformat()
+        except:
+            pass
+        return None
+
+    def get_has_paid(self, obj):
+        try:
+            tenant = getattr(obj, 'tenant', None)
+            if tenant:
+                return tenant.has_paid
+        except:
+            pass
+        return False
+
+    def get_is_trial_active(self, obj):
+        try:
+            tenant = getattr(obj, 'tenant', None)
+            if tenant:
+                return tenant.is_trial_active
+        except:
+            pass
+        return False
 
     def get_clients_count(self, obj):
         try:
@@ -177,6 +207,79 @@ class TenantPlanSerializer(serializers.ModelSerializer):
 class TenantPlanViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = TenantPlanSerializer
     permission_classes = [IsAuthenticated]
+
+    def check_super_admin(self):
+        try:
+            if self.request.user.is_superuser:
+                return True
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.role == 'super_admin':
+                return True
+        except:
+            pass
+        return False
+
+    @action(detail=True, methods=['post'], url_path='deactivate')
+    def deactivate_tenant(self, request, pk=None):
+        if not self.check_super_admin():
+            return Response({"detail": "No tienes permiso."}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            user = self.get_object()
+            tenant = getattr(user, 'tenant', None)
+            if tenant:
+                tenant.subscription_plan = None
+                tenant.has_paid = False
+                tenant.save()
+                return Response({"detail": f"Plan desactivado para {user.username}"})
+            return Response({"detail": "El usuario no tiene una tienda/tenant asociada."}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"detail": f"Error desactivando plan: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['post'], url_path='update-trial')
+    def update_tenant_trial(self, request, pk=None):
+        if not self.check_super_admin():
+            return Response({"detail": "No tienes permiso."}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            user = self.get_object()
+            tenant = getattr(user, 'tenant', None)
+            if not tenant:
+                return Response({"detail": "El usuario no tiene una tienda/tenant asociada."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            from django.utils import timezone
+            from datetime import timedelta
+            
+            days = request.data.get('days')
+            trial_end_date_str = request.data.get('trial_end_date')
+            has_paid = request.data.get('has_paid')
+            
+            if has_paid is not None:
+                tenant.has_paid = bool(has_paid)
+                if tenant.has_paid:
+                    tenant.trial_end_date = None
+                
+            if days is not None:
+                try:
+                    days = int(days)
+                    tenant.trial_end_date = timezone.now() + timedelta(days=days)
+                except ValueError:
+                    return Response({"detail": "Días inválidos."}, status=status.HTTP_400_BAD_REQUEST)
+            elif trial_end_date_str:
+                from django.utils.dateparse import parse_datetime
+                dt = parse_datetime(trial_end_date_str)
+                if dt:
+                    if timezone.is_naive(dt):
+                        dt = timezone.make_aware(dt)
+                    tenant.trial_end_date = dt
+                else:
+                    return Response({"detail": "Formato de fecha inválido."}, status=status.HTTP_400_BAD_REQUEST)
+                    
+            tenant.save()
+            return Response({
+                "detail": f"Período de prueba/suscripción actualizado para {user.username}.",
+                "has_paid": tenant.has_paid,
+                "trial_end_date": tenant.trial_end_date.isoformat() if tenant.trial_end_date else None
+            })
+        except Exception as e:
+            return Response({"detail": f"Error actualizando período de prueba: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def list(self, request, *args, **kwargs):
         try:

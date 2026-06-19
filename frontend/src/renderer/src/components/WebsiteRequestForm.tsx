@@ -32,22 +32,9 @@ const WebsiteRequestForm: React.FC<WebsiteRequestFormProps> = ({ apiBase, token,
 
   useEffect(() => {
     checkExisting();
-    fetchTemplates();
-    const interval = setInterval(checkExisting, 10000); // Check every 10s
-    return () => clearInterval(interval);
   }, []);
 
-  const fetchTemplates = async () => {
-    try {
-      const res = await fetch(`${apiBase}/webconfig/templates/`);
-      if (res.ok) {
-        const data = await res.json();
-        setTemplates(data.results || data);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+
 
   const checkExisting = async () => {
     try {
@@ -281,79 +268,7 @@ const WebsiteRequestForm: React.FC<WebsiteRequestFormProps> = ({ apiBase, token,
            )}
         </div>
 
-        {templates.length > 0 && (
-          <div className="w-full mt-16 text-left">
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                <h3 className="text-xs font-black text-orange-500 uppercase tracking-widest mb-1 flex items-center gap-2">
-                  <Palette className="w-4 h-4" /> Propuestas de Diseño Sugeridas
-                </h3>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-tight">Selecciona el estilo que mejor se adapte a tu marca</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-              {templates.map((tpl) => {
-                // Failsafe: Clean up legacy /dist/ paths that might cause 404s
-                const cleanedPath = (tpl.demo_url || '').replace('/dist/', '/');
-                
-                const demoUrl = cleanedPath.startsWith('http') 
-                  ? cleanedPath 
-                  : `${apiBase.replace(/\/$/, '')}${cleanedPath.startsWith('/') ? '' : '/'}${cleanedPath}`;
-                
-                return (
-                  <div key={tpl.id} className="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-[2.5rem] overflow-hidden shadow-xl hover:shadow-orange-500/10 transition-all">
-                    <div className="aspect-[16/10] relative overflow-hidden bg-gray-100 dark:bg-black/20">
-                      {tpl.image ? (
-                        <img 
-                          src={tpl.image.startsWith('http') ? tpl.image : `${apiBase}${tpl.image}`} 
-                          alt={tpl.name}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-400">
-                          <Palette className="w-8 h-8 opacity-20" />
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-6">
-                         <a 
-                           href={demoUrl} 
-                           target="_blank" 
-                           rel="noreferrer"
-                           className="w-full py-3 bg-white text-black text-center rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300"
-                         >
-                           Ver Demo en Vivo
-                         </a>
-                      </div>
-                    </div>
-                    <div className="p-6">
-                      <div className="flex items-start justify-between gap-2 mb-3">
-                         <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-tight line-clamp-1">{tpl.name}</h4>
-                         <span className="shrink-0 px-2 py-0.5 bg-orange-500/10 text-orange-500 text-[8px] font-black uppercase rounded-full tracking-widest">Premium</span>
-                      </div>
-                      <p className="text-[11px] text-gray-500 dark:text-gray-400 line-clamp-2 leading-tight h-8 mb-4">{tpl.description || 'Diseño optimizado para una experiencia fluida y profesional.'}</p>
-                      
-                      <div className="pt-4 border-t border-gray-100 dark:border-white/5 flex items-center justify-between">
-                         <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Lista</span>
-                         </div>
-                         <a 
-                           href={demoUrl} 
-                           target="_blank" 
-                           rel="noreferrer"
-                           className="text-[10px] font-black text-blue-500 hover:text-blue-400 uppercase tracking-widest transition-colors flex items-center gap-1 group/link"
-                         >
-                           Previa <ChevronRight className="w-3 h-3 group-hover/link:translate-x-1 transition-transform" />
-                         </a>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+
 
         <div className="mt-12 px-6 py-2.5 bg-gray-100 dark:bg-white/5 rounded-full text-xs font-black text-gray-400 uppercase tracking-widest border border-gray-200 dark:border-white/10">
           Estado Actual: {status === 'in_progress' ? '🎨 En Proceso de Diseño' : '🕒 Pendiente de Revisión'}
@@ -430,7 +345,7 @@ const WebsiteRequestForm: React.FC<WebsiteRequestFormProps> = ({ apiBase, token,
                     className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 focus:ring-2 focus:ring-purple-500 outline-none transition-all pr-32"
                     placeholder="mitaller"
                   />
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">.softwarebycg.shop</div>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">.asenting.com</div>
                 </div>
               </div>
               <div>

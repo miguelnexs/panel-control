@@ -63,6 +63,9 @@ class UserProfile(models.Model):
     position = models.CharField(max_length=100, blank=True, null=True, verbose_name='Cargo')
     department = models.CharField(max_length=100, blank=True, null=True, verbose_name='Departamento')
     hire_date = models.DateField(null=True, blank=True, verbose_name='Fecha de contratación')
+    
+    # Campo para registrar si el usuario completó el tutorial/onboarding
+    onboarding_completed = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.user.username}'s Profile"

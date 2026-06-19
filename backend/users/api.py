@@ -9,6 +9,7 @@ from .models_subscription import SubscriptionPlan
 from .tenant import ensure_tenant_for_user
 from django.utils import timezone
 from datetime import timedelta
+from .utils.crypto import decrypt_text, is_encrypted_text
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -219,12 +220,13 @@ class MeView(APIView):
                             'user_management': plan.enable_user_management,
                         }
                     }
-                # Consideramos pagado si el campo has_paid es True, si tiene ID de Stripe o si el trial está activo
+                # Consideramos pagado si tiene plan y (has_paid es True, si tiene ID de Stripe o si el trial está activo)
                 try:
-                    if (getattr(tenant, 'has_paid', False) or 
-                        getattr(tenant, 'stripe_subscription_id', None) or 
-                        (tenant and tenant.is_trial_active)):
-                        has_paid = True
+                    if tenant.subscription_plan is not None:
+                        if (getattr(tenant, 'has_paid', False) or 
+                            getattr(tenant, 'stripe_subscription_id', None) or 
+                            tenant.is_trial_active):
+                            has_paid = True
                 except:
                     pass
 
@@ -239,6 +241,13 @@ class MeView(APIView):
         except:
             pass
 
+        phone_raw = profile.phone if profile else None
+        if phone_raw and is_encrypted_text(phone_raw):
+            try:
+                phone_raw = decrypt_text(phone_raw)
+            except Exception:
+                pass
+
         return Response({
             'id': request.user.id,
             'username': request.user.username,
@@ -246,7 +255,7 @@ class MeView(APIView):
             'email': request.user.email,
             'first_name': request.user.first_name,
             'last_name': request.user.last_name,
-            'phone': profile.phone if profile else None,
+            'phone': phone_raw,
             'department': profile.department if profile else None,
             'position': profile.position if profile else None,
             'subscription': subscription_info,
@@ -254,7 +263,8 @@ class MeView(APIView):
             'is_trial': tenant.is_trial_active if not is_superadmin and tenant else False,
             'trial_end_date': tenant.trial_end_date.isoformat() if not is_superadmin and tenant and tenant.trial_end_date else None,
             'permissions_enforced': permissions_enforced,
-            'permissions': permissions
+            'permissions': permissions,
+            'onboarding_completed': getattr(profile, 'onboarding_completed', False) if profile else False
         }, status=status.HTTP_200_OK)
 
     def patch(self, request):
@@ -269,7 +279,7 @@ class MeView(APIView):
             profile = user.profile
         except UserProfile.DoesNotExist:
             profile = UserProfile.objects.create(user=user, role='employee')
-        for pfield in ['phone', 'department', 'position']:
+        for pfield in ['phone', 'department', 'position', 'onboarding_completed']:
             if pfield in request.data:
                 setattr(profile, pfield, request.data.get(pfield))
         profile.save()
@@ -294,6 +304,11 @@ def _serialize_user(user: User):
             department = getattr(profile, 'department', None)
             position = getattr(profile, 'position', None)
             phone = getattr(profile, 'phone', None)
+            if phone and is_encrypted_text(phone):
+                try:
+                    phone = decrypt_text(phone)
+                except Exception:
+                    pass
     except:
         pass
     

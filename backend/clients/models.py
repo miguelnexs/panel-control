@@ -13,6 +13,10 @@ class Client(models.Model):
     phone = models.CharField(max_length=20, blank=True, default='')
     email = models.EmailField(blank=True, null=True)
     address = models.TextField(blank=True, default='')
+    identification_type = models.CharField(max_length=50, blank=True, null=True, default='CC') # CC, NIT, CE, etc.
+    tax_regime = models.CharField(max_length=50, blank=True, null=True, default='O-99') # O-99, O-47, etc.
+    city = models.CharField(max_length=100, blank=True, default='')
+    department = models.CharField(max_length=100, blank=True, default='')
     tenant = models.ForeignKey(Tenant, null=True, blank=True, on_delete=models.SET_NULL)
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -14,9 +14,17 @@ from users.audit import log_activity
 
 
 class ClientSerializer(serializers.ModelSerializer):
+    tenant_admin = serializers.SerializerMethodField()
+
     class Meta:
         model = Client
-        fields = ['id', 'client_type', 'full_name', 'cedula', 'phone', 'email', 'address', 'created_at']
+        fields = ['id', 'client_type', 'full_name', 'cedula', 'phone', 'email', 'address', 'identification_type', 'tax_regime', 'city', 'department', 'created_at', 'tenant_admin']
+
+    def get_tenant_admin(self, obj):
+        try:
+            return obj.tenant.admin.username if obj.tenant and obj.tenant.admin else None
+        except Exception:
+            return None
 
     def validate_full_name(self, value):
         if not value or len(value) < 3:
@@ -70,6 +78,11 @@ class ClientsListCreateView(ListCreateAPIView):
 
     def get_queryset(self):
         tenant = _get_user_tenant(self.request.user)
+        try:
+            role = self.request.user.profile.role
+        except Exception:
+            role = 'employee'
+            
         if tenant:
             Client.objects.get_or_create(
                 tenant=tenant,
@@ -83,8 +96,12 @@ class ClientsListCreateView(ListCreateAPIView):
                 }
             )
         qs = Client.objects.all()
-        if tenant:
+        if role == 'super_admin':
+            pass
+        elif tenant:
             qs = qs.filter(tenant=tenant)
+        else:
+            qs = Client.objects.none()
         q = self.request.query_params.get('search')
         if q:
             qs = qs.filter(Q(full_name__icontains=q) | Q(cedula__icontains=q) | Q(phone__icontains=q) | Q(email__icontains=q) | Q(address__icontains=q))

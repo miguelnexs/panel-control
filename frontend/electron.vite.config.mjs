@@ -57,6 +57,10 @@ export default defineConfig({
     build: {
       outDir: 'out/renderer'
     },
+    server: {
+      port: 5173,
+      strictPort: true
+    },
     plugins: [react()]
   }
 })

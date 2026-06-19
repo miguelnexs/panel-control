@@ -163,6 +163,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
   const [isDraft, setIsDraft] = useState(false);
   const [errors, setErrors] = useState<any>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [showValidationModal, setShowValidationModal] = useState(false);
   
   // Unified Images State
   const [productImages, setProductImages] = useState<any[]>([]);
@@ -1142,7 +1143,14 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       setErrors({ form: 'Sin conexión a internet. Conéctate para guardar el producto.' });
       return;
     }
-    if (!forceDraft && !validateClient(forceDraft)) return;
+    
+    if (!forceDraft) {
+      const isValid = validateClient(forceDraft);
+      if (!isValid) {
+        setShowValidationModal(true);
+        return;
+      }
+    }
     
     setLoading(true);
     setLoadingType('save');
@@ -2840,6 +2848,66 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       onCancel={() => setCroppingImage(null)}
       onCropComplete={handleCropComplete}
     />
+  )}
+
+  {/* VALIDATION ERRORS MODAL */}
+  {showValidationModal && (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowValidationModal(false)}>
+      <div 
+        className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800 animate-in zoom-in-95 duration-200"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="p-6 text-center border-b border-gray-100 dark:border-gray-800">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-200 dark:border-red-800">
+            <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Faltan datos</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Para guardar el producto, por favor completa o corrige los siguientes campos:
+          </p>
+        </div>
+        <div className="p-6 max-h-[50vh] overflow-y-auto custom-scrollbar bg-gray-50 dark:bg-gray-800/30">
+          <ul className="space-y-3">
+            {Object.entries(errors).map(([field, msg]) => {
+              if (field === 'form') return null;
+              
+              // Mapear nombre del campo para mostrar al usuario
+              let fieldName = field;
+              switch(field) {
+                case 'name': fieldName = 'Nombre del producto'; break;
+                case 'price': fieldName = 'Precio normal'; break;
+                case 'category': fieldName = 'Categoría'; break;
+                case 'sku': fieldName = 'Código SKU'; break;
+                case 'inventoryQty': fieldName = 'Inventario (Stock)'; break;
+                case 'sale_price': fieldName = 'Precio en Oferta'; break;
+                case 'image': fieldName = 'Imágenes'; break;
+                case 'colors': fieldName = 'Colores'; break;
+              }
+              
+              return (
+                <li key={field} className="flex items-start gap-3 p-3 bg-white dark:bg-gray-800 rounded-xl border border-red-100 dark:border-red-900/30 shadow-sm">
+                  <div className="mt-0.5">
+                    <AlertCircle className="w-4 h-4 text-red-500" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-1">{fieldName}</p>
+                    <p className="text-sm text-red-600 dark:text-red-400">{String(msg)}</p>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+        <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+          <button
+            onClick={() => setShowValidationModal(false)}
+            className="w-full py-3 bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-900 font-bold rounded-xl transition-colors shadow-lg"
+          >
+            Entendido, ir a corregir
+          </button>
+        </div>
+      </div>
+    </div>
   )}
 </div>
   );

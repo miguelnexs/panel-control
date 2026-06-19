@@ -45,71 +45,11 @@ const SuperAdminWebRequests: React.FC<Props> = ({ apiBase, token }) => {
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState<number | null>(null);
   
-  // Plantillas State
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [showTemplateForm, setShowTemplateForm] = useState(false);
-  const [newTemplate, setNewTemplate] = useState({ name: '', description: '', zip: null as File | null });
-  const [savingTemplate, setSavingTemplate] = useState(false);
-
   useEffect(() => {
     fetchRequests();
-    fetchTemplates();
   }, []);
 
-  const fetchTemplates = async () => {
-    try {
-      const res = await fetch(`${apiBase}/webconfig/templates/`);
-      if (res.ok) {
-        const data = await res.json();
-        setTemplates(data.results || data);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
-  const handleCreateTemplate = async () => {
-    if (!newTemplate.name || !newTemplate.zip) return;
-    setSavingTemplate(true);
-    const formData = new FormData();
-    formData.append('name', newTemplate.name);
-    formData.append('description', newTemplate.description);
-    formData.append('zip_file', newTemplate.zip);
-
-    try {
-      const res = await fetch(`${apiBase}/webconfig/templates/`, {
-        method: 'POST',
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
-        body: formData
-      });
-      if (res.ok) {
-        setNewTemplate({ name: '', description: '', zip: null });
-        setShowTemplateForm(false);
-        fetchTemplates();
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSavingTemplate(false);
-    }
-  };
-
-  const deleteTemplate = async (id: number) => {
-    if (!confirm('¿Seguro que deseas eliminar esta plantilla?')) return;
-    try {
-      const res = await fetch(`${apiBase}/webconfig/templates/${id}/`, {
-        method: 'DELETE',
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        }
-      });
-      if (res.ok) fetchTemplates();
-    } catch (err) {
-      console.error(err);
-    }
-  };
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -220,118 +160,6 @@ const SuperAdminWebRequests: React.FC<Props> = ({ apiBase, token }) => {
         </button>
       </div>
 
-      {/* Gestión de Plantillas Section */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-[2.5rem] p-6 shadow-xl mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-orange-500/10 rounded-2xl flex items-center justify-center">
-              <Layout className="w-6 h-6 text-orange-500" />
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tight">Gestión de Plantillas Globales</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Sube nuevos diseños (.zip) para que tus clientes puedan verlos como propuestas.</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => setShowTemplateForm(!showTemplateForm)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-105 transition-all"
-          >
-            {showTemplateForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            {showTemplateForm ? 'Cerrar' : 'Nueva Plantilla'}
-          </button>
-        </div>
-
-        {showTemplateForm && (
-          <div className="mb-8 p-6 bg-gray-50 dark:bg-black/20 rounded-3xl border border-dashed border-gray-200 dark:border-white/10 animate-in slide-in-from-top duration-300">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Nombre de la Plantilla</label>
-                  <input 
-                    type="text" 
-                    value={newTemplate.name}
-                    onChange={e => setNewTemplate({...newTemplate, name: e.target.value})}
-                    placeholder="Ej: Elegancia Moderna"
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-orange-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Descripción Corta</label>
-                  <textarea 
-                    value={newTemplate.description}
-                    onChange={e => setNewTemplate({...newTemplate, description: e.target.value})}
-                    placeholder="Describe los beneficios de este diseño..."
-                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-orange-500 h-24 resize-none"
-                  />
-                </div>
-              </div>
-              <div className="flex flex-col items-center justify-center p-8 bg-white dark:bg-gray-800 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-3xl relative group">
-                {newTemplate.zip ? (
-                  <div className="text-center">
-                    <FileText className="w-12 h-12 text-blue-500 mx-auto mb-2" />
-                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[200px]">{newTemplate.zip.name}</p>
-                    <button onClick={() => setNewTemplate({...newTemplate, zip: null})} className="mt-2 text-[10px] text-red-500 font-bold uppercase underline">Cambiar archivo</button>
-                  </div>
-                ) : (
-                  <>
-                    <Upload className="w-12 h-12 text-gray-300 mb-2 group-hover:text-orange-500 transition-colors" />
-                    <p className="text-xs text-gray-500 font-medium text-center">Arrastra o selecciona el archivo <span className="font-bold">.zip</span> del diseño</p>
-                    <input 
-                      type="file" 
-                      accept=".zip"
-                      className="absolute inset-0 opacity-0 cursor-pointer" 
-                      onChange={e => setNewTemplate({...newTemplate, zip: e.target.files?.[0] || null})}
-                    />
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="mt-6 flex justify-end">
-              <button 
-                onClick={handleCreateTemplate}
-                disabled={savingTemplate || !newTemplate.name || !newTemplate.zip}
-                className="px-8 py-3 bg-orange-600 hover:bg-orange-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest disabled:opacity-50 flex items-center gap-2 shadow-xl shadow-orange-500/20"
-              >
-                {savingTemplate ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                Publicar Plantilla
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-           {templates.map(tpl => (
-             <div key={tpl.id} className="group p-4 bg-gray-50 dark:bg-black/20 rounded-[2rem] border border-gray-100 dark:border-white/5 hover:border-orange-500/30 transition-all flex items-center justify-between">
-                <div className="flex items-center gap-3 overflow-hidden">
-                   <div className="w-10 h-10 rounded-xl bg-gray-200 dark:bg-gray-800 flex items-center justify-center shrink-0">
-                      <Layout className="w-5 h-5 text-gray-400 group-hover:text-orange-500 transition-colors" />
-                   </div>
-                   <div className="overflow-hidden">
-                      <h4 className="text-xs font-black text-gray-900 dark:text-white uppercase truncate">{tpl.name}</h4>
-                      <p className="text-[10px] text-gray-400 truncate tracking-tight">ID: {tpl.id}</p>
-                   </div>
-                </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                   <button 
-                     onClick={() => window.open(`${apiBase}${tpl.demo_url}`, '_blank')}
-                     className="p-2 hover:bg-white dark:hover:bg-gray-800 rounded-lg text-blue-500"
-                     title="Ver Previa"
-                   >
-                     <Eye className="w-4 h-4" />
-                   </button>
-                   <button 
-                     onClick={() => deleteTemplate(tpl.id)}
-                     className="p-2 hover:bg-white dark:hover:bg-gray-800 rounded-lg text-red-500"
-                     title="Eliminar"
-                   >
-                     <Trash className="w-4 h-4" />
-                   </button>
-                </div>
-             </div>
-           ))}
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 gap-8">
         {requests.map((req) => (
           <div key={req.id} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl hover:shadow-blue-500/5 transition-all group border-t-8 border-t-blue-500">
@@ -432,7 +260,7 @@ const SuperAdminWebRequests: React.FC<Props> = ({ apiBase, token }) => {
                           <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Subdominio:</p>
                           <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-black">
                             <LinkIcon className="w-3 h-3" />
-                            <span>{req.preferred_subdomain || 'Auto'}.softwarebycg.shop</span>
+                            <span>{req.preferred_subdomain || 'Auto'}.asenting.com</span>
                           </div>
                         </div>
                       </div>

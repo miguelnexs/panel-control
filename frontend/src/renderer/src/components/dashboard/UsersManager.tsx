@@ -61,6 +61,7 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
   // Edit Form State
   const [editing, setEditing] = useState<Employee | null>(null);
   const [editForm, setEditForm] = useState({ first_name: '', last_name: '', email: '', department: '', position: '', password: '', phone: '' });
+  const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
 
   // Super Admin Form State
   const [saUsername, setSaUsername] = useState('');
@@ -144,17 +145,26 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
     }
   };
 
-  const removeEmployee = async (id: number) => {
-    if (!confirm('¿Está seguro de eliminar este usuario?')) return;
+  const confirmDeleteEmployee = async () => {
+    if (!deletingEmployee) return;
     setMsg(null);
     try {
-      const res = await fetch(`${apiBase}/users/api/users/${id}/`, { method: 'DELETE', headers: authHeaders(token) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || data.message || 'No se pudo eliminar');
-      setMsg({ type: 'success', text: 'Usuario eliminado correctamente' });
-      loadEmployees();
+      const res = await fetch(`${apiBase}/users/api/users/${deletingEmployee.id}/`, { method: 'DELETE', headers: authHeaders(token) });
+      let errorMsg = 'No se pudo eliminar';
+      if (res.status === 204 || res.ok) {
+        setMsg({ type: 'success', text: 'Usuario eliminado correctamente' });
+        setDeletingEmployee(null);
+        loadEmployees();
+        return;
+      }
+      try {
+        const data = await res.json();
+        errorMsg = data.detail || data.message || errorMsg;
+      } catch {}
+      throw new Error(errorMsg);
     } catch (e: any) {
       setMsg({ type: 'error', text: e.message });
+      setDeletingEmployee(null);
     }
   };
 
@@ -386,12 +396,6 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
                           {emp.email}
                         </div>
                       )}
-                      {emp.phone && (
-                        <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
-                          <Phone className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500" />
-                          {emp.phone}
-                        </div>
-                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -421,7 +425,7 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
                         <Edit className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={() => removeEmployee(emp.id)}
+                        onClick={() => setDeletingEmployee(emp)}
                         className="p-2 rounded-lg hover:bg-rose-500/10 text-gray-400 hover:text-rose-400 transition-colors"
                         title="Eliminar"
                       >
@@ -859,6 +863,38 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
                 <button type="submit" className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-medium transition-all shadow-lg shadow-amber-900/20">Guardar Cambios</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Eliminar Usuario/Empleado */}
+      {deletingEmployee && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white dark:bg-gray-900 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl border border-gray-100 dark:border-gray-800 animate-in zoom-in-95 duration-300">
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-rose-100 dark:bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Trash className="w-10 h-10 text-rose-600 dark:text-rose-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">¿Eliminar Usuario?</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
+                Estás a punto de eliminar a <span className="font-semibold text-gray-900 dark:text-white">@{deletingEmployee.username}</span> ({deletingEmployee.first_name} {deletingEmployee.last_name}). 
+                Esta acción no se puede deshacer y el usuario será removido permanentemente.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => setDeletingEmployee(null)}
+                  className="flex-1 px-6 py-3.5 rounded-2xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={confirmDeleteEmployee}
+                  className="flex-1 px-6 py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-semibold transition-all shadow-lg shadow-rose-600/20 active:scale-95"
+                >
+                  Sí, eliminar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -23,7 +23,6 @@ import { DndContext, DragEndEvent, DragStartEvent, PointerSensor, useSensor, use
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-import SiteEditor from './dashboard/SiteEditor';
 import SafeImage from './SafeImage';
 
 interface Category {
@@ -186,9 +185,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
   const [productChanges, setProductChanges] = useState<Record<number, boolean>>({});
   const [categoryChanges, setCategoryChanges] = useState<Record<number, boolean>>({});
   const [savingChanges, setSavingChanges] = useState(false);
-  const [showEditor, setShowEditor] = useState(false);
-  const [editorTargetUrl, setEditorTargetUrl] = useState('');
-  const [editorTargetTemplateId, setEditorTargetTemplateId] = useState<number | undefined>(undefined);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
   // Payment & Settings State
   const [appSettings, setAppSettings] = useState<AppSettings | null>(null);
@@ -260,43 +257,13 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
 
   const mediaUrl = (p?: string | null) => (p && p.startsWith('http')) ? p : `${apiBase}${p || ''}`;
 
-  const handleOpenEditor = async (url?: string, templateId?: number) => {
-    let targetTemplateId = templateId;
-    
-    if (!targetTemplateId) {
-      try {
-        const res = await fetch(`${apiBase}/webconfig/templates/my/`, { headers: headers(token) });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.results && data.results.length > 0) {
-            targetTemplateId = data.results[0].id;
-          }
-        }
-      } catch (e) {
-        console.error("Error fetching personal templates", e);
-      }
-    }
 
-    if (url) {
-      setEditorTargetUrl(url);
-    } else {
-      setEditorTargetUrl(siteUrl || 'localhost:8000');
-    }
-    setEditorTargetTemplateId(targetTemplateId);
-    setShowEditor(true);
-  };
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadConfigData = async () => {
+    if (!token) return;
     try {
       const headersAuth = headers(token);
-      let prodsUrl = `${apiBase}/products/?page=${page}&page_size=${pageSize}`;
-      if (query) prodsUrl += `&search=${encodeURIComponent(query)}`;
-      if (filterCat) prodsUrl += `&category=${filterCat}`;
-      if (filterActive !== '') prodsUrl += `&active=${filterActive}`;
-
-      const [prodsRes, visRes, visCatsRes, urlRes, settingsRes, payRes, catsRes] = await Promise.all([
-        fetch(prodsUrl, { headers: headersAuth }),
+      const [visRes, visCatsRes, urlRes, settingsRes, payRes, catsRes] = await Promise.all([
         fetch(`${apiBase}/webconfig/visible-products/status/`, { headers: headersAuth }),
         fetch(`${apiBase}/webconfig/visible-categories/status/`, { headers: headersAuth }),
         fetch(`${apiBase}/webconfig/site-url/status/`, { headers: headersAuth }),
@@ -305,7 +272,6 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
         fetch(`${apiBase}/products/categories/`, { headers: headersAuth }),
       ]);
 
-      const prodsData = await prodsRes.json();
       const visData = await visRes.json();
       const visCatsData = await visCatsRes.json();
       const urlData = await urlRes.json();
@@ -313,17 +279,8 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
       const payData = await payRes.json();
       const catsData = await catsRes.json();
 
-      if (prodsData.results) {
-        setProducts(prodsData.results);
-        setTotalProducts(prodsData.count || 0);
-      } else {
-        setProducts(Array.isArray(prodsData) ? prodsData : []);
-        setTotalProducts(Array.isArray(prodsData) ? prodsData.length : 0);
-      }
-      
       setCategories(Array.isArray(catsData) ? catsData : (catsData.results || []));
 
-      // Convert arrays to maps if necessary
       const visMap: Record<number, boolean> = {};
       if (Array.isArray(visData)) {
         visData.forEach((v: any) => { if (v.visible) visMap[v.id] = true; });
@@ -347,10 +304,40 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
       setProductChanges({});
       setCategoryChanges({});
     } catch (e) {
-      console.error("Error loading WebPageManager data", e);
+      console.error("Error loading configuration data", e);
+    }
+  };
+
+  const loadProductsData = async (searchVal = debouncedQuery) => {
+    setLoading(true);
+    try {
+      const headersAuth = headers(token);
+      let prodsUrl = `${apiBase}/products/?page=${page}&page_size=${pageSize}`;
+      if (searchVal) prodsUrl += `&search=${encodeURIComponent(searchVal)}`;
+      if (filterCat) prodsUrl += `&category=${filterCat}`;
+      if (filterActive !== '') prodsUrl += `&active=${filterActive}`;
+
+      const prodsRes = await fetch(prodsUrl, { headers: headersAuth });
+      const prodsData = await prodsRes.json();
+
+      if (prodsData.results) {
+        setProducts(prodsData.results);
+        setTotalProducts(prodsData.count || 0);
+      } else {
+        setProducts(Array.isArray(prodsData) ? prodsData : []);
+        setTotalProducts(Array.isArray(prodsData) ? prodsData.length : 0);
+      }
+    } catch (e) {
+      console.error("Error loading products data", e);
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadData = async () => {
+    setLoading(true);
+    await Promise.all([loadConfigData(), loadProductsData()]);
+    setLoading(false);
   };
 
   const saveProductsChanges = async () => {
@@ -408,11 +395,27 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
     setProductChanges(prev => ({ ...prev, [product.id]: isVisible }));
   };
 
+  // Debounce the query to prevent API calls on every keystroke
   useEffect(() => {
-    loadData();
-  }, [tab, page, query, filterCat, filterActive]);
+    const handler = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [query]);
 
-  useEffect(() => { if (token) loadData(); }, [token]);
+  // Load config data ONCE on mount or when token changes
+  useEffect(() => {
+    if (token) {
+      loadConfigData();
+    }
+  }, [token]);
+
+  // Load products data when pagination or filters change
+  useEffect(() => {
+    if (token) {
+      loadProductsData(debouncedQuery);
+    }
+  }, [tab, page, debouncedQuery, filterCat, filterActive, token]);
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
@@ -749,17 +752,6 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
     return `https://softwarebycg.shop/?aid=${adminId}`;
   }, [urlStatus, adminId]);
 
-  if (showEditor) {
-    return (
-      <SiteEditor 
-        token={token} 
-        apiBase={apiBase} 
-        siteUrl={editorTargetUrl} 
-        templateId={editorTargetTemplateId}
-        onClose={() => setShowEditor(false)} 
-      />
-    );
-  }
 
   return (
     <div className="space-y-6 relative animate-in fade-in duration-500">

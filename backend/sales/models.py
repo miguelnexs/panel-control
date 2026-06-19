@@ -33,7 +33,16 @@ class Sale(models.Model):
     transfer_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     change_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     apartado_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    DIAN_STATUS_CHOICES = (
+        ('not_emitted', 'No Emitida'),
+        ('emitted', 'Emitida'),
+        ('error', 'Error'),
+    )
     apartado_date = models.DateTimeField(null=True, blank=True)
+    dian_invoice_id = models.CharField(max_length=64, blank=True, null=True)
+    dian_invoice_url = models.URLField(max_length=500, blank=True, null=True)
+    dian_invoice_status = models.CharField(max_length=20, choices=DIAN_STATUS_CHOICES, default='not_emitted')
+    dian_error_message = models.TextField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -334,13 +334,19 @@ class SaleView(APIView):
                 'email': client.email,
                 'phone': client.phone,
                 'address': client.address,
-                'cedula': client.cedula
+                'cedula': client.cedula,
+                'identification_type': client.identification_type,
+                'tax_regime': client.tax_regime,
+                'city': client.city,
+                'department': client.department
             },
             'total_amount': str(sale.total_amount),
             'payment_method': sale.payment_method,
             'cash_amount': str(sale.cash_amount),
             'transfer_amount': str(sale.transfer_amount),
             'change_amount': str(sale.change_amount),
+            'dian_invoice_status': sale.dian_invoice_status,
+            'dian_invoice_url': sale.dian_invoice_url,
             'created_at': sale.created_at.isoformat(),
             'order_number': sale.order_number,
             'items': items_out,
@@ -442,13 +448,21 @@ class SalesListView(ListAPIView):
                     'email': sale.client.email,
                     'phone': sale.client.phone,
                     'address': sale.client.address,
-                    'cedula': sale.client.cedula
+                    'cedula': sale.client.cedula,
+                    'identification_type': sale.client.identification_type,
+                    'tax_regime': sale.client.tax_regime,
+                    'city': sale.client.city,
+                    'department': sale.client.department
                 },
                 'total_amount': str(sale.total_amount),
                 'payment_method': sale.payment_method,
                 'cash_amount': str(sale.cash_amount),
                 'transfer_amount': str(sale.transfer_amount),
                 'change_amount': str(sale.change_amount),
+                'dian_invoice_status': sale.dian_invoice_status,
+                'dian_invoice_id': sale.dian_invoice_id,
+                'dian_invoice_url': sale.dian_invoice_url,
+                'dian_error_message': sale.dian_error_message,
                 'apartado_amount': str(sale.apartado_amount),
                 'apartado_date': sale.apartado_date.isoformat() if sale.apartado_date else None,
                 'created_at': sale.created_at.isoformat(),
@@ -784,3 +798,54 @@ class SalePaymentCreateView(APIView):
             'remaining': str(sale.total_amount - total_paid_after),
             'status': sale.status
         })
+
+class EmitDianInvoiceView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, pk):
+        from .alegra_sync import AlegraAPI
+        
+        sale = Sale.objects.filter(id=pk).first()
+        if not sale:
+            from rest_framework.exceptions import NotFound
+            raise NotFound('Venta no encontrada')
+            
+        tenant = _get_user_tenant(request.user)
+        if tenant and sale.tenant != tenant:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('No tiene permiso para facturar esta venta.')
+            
+        if sale.dian_invoice_status == 'emitted':
+            return Response({'detail': 'La factura ya ha sido emitida previamente.'}, status=400)
+            
+        # Update client if new fiscal data is provided in the request
+        data = request.data
+        if 'identification_type' in data or 'tax_regime' in data or 'city' in data or 'cedula' in data:
+            client = sale.client
+            if 'cedula' in data: client.cedula = data['cedula']
+            if 'identification_type' in data: client.identification_type = data['identification_type']
+            if 'tax_regime' in data: client.tax_regime = data['tax_regime']
+            if 'city' in data: client.city = data['city']
+            if 'department' in data: client.department = data.get('department', '')
+            if 'address' in data: client.address = data['address']
+            client.save()
+            
+        try:
+            api = AlegraAPI(tenant=tenant)
+            res = api.create_dian_invoice(sale)
+            
+            # Extract ID and public URL (if available)
+            sale.dian_invoice_id = str(res.get('id', ''))
+            sale.dian_invoice_status = 'emitted'
+            sale.dian_invoice_url = res.get('publicUrl', '')
+            sale.dian_error_message = ''
+            sale.save(update_fields=['dian_invoice_id', 'dian_invoice_status', 'dian_invoice_url', 'dian_error_message'])
+            
+            return Response({'detail': 'Factura electrónica emitida exitosamente.', 'invoice_id': sale.dian_invoice_id, 'public_url': sale.dian_invoice_url})
+            
+        except Exception as e:
+            sale.dian_invoice_status = 'error'
+            sale.dian_error_message = str(e)
+            sale.save(update_fields=['dian_invoice_status', 'dian_error_message'])
+            return Response({'detail': str(e)}, status=400)
+

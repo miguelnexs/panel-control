@@ -1,5 +1,5 @@
 export const candidateApiBases = (): string[] => {
-  return ['http://localhost:8000', 'https://softwarebycg.shop/api'];
+  return [(import.meta as any).env?.VITE_API_URL || 'https://asenting.com'];
 };
 
 const tryHealth = async (base: string): Promise<boolean> => {
@@ -22,5 +22,5 @@ export const detectApiBase = async (): Promise<string> => {
     const ok = await tryHealth(b);
     if (ok) return b.replace(/\/+$/, '');
   }
-  return 'http://localhost:8000';
+  return (import.meta as any).env?.VITE_API_URL || 'https://asenting.com';
 };

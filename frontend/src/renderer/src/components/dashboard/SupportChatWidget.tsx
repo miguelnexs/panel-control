@@ -103,8 +103,6 @@ const SupportChatWidget: React.FC<SupportChatWidgetProps> = ({ token, apiBase: r
   useEffect(() => {
     if (!token || !canUse) return;
     loadChats(true);
-    const t = setInterval(() => loadChats(true), open ? 2500 : 3500);
-    return () => clearInterval(t);
   }, [token, canUse, open, role]);
 
   useEffect(() => {
@@ -171,12 +169,9 @@ const SupportChatWidget: React.FC<SupportChatWidgetProps> = ({ token, apiBase: r
   useEffect(() => {
     if (!token || !canUse) return;
     if (role === 'super_admin' && !tenantId) return;
-    const t = setInterval(() => {
-      if (newestId) load({ sinceId: newestId, silent: true });
-      else load({ replace: true, silent: true });
-    }, open ? 1800 : 5000);
-    return () => clearInterval(t);
-  }, [token, canUse, open, role, tenantId, newestId]);
+    if (newestId) load({ sinceId: newestId, silent: true });
+    else load({ replace: true, silent: true });
+  }, [token, canUse, role, tenantId, newestId]);
 
   useEffect(() => {
     if (!open) return;

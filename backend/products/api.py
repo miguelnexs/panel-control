@@ -8,7 +8,7 @@ from users.audit import log_activity
 from .models import Category
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q, Sum
-from .models import ProductColor, ProductColorImage, ProductVariant, ProductFeature, ProductSKU
+from .models import ProductColor, ProductColorImage, ProductVariant, ProductFeature, ProductSKU, PurchaseDocument
 
 
 from rest_framework.views import APIView
@@ -1048,4 +1048,146 @@ class ResolveSKUView(APIView):
             })
             
         return Response({'found': False, 'detail': 'SKU no encontrado'}, status=200)
+
+
+# --- Supplier & Purchase Management ---
+from .models import Supplier, Purchase, PurchaseItem
+
+class SupplierSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Supplier
+        fields = '__all__'
+        read_only_fields = ['tenant', 'created_at']
+
+class SupplierListCreateView(ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = SupplierSerializer
+
+    def get_queryset(self):
+        tenant = _get_user_tenant(self.request.user)
+        if tenant:
+            return Supplier.objects.filter(tenant=tenant).order_by('-created_at')
+        role = _get_user_role(self.request.user)
+        if role == 'super_admin':
+            return Supplier.objects.all().order_by('-created_at')
+        return Supplier.objects.none()
+
+    def perform_create(self, serializer):
+        tenant = _get_user_tenant(self.request.user)
+        serializer.save(tenant=tenant)
+
+class SupplierDetailView(RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = SupplierSerializer
+
+    def get_queryset(self):
+        tenant = _get_user_tenant(self.request.user)
+        if tenant:
+            return Supplier.objects.filter(tenant=tenant)
+        role = _get_user_role(self.request.user)
+        if role == 'super_admin':
+            return Supplier.objects.all()
+        return Supplier.objects.none()
+
+class PurchaseItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.ReadOnlyField(source='product.name')
+    sku_code = serializers.ReadOnlyField(source='sku.sku')
+
+    class Meta:
+        model = PurchaseItem
+        fields = ['id', 'product', 'product_name', 'sku', 'sku_code', 'quantity', 'unit_cost']
+        read_only_fields = ['id', 'product_name', 'sku_code']
+
+class PurchaseDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PurchaseDocument
+        fields = ['id', 'purchase', 'file', 'uploaded_at']
+        read_only_fields = ['id', 'uploaded_at']
+
+class PurchaseSerializer(serializers.ModelSerializer):
+    items = PurchaseItemSerializer(many=True, required=False)
+    documents = PurchaseDocumentSerializer(many=True, read_only=True)
+    supplier_name = serializers.ReadOnlyField(source='supplier.name')
+
+    class Meta:
+        model = Purchase
+        fields = ['id', 'supplier', 'supplier_name', 'date', 'total_amount', 'notes', 'created_at', 'items', 'documents']
+        read_only_fields = ['tenant', 'created_at']
+
+    def create(self, validated_data):
+        validated_data.pop('items', None)
+        items_data = self.initial_data.get('items', [])
+        purchase = Purchase.objects.create(**validated_data)
+        for item_data in items_data:
+            from .models import Product, ProductSKU
+            product_id = item_data.get('product')
+            sku_id = item_data.get('sku')
+            quantity = item_data.get('quantity')
+            unit_cost = item_data.get('unit_cost')
+            
+            product = Product.objects.get(id=product_id) if product_id else None
+            sku = ProductSKU.objects.get(id=sku_id) if sku_id else None
+            
+            if product:
+                PurchaseItem.objects.create(
+                    purchase=purchase,
+                    product=product,
+                    sku=sku,
+                    quantity=quantity,
+                    unit_cost=unit_cost,
+                    tenant=purchase.tenant
+                )
+        return purchase
+
+class PurchaseListCreateView(ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = PurchaseSerializer
+
+    def get_queryset(self):
+        tenant = _get_user_tenant(self.request.user)
+        if tenant:
+            return Purchase.objects.filter(tenant=tenant).order_by('-created_at')
+        role = _get_user_role(self.request.user)
+        if role == 'super_admin':
+            return Purchase.objects.all().order_by('-created_at')
+        return Purchase.objects.none()
+
+    def perform_create(self, serializer):
+        tenant = _get_user_tenant(self.request.user)
+        serializer.save(tenant=tenant)
+
+class PurchaseDocumentListCreateView(ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    serializer_class = PurchaseDocumentSerializer
+
+    def get_queryset(self):
+        purchase_id = self.kwargs.get('purchase_id')
+        tenant = _get_user_tenant(self.request.user)
+        qs = PurchaseDocument.objects.filter(purchase_id=purchase_id)
+        if tenant:
+            qs = qs.filter(tenant=tenant)
+        return qs
+
+    def perform_create(self, serializer):
+        purchase_id = self.kwargs.get('purchase_id')
+        tenant = _get_user_tenant(self.request.user)
+        # Ensure the purchase belongs to the tenant
+        purchase = Purchase.objects.get(id=purchase_id)
+        if tenant and purchase.tenant != tenant:
+            raise serializers.ValidationError("No tiene permiso para esta compra.")
+        serializer.save(purchase=purchase, tenant=tenant)
+
+class PurchaseDetailView(RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = PurchaseSerializer
+
+    def get_queryset(self):
+        tenant = _get_user_tenant(self.request.user)
+        if tenant:
+            return Purchase.objects.filter(tenant=tenant)
+        role = _get_user_role(self.request.user)
+        if role == 'super_admin':
+            return Purchase.objects.all()
+        return Purchase.objects.none()
 

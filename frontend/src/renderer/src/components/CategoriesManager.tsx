@@ -483,6 +483,9 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                 <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
                   <th className="w-10 px-2"></th>
                   <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Categoría</th>
+                  {role === 'super_admin' && (
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Inquilino / Admin</th>
+                  )}
                   <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Descripción</th>
                   <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Estado</th>
                   <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Imagen</th>
@@ -504,6 +507,17 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                           <span className="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{c.name}</span>
                         </div>
                       </td>
+                      {role === 'super_admin' && (
+                        <td className="px-6 py-4">
+                          {c.tenant_admin ? (
+                            <span className="px-2.5 py-1 rounded-md bg-purple-100 dark:bg-purple-500/10 text-purple-700 dark:text-purple-400 text-xs font-semibold border border-purple-200 dark:border-purple-500/20 shadow-sm">
+                              {c.tenant_admin}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">Global</span>
+                          )}
+                        </td>
+                      )}
                       <td className="px-6 py-4">
                         <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">{c.description || 'Sin descripción'}</p>
                       </td>

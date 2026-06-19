@@ -122,14 +122,30 @@ class AIChatView(APIView):
             pass
         return None
 
+    def get(self, request, session_id=None):
+        if not session_id:
+            return Response({'detail': 'session_id is required'}, status=400)
+        tenant = _get_user_tenant(request.user)
+        session = AIChatSession.objects.filter(id=session_id, user=request.user).first()
+        if not session:
+            return Response({'detail': 'Session not found'}, status=404)
+        messages = session.messages.all().order_by('created_at')
+        return Response([
+            {'role': m.role, 'content': m.content}
+            for m in messages
+        ])
+
     def post(self, request):
         msg_text = request.data.get('message')
         session_id = request.data.get('session_id')
         tenant = _get_user_tenant(request.user)
         
         session = AIChatSession.objects.filter(id=session_id, user=request.user).first() if session_id else None
-        if not session: session = AIChatSession.objects.create(user=request.user, tenant=tenant)
-        AIChatMessage.objects.create(session=session, role='user', content=msg_text)
+        if not session: 
+            session = AIChatSession.objects.create(user=request.user, tenant=tenant)
+        
+        # Create user message
+        user_msg = AIChatMessage.objects.create(session=session, role='user', content=msg_text)
 
         api_key = "AIzaSyC8TmqL5HjjE7OE64wlsMUffvYM_ffknkw"
         settings = AppSettings.objects.filter(tenant=tenant).first() or AppSettings.objects.filter(tenant=None).first()
@@ -147,8 +163,25 @@ class AIChatView(APIView):
             context += "Puedes incluir múltiples bloques ACTION_JSON si el usuario pide varias cosas. Responde siempre en español."
             
             genai.configure(api_key=api_key)
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            response = model.generate_content([context, msg_text])
+            model = genai.GenerativeModel(
+                model_name='gemini-1.5-flash',
+                system_instruction=context
+            )
+            
+            # Fetch last 15 messages (excluding the one we just created) for chat context
+            prev_msgs = list(session.messages.exclude(id=user_msg.id).order_by('-created_at')[:15])
+            prev_msgs.reverse() # chronological order
+            
+            chat_history = []
+            for m in prev_msgs:
+                role = 'user' if m.role == 'user' else 'model'
+                chat_history.append({
+                    'role': role,
+                    'parts': [m.content]
+                })
+                
+            chat = model.start_chat(history=chat_history)
+            response = chat.send_message(msg_text)
             
             try:
                 full_text = response.text

@@ -744,9 +744,31 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-/* Transiciones suaves para cambios de tema */
-* {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+/* Transiciones suaves para cambios de tema (optimizado para evitar lag global) */
+body, 
+header,
+aside,
+main,
+button,
+select,
+input,
+textarea,
+.bg-theme-background, 
+.bg-theme-surface,
+.bg-theme-sidebar,
+.bg-theme-sidebar-surface,
+.text-theme-text, 
+.text-theme-textSecondary, 
+.border-theme-border,
+.sidebar-glass,
+.glass-card,
+.glass-effect,
+.card,
+.panel {
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.2s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Modo compacto */
@@ -759,10 +781,7 @@
 .compact-mode .gap-4 { gap: 0.75rem; }
 .compact-mode .gap-6 { gap: 1rem; }
 
-/* Sin animaciones */
-*:not(.animations-enabled *) {
-  transition: none !important;
-}
+
 
 /* Estilos personalizados para barras de scroll */
 ::-webkit-scrollbar {

@@ -71,7 +71,7 @@ class AppSettingsSerializer(serializers.ModelSerializer):
                   'company_name','company_nit','company_phone','company_whatsapp','company_email','company_address','company_description',
                   'printer_type','printer_name','paper_width_mm','auto_print','receipt_footer', 
                   'service_printer_type','service_printer_name','service_paper_width_mm','service_auto_print','service_receipt_footer',
-                  'whatsapp_config', 'google_config', 'page_content',
+                  'whatsapp_config', 'google_config', 'alegra_config', 'page_content',
                   'shipping_cost', 'free_shipping_threshold', 'pickup_enabled']
 
     def to_representation(self, instance):
@@ -87,6 +87,11 @@ class AppSettingsSerializer(serializers.ModelSerializer):
         if 'google_config' in data and isinstance(data['google_config'], dict):
             if data['google_config'].get('app_password'):
                 data['google_config']['app_password'] = '********'
+
+        # Mask Alegra token
+        if 'alegra_config' in data and isinstance(data['alegra_config'], dict):
+            if data['alegra_config'].get('token'):
+                data['alegra_config']['token'] = '********'
 
         return data
 
@@ -116,6 +121,21 @@ class AppSettingsSerializer(serializers.ModelSerializer):
             traceback.print_exc()
             raise serializers.ValidationError(f"Error procesando configuración de Google: {str(e)}")
 
+    def validate_alegra_config(self, value):
+        try:
+            if isinstance(value, dict):
+                if 'token' in value:
+                    t = value['token']
+                    if t == '********':
+                        return value
+                    if t and not is_encrypted_text(t):
+                        value['token'] = encrypt_text(str(t))
+            return value
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            raise serializers.ValidationError(f"Error procesando configuración de Alegra: {str(e)}")
+
     def update(self, instance, validated_data):
         if 'whatsapp_config' in validated_data:
             new_config = validated_data['whatsapp_config']
@@ -142,6 +162,18 @@ class AppSettingsSerializer(serializers.ModelSerializer):
                 new_config['app_password'] = old_config['app_password']
                 
             validated_data['google_config'] = new_config
+
+        if 'alegra_config' in validated_data:
+            new_config = validated_data['alegra_config']
+            old_config = instance.alegra_config or {}
+            
+            if 'token' in new_config and new_config['token'] == '********':
+                if 'token' in old_config:
+                    new_config['token'] = old_config['token']
+            elif 'token' not in new_config and 'token' in old_config:
+                new_config['token'] = old_config['token']
+                
+            validated_data['alegra_config'] = new_config
             
         return super().update(instance, validated_data)
 
@@ -254,14 +286,57 @@ class TemplateCloneView(views.APIView):
         try:
             # Generate unique slug
             import time
+            import shutil
+            from pathlib import Path
+            
             slug_base = original.slug or 'template'
-            new_slug = f"{slug_base}-copy-{int(time.time())}"
+            if slug_base.startswith('user-'):
+                parts = slug_base.split('-')
+                if len(parts) >= 3:
+                    slug_base = parts[2]
+            new_slug = f"user-{request.user.id}-{slug_base}-{int(time.time())}"
+            
+            # Resolve physical directory paths
+            if original.is_personal:
+                src_dir = settings.BASE_DIR / 'templates' / 'user' / original.slug
+            else:
+                src_dir = settings.BASE_DIR / 'templates' / original.slug
+                
+            dest_dir = settings.BASE_DIR / 'templates' / 'user' / new_slug
+            
+            if src_dir.exists() and src_dir.is_dir():
+                dest_dir.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(src_dir, dest_dir)
+                
+                # Run npm install in a background thread so we don't block the user loading the editor
+                import threading
+                import subprocess
+                def run_install(cwd_path):
+                    try:
+                        subprocess.run(["npm", "install"], cwd=cwd_path, shell=True, check=True, timeout=180)
+                    except Exception as ex:
+                        print(f"Background npm install error: {ex}")
+                
+                threading.Thread(target=run_install, args=(str(dest_dir),), daemon=True).start()
+            
+            # Update demo URL path to point to user folder
+            if original.demo_url and original.demo_url.startswith('http'):
+                new_demo_url = original.demo_url
+            elif original.demo_url and original.demo_url.endswith('/'):
+                new_demo_url = f"/demos/user/{new_slug}/"
+            else:
+                demo_filename = "index.html"
+                if original.demo_url:
+                    parts = original.demo_url.rstrip('/').split('/')
+                    if parts:
+                        demo_filename = parts[-1]
+                new_demo_url = f"/demos/user/{new_slug}/{demo_filename}"
             
             new_template = Template(
                 name=f"{original.name} (Copy)",
                 description=original.description,
                 slug=new_slug,
-                demo_url=original.demo_url,
+                demo_url=new_demo_url,
                 color=original.color,
                 tags=original.tags,
                 is_personal=True,
@@ -310,6 +385,17 @@ class MyTemplateDetailView(generics.RetrieveUpdateDestroyAPIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     def get_queryset(self):
         return Template.objects.filter(owner=self.request.user, is_personal=True)
+    def perform_destroy(self, instance):
+        if instance.is_personal and instance.slug:
+            import shutil
+            from django.conf import settings
+            dest_dir = settings.BASE_DIR / 'templates' / 'user' / instance.slug
+            if dest_dir.exists() and dest_dir.is_dir() and 'user' in dest_dir.parts:
+                try:
+                    shutil.rmtree(dest_dir)
+                except Exception as e:
+                    print(f"Error removing physical template directory: {e}")
+        instance.delete()
 
 class BannerSerializer(serializers.ModelSerializer):
     class Meta:
@@ -335,8 +421,11 @@ class StatsSerializer(serializers.Serializer):
 
 
 class WebSettingsView(views.APIView):
-    permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
     def get(self, request):
         
         # Seleccionar configuración específica del tenant del usuario
@@ -414,6 +503,63 @@ class WebSettingsView(views.APIView):
             import traceback
             traceback.print_exc()
             return Response({'detail': f'Error guardando configuración: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class TestAlegraConfigView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        email = request.data.get('email')
+        token = request.data.get('token')
+
+        if not email:
+            return Response({'detail': 'Correo de cuenta Alegra requerido'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Handle masked token
+        if token == '********' or not token:
+            try:
+                profile = getattr(request.user, 'profile', None)
+                user_tenant = profile.tenant if profile else None
+                if user_tenant:
+                    ws = AppSettings.objects.filter(tenant=user_tenant).first()
+                else:
+                    ws = AppSettings.objects.first()
+                
+                if ws and ws.alegra_config and 'token' in ws.alegra_config:
+                    from users.utils.crypto import decrypt_text
+                    token = decrypt_text(ws.alegra_config['token'])
+            except Exception:
+                pass
+
+        if not token or token == '********':
+             return Response({'detail': 'Token de Alegra requerido'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Test Alegra Connection
+        import requests
+        import base64
+        
+        try:
+            auth_string = f"{email}:{token}"
+            auth_base64 = base64.b64encode(auth_string.encode('utf-8')).decode('utf-8')
+            
+            headers = {
+                'Authorization': f'Basic {auth_base64}',
+                'Accept': 'application/json'
+            }
+            
+            response = requests.get('https://api.alegra.com/api/v1/company', headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                company_name = data.get('name', 'Empresa')
+                return Response({'detail': f'Conexión exitosa con Alegra ({company_name})'})
+            elif response.status_code == 401:
+                return Response({'detail': 'Credenciales de Alegra incorrectas (No Autorizado)'}, status=status.HTTP_401_UNAUTHORIZED)
+            else:
+                return Response({'detail': f'Error de Alegra: {response.status_code}'}, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            return Response({'detail': f'Error conectando con Alegra: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class TestGoogleConfigView(views.APIView):
@@ -893,8 +1039,13 @@ class PublicPortalView(views.APIView):
         aid = request.query_params.get('aid')
         site = request.query_params.get('site')
         tenant = None
-        tenants = []
-        if site:
+        if request.user and request.user.is_authenticated:
+            try:
+                tenant = getattr(request.user.profile, 'tenant', None)
+            except Exception:
+                pass
+        
+        if tenant is None and site:
             uu = UserURL.objects.filter(url__in=_site_variants(site)).order_by('-created_at').first()
             if uu and hasattr(uu.user, 'profile') and getattr(uu.user.profile, 'tenant', None):
                 tenant = uu.user.profile.tenant
@@ -906,11 +1057,7 @@ class PublicPortalView(views.APIView):
                 tenant = None
         vis_ids = list(VisibleProduct.objects.filter(active=True, product__tenant=tenant).order_by('position', 'product_id').values_list('product_id', flat=True)) if tenant else []
         
-        if tenant and not vis_ids:
-            # Fallback: if no products explicitly marked as visible, show all active products for tenant
-            prods = Product.objects.filter(tenant=tenant, active=True).order_by('-created_at')
-        else:
-            prods = Product.objects.filter(id__in=vis_ids, active=True)
+        prods = Product.objects.filter(id__in=vis_ids, active=True)
         
         # Categories
         cat_ids = list(VisibleCategory.objects.filter(active=True, category__tenant=tenant).values_list('category_id', flat=True)) if tenant else []
@@ -938,7 +1085,13 @@ class PublicProductsView(views.APIView):
         aid = request.query_params.get('aid')
         site = request.query_params.get('site')
         tenant = None
-        if site:
+        if request.user and request.user.is_authenticated:
+            try:
+                tenant = getattr(request.user.profile, 'tenant', None)
+            except Exception:
+                pass
+        
+        if tenant is None and site:
             uu = UserURL.objects.filter(url__in=_site_variants(site)).order_by('-created_at').first()
             if uu and hasattr(uu.user, 'profile'):
                 tenant = getattr(uu.user.profile, 'tenant', None)
@@ -951,10 +1104,7 @@ class PublicProductsView(views.APIView):
         
         vis_ids = list(VisibleProduct.objects.filter(active=True, product__tenant=tenant).order_by('position', 'product_id').values_list('product_id', flat=True)) if tenant else []
         
-        if tenant and not vis_ids:
-            prods = Product.objects.filter(tenant=tenant, active=True).order_by('-created_at')
-        else:
-            prods = Product.objects.filter(id__in=vis_ids, active=True).order_by('-created_at')
+        prods = Product.objects.filter(id__in=vis_ids, active=True).order_by('-created_at')
 
         # Filtros adicionales
         if prods.exists():
@@ -1590,3 +1740,41 @@ class PublicAutoClaimView(views.APIView):
         except Exception:
             return Response({'detail': 'Servicio no disponible.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response({'site_url': canonical, 'tenant_id': getattr(tenant, 'id', None)})
+
+
+class MediaUploadView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        uploaded_file = request.FILES.get('file')
+        if not uploaded_file:
+            return Response({'detail': 'No se recibió ningún archivo.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Enforce size limit: 50MB (50 * 1024 * 1024 bytes)
+        MAX_SIZE = 50 * 1024 * 1024
+        if uploaded_file.size > MAX_SIZE:
+            return Response({'detail': 'El archivo supera el límite permitido de 50MB.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Store file in media/web_uploads/
+        import os
+        import time
+        from django.utils.text import slugify
+        from django.core.files.storage import default_storage
+        
+        filename_base, ext = os.path.splitext(uploaded_file.name)
+        safe_filename = f"{slugify(filename_base)}_{int(time.time())}{ext.lower()}"
+        
+        # Save to storage
+        saved_path = default_storage.save(f'web_uploads/{safe_filename}', uploaded_file)
+        file_url = default_storage.url(saved_path)
+        
+        # Return absolute URL to prevent relative URL issues
+        absolute_url = request.build_absolute_uri(file_url)
+        
+        return Response({
+            'url': absolute_url,
+            'name': uploaded_file.name,
+            'size': uploaded_file.size
+        }, status=status.HTTP_201_CREATED)
+

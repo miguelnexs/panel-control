@@ -1,7 +1,7 @@
 // Utilidad para centralizar la configuración de API
 // Este archivo permite cambiar fácilmente entre desarrollo y producción
 
-export const API_BASE_URL: string = 'http://localhost:8000';
+export const API_BASE_URL: string = (import.meta as any).env?.VITE_API_URL || 'https://asenting.com';
 
 // Helper para construir URLs completas
 export const buildApiUrl = (endpoint: string): string => {

@@ -165,3 +165,67 @@ def product_post_save(sender, instance, **kwargs):
 @receiver(post_delete, sender=ProductSKU)
 def sku_stock_changed(sender, instance, **kwargs):
     update_product_total_stock(instance.product)
+
+
+class Supplier(models.Model):
+    name = models.CharField(max_length=200)
+    contact_name = models.CharField(max_length=100, blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    email = models.EmailField(blank=True)
+    address = models.TextField(blank=True)
+    active = models.BooleanField(default=True)
+    tenant = models.ForeignKey(Tenant, null=True, blank=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+class Purchase(models.Model):
+    supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, related_name='purchases')
+    date = models.DateField(auto_now_add=True)
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    notes = models.TextField(blank=True)
+    tenant = models.ForeignKey(Tenant, null=True, blank=True, on_delete=models.SET_NULL)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Compra {self.id} - {self.supplier.name if self.supplier else 'N/A'}"
+
+class PurchaseItem(models.Model):
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='items')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='purchase_items')
+    sku = models.ForeignKey(ProductSKU, on_delete=models.CASCADE, null=True, blank=True, related_name='purchase_items')
+    quantity = models.PositiveIntegerField()
+    unit_cost = models.DecimalField(max_digits=10, decimal_places=2)
+    tenant = models.ForeignKey(Tenant, null=True, blank=True, on_delete=models.SET_NULL)
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product.name}"
+
+@receiver(post_save, sender=PurchaseItem)
+def purchase_item_post_save(sender, instance, created, **kwargs):
+    if created:
+        if instance.sku:
+            instance.sku.stock += instance.quantity
+            instance.sku.save()
+        else:
+            instance.product.inventory_qty = (instance.product.inventory_qty or 0) + instance.quantity
+            instance.product.save()
+
+@receiver(post_delete, sender=PurchaseItem)
+def purchase_item_post_delete(sender, instance, **kwargs):
+    if instance.sku:
+        instance.sku.stock = max(0, instance.sku.stock - instance.quantity)
+        instance.sku.save()
+    else:
+        instance.product.inventory_qty = max(0, (instance.product.inventory_qty or 0) - instance.quantity)
+        instance.product.save()
+
+class PurchaseDocument(models.Model):
+    purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='documents')
+    file = models.FileField(upload_to='purchases/documents/')
+    tenant = models.ForeignKey(Tenant, null=True, blank=True, on_delete=models.SET_NULL)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Documento para Compra {self.purchase.id}"

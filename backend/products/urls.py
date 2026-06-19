@@ -20,4 +20,9 @@ urlpatterns = [
     path('gallery/<int:pk>/', api_views.ProductImageDetailView.as_view(), name='product_gallery_detail'),
     path('<int:product_id>/skus/', api_views.ProductSKUListCreateView.as_view(), name='product_skus_list_create'),
     path('skus/<int:pk>/', api_views.ProductSKUDetailView.as_view(), name='product_skus_detail'),
+    path('suppliers/', api_views.SupplierListCreateView.as_view(), name='suppliers_list_create'),
+    path('suppliers/<int:pk>/', api_views.SupplierDetailView.as_view(), name='suppliers_detail'),
+    path('purchases/', api_views.PurchaseListCreateView.as_view(), name='purchases_list_create'),
+    path('purchases/<int:pk>/', api_views.PurchaseDetailView.as_view(), name='purchases_detail'),
+    path('purchases/<int:purchase_id>/documents/', api_views.PurchaseDocumentListCreateView.as_view(), name='purchase_documents_list_create'),
 ]

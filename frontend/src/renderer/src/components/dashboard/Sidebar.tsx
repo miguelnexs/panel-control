@@ -558,6 +558,24 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <span>Servicios</span>
               </button>
               )}
+              {canAccess('proveedores') && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); setView('proveedores'); setInventoryMenuPos(null); }} 
+                className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'proveedores' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+              >
+                <Icon name="users" className="w-3 h-3" />
+                <span>Proveedores</span>
+              </button>
+              )}
+              {canAccess('compras') && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); setView('compras'); setInventoryMenuPos(null); }} 
+                className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'compras' ? 'text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+              >
+                <Icon name="sales" className="w-3 h-3" />
+                <span>Compras / Stock</span>
+              </button>
+              )}
             </div>
           )}
 
@@ -590,6 +608,24 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <span>Servicios</span>
               </button>
               )}
+              {canAccess('proveedores') && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); setView('proveedores'); }} 
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'proveedores' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+              >
+                <Icon name="users" className="w-3 h-3" />
+                <span>Proveedores</span>
+              </button>
+              )}
+              {canAccess('compras') && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); setView('compras'); }} 
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'compras' ? 'text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+              >
+                <Icon name="sales" className="w-3 h-3" />
+                <span>Compras / Stock</span>
+              </button>
+              )}
             </div>
           )}
         </div>
@@ -597,98 +633,6 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         <div className={`px-4 pt-4 pb-2 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ${collapsed ? 'hidden' : 'block'}`}>
           Configuración
         </div>
-        {(role === 'super_admin' || role === 'admin') && (
-          <div className="relative">
-            <button className={`${itemBase} ${['users', 'users_empleados', 'users_permisos', 'users_actividades', 'users_estadisticas'].includes(view) ? activeClass : ''}`} onClick={toggleUsersMenu} title="Usuarios">
-              {(['users', 'users_empleados', 'users_permisos', 'users_actividades', 'users_estadisticas'].includes(view)) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-              <span className={`${iconBoxClass} ${toneClasses('users')} ${['users', 'users_empleados', 'users_permisos', 'users_actividades', 'users_estadisticas'].includes(view) ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
-                <Icon name="users" className="w-4 h-4" />
-              </span>
-              <span className={textClass}>Usuarios</span>
-              <span className={tooltipClass}>Usuarios</span>
-              {!collapsed && (
-                <svg className={`w-3.5 h-3.5 ml-auto text-gray-500 dark:text-gray-400 transition-transform ${usersMenuPos || isUsersOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              )}
-            </button>
-
-            {usersMenuPos && collapsed && (
-              <div
-                style={{
-                  position: 'fixed',
-                  top: usersMenuPos.top,
-                  left: usersMenuPos.left,
-                  zIndex: 9999
-                }}
-                className="w-56 max-h-[70vh] overflow-y-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 ml-2"
-              >
-                <button
-                  onClick={(e) => { e.stopPropagation(); setView('users_empleados'); setUsersMenuPos(null); }}
-                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'users_empleados' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
-                >
-                  <Icon name="users" className="w-3 h-3" />
-                  <span>Empleados</span>
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setView('users_permisos'); setUsersMenuPos(null); }}
-                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'users_permisos' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
-                >
-                  <Icon name="help" className="w-3 h-3" />
-                  <span>Permisos</span>
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setView('users_actividades'); setUsersMenuPos(null); }}
-                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'users_actividades' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
-                >
-                  <Icon name="orders" className="w-3 h-3" />
-                  <span>Actividades</span>
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setView('users_estadisticas'); setUsersMenuPos(null); }}
-                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'users_estadisticas' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
-                >
-                  <Icon name="dashboard" className="w-3 h-3" />
-                  <span>Estadísticas</span>
-                </button>
-              </div>
-            )}
-
-            {isUsersOpen && !collapsed && (
-              <div className="mt-1 ml-1 space-y-1 bg-gray-50 dark:bg-black/20 rounded-md p-1">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setView('users_empleados'); }}
-                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'users_empleados' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
-                >
-                  <Icon name="users" className="w-3 h-3" />
-                  <span>Empleados</span>
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setView('users_permisos'); }}
-                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'users_permisos' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
-                >
-                  <Icon name="help" className="w-3 h-3" />
-                  <span>Permisos</span>
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setView('users_actividades'); }}
-                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'users_actividades' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
-                >
-                  <Icon name="orders" className="w-3 h-3" />
-                  <span>Actividades</span>
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setView('users_estadisticas'); }}
-                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'users_estadisticas' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
-                >
-                  <Icon name="dashboard" className="w-3 h-3" />
-                  <span>Estadísticas</span>
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
         {canAccess('web') && role !== 'super_admin' && (
           <div className="relative">
             {role !== 'super_admin' && (webStoreEnabled !== true || webSyncEnabled === false) ? (
@@ -825,6 +769,98 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         )}
       </div>
     )}
+
+        {(role === 'super_admin' || role === 'admin') && (
+          <div className="relative">
+            <button className={`${itemBase} ${['users', 'users_empleados', 'users_permisos', 'users_actividades', 'users_estadisticas'].includes(view) ? activeClass : ''}`} onClick={toggleUsersMenu} title="Mi Equipo">
+              {(['users', 'users_empleados', 'users_permisos', 'users_actividades', 'users_estadisticas'].includes(view)) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
+              <span className={`${iconBoxClass} ${toneClasses('users')} ${['users', 'users_empleados', 'users_permisos', 'users_actividades', 'users_estadisticas'].includes(view) ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
+                <Icon name="users" className="w-4 h-4" />
+              </span>
+              <span className={textClass}>Mi Equipo</span>
+              <span className={tooltipClass}>Mi Equipo</span>
+              {!collapsed && (
+                <svg className={`w-3.5 h-3.5 ml-auto text-gray-500 dark:text-gray-400 transition-transform ${usersMenuPos || isUsersOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              )}
+            </button>
+
+            {usersMenuPos && collapsed && (
+              <div
+                style={{
+                  position: 'fixed',
+                  top: usersMenuPos.top,
+                  left: usersMenuPos.left,
+                  zIndex: 9999
+                }}
+                className="w-56 max-h-[70vh] overflow-y-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 ml-2"
+              >
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('users_empleados'); setUsersMenuPos(null); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'users_empleados' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="users" className="w-3 h-3" />
+                  <span>Empleados</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('users_permisos'); setUsersMenuPos(null); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'users_permisos' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="help" className="w-3 h-3" />
+                  <span>Permisos</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('users_actividades'); setUsersMenuPos(null); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'users_actividades' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="orders" className="w-3 h-3" />
+                  <span>Actividades</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('users_estadisticas'); setUsersMenuPos(null); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'users_estadisticas' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="dashboard" className="w-3 h-3" />
+                  <span>Estadísticas</span>
+                </button>
+              </div>
+            )}
+
+            {isUsersOpen && !collapsed && (
+              <div className="mt-1 ml-1 space-y-1 bg-gray-50 dark:bg-black/20 rounded-md p-1">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('users_empleados'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'users_empleados' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="users" className="w-3 h-3" />
+                  <span>Empleados</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('users_permisos'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'users_permisos' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="help" className="w-3 h-3" />
+                  <span>Permisos</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('users_actividades'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'users_actividades' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="orders" className="w-3 h-3" />
+                  <span>Actividades</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('users_estadisticas'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'users_estadisticas' ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-100 dark:bg-cyan-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="dashboard" className="w-3 h-3" />
+                  <span>Estadísticas</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
     
 
         {(role === 'admin' || role === 'super_admin') && (

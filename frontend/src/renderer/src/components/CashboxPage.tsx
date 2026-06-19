@@ -439,7 +439,7 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <Wallet className="w-8 h-8 text-blue-600" />
+            <Wallet className="w-8 h-8 text-slate-800 dark:text-slate-300" />
             Gestión de Caja Profesional
           </h1>
           <div className="flex items-center gap-3 mt-1">
@@ -491,29 +491,40 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
           <div className="lg:col-span-4 space-y-6">
             <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-8">
-                    <div className="p-3 bg-blue-100 dark:bg-blue-500/10 rounded-2xl text-blue-600">
+                    <div className="p-3 bg-slate-100 dark:bg-white/5 rounded-2xl text-slate-700 dark:text-slate-300">
                         <Clock className="w-6 h-6" />
                     </div>
                     <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 text-xs font-black uppercase tracking-widest rounded-full">Abierta</span>
                 </div>
                 
                 <div className="space-y-6">
-                    <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                            <DollarSign className="w-3 h-3" /> Saldo Esperado Efectivo
+                    <div className="bg-indigo-50 dark:bg-indigo-500/10 p-4 rounded-2xl border border-indigo-100 dark:border-indigo-500/20">
+                        <p className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1 mb-1">
+                            <Wallet className="w-4 h-4" /> Total en Caja (Efectivo + Banco)
                         </p>
-                        <h2 className="text-3xl font-black text-gray-900 dark:text-white tabular-nums tracking-tight">
-                            {formatCurrency(currentSession.expected_cash)}
+                        <h2 className="text-4xl font-black text-indigo-700 dark:text-indigo-300 tabular-nums tracking-tight">
+                            {formatCurrency(Number(currentSession.expected_cash) + Number(currentSession.expected_bank))}
                         </h2>
                     </div>
 
-                    <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                            <Building className="w-3 h-3" /> Saldo Esperado Banco
-                        </p>
-                        <h2 className="text-3xl font-black text-blue-600 dark:text-blue-400 tabular-nums tracking-tight">
-                            {formatCurrency(currentSession.expected_bank)}
-                        </h2>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                                <DollarSign className="w-3 h-3" /> Efectivo
+                            </p>
+                            <h2 className="text-2xl font-black text-gray-900 dark:text-white tabular-nums tracking-tight">
+                                {formatCurrency(currentSession.expected_cash)}
+                            </h2>
+                        </div>
+
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                                <Building className="w-3 h-3" /> Banco / Transf.
+                            </p>
+                            <h2 className="text-2xl font-black text-slate-800 dark:text-slate-200 tabular-nums tracking-tight">
+                                {formatCurrency(currentSession.expected_bank)}
+                            </h2>
+                        </div>
                     </div>
                 </div>
 
@@ -531,9 +542,9 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
                 </div>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-6 text-white shadow-xl shadow-blue-500/20">
+            <div className="bg-slate-900 dark:bg-black border border-slate-800/50 dark:border-white/10 rounded-3xl p-6 text-white shadow-xl shadow-slate-900/20">
                 <h3 className="font-bold mb-4 flex items-center gap-2">
-                    <Plus className="w-5 h-5" /> Acciones Rápidas
+                    <Plus className="w-5 h-5 text-slate-400" /> Acciones Rápidas
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
                     <button 
@@ -631,7 +642,7 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
                 <Button 
                     onClick={handleOpenBox}
                     disabled={saving}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-6 rounded-2xl font-bold shadow-xl shadow-blue-900/20"
+                    className="bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-gray-200 text-white px-8 py-6 rounded-2xl font-bold shadow-xl shadow-slate-900/20 dark:shadow-white/10"
                 >
                     {saving ? 'Iniciando...' : 'Iniciar Turno de Caja'}
                 </Button>

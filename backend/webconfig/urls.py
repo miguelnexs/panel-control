@@ -1,5 +1,5 @@
 from django.urls import path
-from .api import WebSettingsView, PaymentMethodListCreateView, PaymentMethodDetailView, BannerListCreateView, BannerDetailView, PolicyView, StatsView, PortalView, PublicPortalView, PublicProductsView, PublicPolicyView, PublicSettingsView, PublicCategoriesView, PublicPaymentsView, PublicCheckoutView, UserURLAvailabilityView, UserURLListCreateView, UserURLDetailView, VisibleCategoriesView, VisibleCategoryUpdateView, VisibleCategoryStatusListView, VisibleProductsView, VisibleProductUpdateView, SiteURLStatusView, SiteURLClaimView, PublicAutoClaimView, PublicBannersView, PublicProductDetailView, TemplateListView, MyTemplateListCreateView, MyTemplateDetailView, TemplateAdminDetailView, TemplateCloneView, TestGoogleConfigView, TestMercadoPagoConfigView, VisibleProductStatusListView, VisibleProductsBulkUpdateView, VisibleCategoriesBulkUpdateView
+from .api import WebSettingsView, PaymentMethodListCreateView, PaymentMethodDetailView, BannerListCreateView, BannerDetailView, PolicyView, StatsView, PortalView, PublicPortalView, PublicProductsView, PublicPolicyView, PublicSettingsView, PublicCategoriesView, PublicPaymentsView, PublicCheckoutView, UserURLAvailabilityView, UserURLListCreateView, UserURLDetailView, VisibleCategoriesView, VisibleCategoryUpdateView, VisibleCategoryStatusListView, VisibleProductsView, VisibleProductUpdateView, SiteURLStatusView, SiteURLClaimView, PublicAutoClaimView, PublicBannersView, PublicProductDetailView, TemplateListView, MyTemplateListCreateView, MyTemplateDetailView, TemplateAdminDetailView, TemplateCloneView, TestGoogleConfigView, TestAlegraConfigView, TestMercadoPagoConfigView, VisibleProductStatusListView, VisibleProductsBulkUpdateView, VisibleCategoriesBulkUpdateView, MediaUploadView
 
 from . import ai_views
 
@@ -15,6 +15,7 @@ urlpatterns = [
     path('templates/my/<int:pk>/', MyTemplateDetailView.as_view(), name='templates_my_detail'),
     path('settings/', WebSettingsView.as_view(), name='web_settings'),
     path('google/test/', TestGoogleConfigView.as_view(), name='google_test'),
+    path('alegra/test/', TestAlegraConfigView.as_view(), name='alegra_test'),
     path('payments/', PaymentMethodListCreateView.as_view(), name='payment_methods'),
     path('payments/<int:pk>/', PaymentMethodDetailView.as_view(), name='payment_method_detail'),
     path('banners/', BannerListCreateView.as_view(), name='banners'),
@@ -47,4 +48,5 @@ urlpatterns = [
     path('site-url/claim/', SiteURLClaimView.as_view(), name='site_url_claim'),
     path('public/auto-claim/', PublicAutoClaimView.as_view(), name='public_auto_claim'),
     path('website-request/', ai_views.WebsiteRequestView.as_view(), name='website_request'),
+    path('media/upload/', MediaUploadView.as_view(), name='media_upload'),
 ]
