@@ -37,6 +37,7 @@ interface Employee {
   position: string;
   role: string;
   phone?: string;
+  onboarding_completed?: boolean;
 }
 
 interface Tenant {
@@ -60,7 +61,7 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
 
   // Edit Form State
   const [editing, setEditing] = useState<Employee | null>(null);
-  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', email: '', department: '', position: '', password: '', phone: '' });
+  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', email: '', department: '', position: '', password: '', phone: '', onboarding_completed: false });
   const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
 
   // Super Admin Form State
@@ -122,7 +123,10 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
   }, [openSaFormSignal, role]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => setEditForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    setEditForm((f) => ({ ...f, [e.target.name]: value }));
+  };
 
   const createEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -178,7 +182,8 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
       department: emp.department || '', 
       position: emp.position || '', 
       password: '',
-      phone: emp.phone || ''
+      phone: emp.phone || '',
+      onboarding_completed: emp.onboarding_completed || false
     });
   };
 
@@ -223,7 +228,7 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
       setSaPassword('');
       setSaRole('admin');
       setSaTenantId('');
-      setEditForm({ first_name: '', last_name: '', email: '', department: '', position: '', password: '', phone: '' });
+      setEditForm({ first_name: '', last_name: '', email: '', department: '', position: '', password: '', phone: '', onboarding_completed: false });
       setShowSAForm(false);
       loadEmployees();
       setMsg({ type: 'success', text: 'Usuario creado correctamente' });
@@ -850,6 +855,23 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
                     placeholder="Dejar vacío para no cambiar"
                   />
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between p-4 mt-2 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 dark:text-white">Tutorial Completado</label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Si está desactivado, el usuario verá el tutorial interactivo la próxima vez que inicie sesión.</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="onboarding_completed"
+                    className="sr-only peer"
+                    checked={editForm.onboarding_completed}
+                    onChange={handleEditChange}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-amber-500"></div>
+                </label>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
