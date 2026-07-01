@@ -250,14 +250,10 @@ const UsersActivitiesPage: React.FC<UsersActivitiesPageProps> = ({ token, apiBas
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
       {/* HEADER & TOP PERFORMERS */}
-      <div className="bg-gradient-to-br from-indigo-600/10 to-purple-600/10 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-500/10 rounded-3xl p-6 md:p-10 shadow-sm relative overflow-hidden">
-        {/* Background blobs */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-400/10 dark:bg-indigo-500/10 rounded-full blur-3xl pointer-events-none mix-blend-multiply dark:mix-blend-screen" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-400/10 dark:bg-purple-500/10 rounded-full blur-3xl pointer-events-none mix-blend-multiply dark:mix-blend-screen" />
-        
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 md:p-10 shadow-sm relative overflow-hidden">
         <div className="relative z-10">
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <div className="inline-flex items-center justify-center p-3 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
+            <div className="inline-flex items-center justify-center p-3 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 mb-6">
               <Trophy className="w-8 h-8 text-yellow-500" />
             </div>
             <h1 className="text-3xl md:text-4xl font-black mb-4 tracking-tight text-gray-900 dark:text-white">

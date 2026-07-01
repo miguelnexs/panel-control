@@ -14,8 +14,8 @@ const ConfigGoogleApiPage: React.FC<ConfigGoogleApiPageProps> = ({ token, apiBas
       apiBase={apiBase}
       forcedTab="google"
       hideTabs
-      title="Configuración / Google API"
-      subtitle="Configura credenciales y pruebas de conexión para servicios de Google"
+      title="Configuración / Correo Electrónico"
+      subtitle="Configura la cuenta de correo global para el envío de notificaciones y alertas automáticas"
     />
   );
 };

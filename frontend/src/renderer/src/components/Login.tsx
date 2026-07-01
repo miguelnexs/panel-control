@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Briefcase, 
-  TrendingUp, 
-  BarChart3, 
-  ShieldCheck, 
+import {
+  Briefcase,
+  TrendingUp,
+  BarChart3,
+  ShieldCheck,
   Globe2,
   Eye,
   EyeOff,
@@ -30,7 +30,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showNoPlanModal, setShowNoPlanModal] = useState(false);
-  
+
   // Custom hook for auto-updater
   const { status: updateStatus, progress: updateProgress, message: updateMessage } = useAutoUpdater();
 
@@ -77,10 +77,10 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
       if (meRawText) {
         try { meData = JSON.parse(meRawText); } catch { meData = {}; }
       }
-      
+
       if (!meRes.ok) {
         const detail = meData?.detail || meData?.message || `Error ${meRes.status}`;
-        throw new Error(`No se pudo obtener el perfil: ${detail}`);
+        throw new Error(`Usuario o contraseña incorrecto`);
       }
 
       // Verificar si tiene plan pagado
@@ -103,8 +103,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
     setError(null);
     try {
       // @ts-ignore
-      const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '300954010876-ogdevn009becbg6jodc33qcg1prjnq59.apps.googleusercontent.com';
-      
+      const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '14270208474-4jvb7iudr50qn5jp638qei5ltiibsno4.apps.googleusercontent.com';
+
       // Request Main Process to open System Browser and handle Auth
       // @ts-ignore
       const token = await window.electron.ipcRenderer.invoke('start-google-auth', GOOGLE_CLIENT_ID);
@@ -114,7 +114,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
       const res = await fetch(`${apiBase}/users/api/auth/google/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           token: token,
           type: 'access_token'
         }),
@@ -127,7 +127,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
         headers: { Authorization: `Bearer ${data.access}` },
       });
       const meData = await meRes.json();
-      
+
       if (!meRes.ok) throw new Error('No se pudo obtener el perfil del usuario');
 
       // Verificar si tiene plan pagado
@@ -155,12 +155,12 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
 
   return (
     <div className="flex h-screen w-full bg-gradient-to-br from-blue-100 via-slate-50 to-cyan-100 dark:from-gray-950 dark:via-gray-950 dark:to-gray-950 text-slate-900 dark:text-white font-sans overflow-hidden transition-colors duration-300 relative">
-      
+
       {/* Floating Mode Toggle */}
       <div className="absolute top-4 right-4 z-50">
-        <ModeToggle 
-          className="border border-slate-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/90 hover:bg-slate-50 dark:hover:bg-gray-800 shadow-lg backdrop-blur-sm px-4 py-2 w-auto transition-all duration-300 rounded-xl" 
-          collapsed={true} 
+        <ModeToggle
+          className="border border-slate-200 dark:border-gray-800 bg-white/90 dark:bg-gray-900/90 hover:bg-slate-50 dark:hover:bg-gray-800 shadow-lg backdrop-blur-sm px-4 py-2 w-auto transition-all duration-300 rounded-xl"
+          collapsed={true}
         />
       </div>
 
@@ -168,38 +168,38 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
       <div className="hidden lg:flex w-1/2 relative overflow-hidden bg-white/20 dark:bg-gray-900 border-r-2 border-indigo-200/60 dark:border-white/5 transition-colors duration-300 backdrop-blur-sm">
         {/* Animated Background Gradients & Blobs for Parallax Depth */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-300/40 dark:from-blue-900/20 via-cyan-200/30 dark:via-gray-900 to-indigo-200/40 dark:to-gray-900 transition-colors duration-300" />
-        
+
         {/* Floating Blob Left 1 */}
         <div className="absolute -top-16 -left-16 w-80 h-80 bg-blue-500/40 dark:bg-purple-600/10 rounded-full blur-3xl pointer-events-none animate-blob" />
-        
+
         {/* Floating Blob Left 2 */}
         <div className="absolute -bottom-20 right-10 w-96 h-96 bg-sky-400/50 dark:bg-blue-600/10 rounded-full blur-3xl pointer-events-none animate-blob animation-delay-2000" />
 
         {/* Floating Blob Left 3 (Emerald/Teal) */}
         <div className="absolute top-1/2 left-1/3 -translate-y-1/2 w-72 h-72 bg-teal-400/30 dark:bg-emerald-500/5 rounded-full blur-3xl pointer-events-none animate-blob animation-delay-4000" />
-        
+
         {/* Content Container */}
         <div className="relative z-20 flex flex-col justify-between p-16 h-full w-full max-w-2xl mx-auto animate-in fade-in duration-500">
           {/* Header */}
           <div className="space-y-12">
             <div className="flex items-center gap-4 text-slate-900 dark:text-white font-bold text-2xl mb-12">
               <div className="hover:scale-110 active:scale-95 transition-transform duration-300 cursor-pointer">
-                <img 
-                  src={logo} 
-                  alt="Asenting Logo" 
-                  className="h-10 w-10 object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.3)] dark:drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]" 
+                <img
+                  src={logo}
+                  alt="Asenting Logo"
+                  className="h-10 w-10 object-contain drop-shadow-[0_0_15px_rgba(59,130,246,0.3)] dark:drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]"
                 />
               </div>
               <span className="tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 dark:from-white to-slate-600 dark:to-gray-400">Asenting</span>
             </div>
-            
+
             <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white leading-tight mb-8">
               Innovación impulsada por <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-600 to-emerald-600 dark:from-blue-400 dark:via-cyan-400 dark:to-emerald-400">
                 tecnología de punta
               </span>
             </h1>
-            
+
             <p className="text-slate-500 dark:text-gray-400 text-lg leading-relaxed mb-12 max-w-lg">
               Experimenta el futuro de la gestión empresarial. Hemos integrado las herramientas tecnológicas más avanzadas para que tu negocio nunca se detenga.
             </p>
@@ -207,8 +207,8 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
             {/* Feature List */}
             <div className="space-y-6">
               {features.map((feature, idx) => (
-                <div 
-                  key={idx} 
+                <div
+                  key={idx}
                   className="flex items-center gap-4 group cursor-default transition-all duration-300 hover:translate-x-2"
                 >
                   <div className="p-3 rounded-xl bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 group-hover:bg-blue-50/50 dark:group-hover:bg-blue-500/10 group-hover:border-blue-200 dark:group-hover:border-blue-500/30 shadow-sm transition-all duration-300 group-hover:scale-110 group-hover:rotate-3">
@@ -242,13 +242,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-12 relative overflow-hidden transition-colors duration-300">
         {/* Parallax Blobs behind the form card */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-cyan-200/40 dark:from-blue-900/10 via-blue-100/50 dark:via-gray-950 to-white/50 dark:to-gray-950 lg:hidden" />
-        
+
         {/* Floating Blob Right 1 */}
         <div className="absolute top-10 right-10 w-64 h-64 bg-indigo-400/40 dark:bg-blue-600/5 rounded-full blur-3xl pointer-events-none animate-blob" />
-        
+
         {/* Floating Blob Right 2 */}
         <div className="absolute -bottom-10 -left-10 w-80 h-80 bg-cyan-500/40 dark:bg-indigo-600/5 rounded-full blur-3xl pointer-events-none animate-blob animation-delay-2000" />
-        
+
         {/* Glassmorphic Form Card */}
         <div className="w-full max-w-xl p-8 sm:p-14 bg-white/80 dark:bg-gray-900/40 backdrop-blur-xl border-2 border-indigo-200/80 dark:border-white/10 rounded-[2.5rem] shadow-[0_8px_30px_rgb(99,102,241,0.2)] dark:shadow-black/30 space-y-8 relative z-10 animate-in fade-in zoom-in-95 duration-500">
           <div className="text-center lg:text-left space-y-3">
@@ -261,14 +261,14 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
           </div>
 
           {/* Update Status UI */}
-          <UpdateProgress 
-            status={updateStatus} 
-            progress={updateProgress} 
-            message={updateMessage} 
+          <UpdateProgress
+            status={updateStatus}
+            progress={updateProgress}
+            message={updateMessage}
           />
 
           {error && (
-            <div 
+            <div
               className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-200 text-sm flex items-center gap-3 overflow-hidden shadow-lg shadow-red-950/5 dark:shadow-red-950/20 animate-in fade-in slide-in-from-top-2 duration-300"
             >
               <div className="p-1.5 bg-red-500/20 rounded-full shrink-0">
@@ -394,13 +394,13 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
                 )}
               </button>
             </form>
-            
+
             <div className="pt-6 flex flex-col items-center gap-4">
               <p className="text-sm text-slate-500 dark:text-gray-500">
                 ¿Aún no tienes una cuenta? <a href="#" className="text-blue-600 dark:text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 font-bold transition-colors">Regístrate gratis</a>
               </p>
-              
-              <div 
+
+              <div
                 className="flex items-center gap-2 px-4 py-2 bg-slate-100/70 dark:bg-white/5 rounded-full border border-slate-200/50 dark:border-white/5 backdrop-blur-sm shadow-inner"
               >
                 <ShieldCheck className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
@@ -415,7 +415,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
           <div className="bg-[#0B0D14] border border-red-500/30 rounded-2xl shadow-2xl shadow-red-950/20 w-full max-w-md overflow-hidden relative animate-scale-up">
             {/* Decorative top red glow line */}
             <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-red-500 to-pink-500"></div>
-            
+
             <div className="p-8">
               <div className="flex flex-col items-center text-center mb-6">
                 <div className="p-4 rounded-full bg-red-500/10 text-red-500 mb-4 animate-pulse">
@@ -426,12 +426,12 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess, apiBase }) => {
                   No tienes un plan activo en tu cuenta. Para poder acceder al panel de control de Asenting, por favor realiza tu pago.
                 </p>
               </div>
-              
+
               <div className="flex flex-col gap-3">
                 <button
                   onClick={async () => {
-                    const url = apiBase.includes('localhost') 
-                      ? 'http://localhost:5173/precios' 
+                    const url = apiBase.includes('localhost')
+                      ? 'http://localhost:5173/precios'
                       : 'https://asenting.com/precios';
                     if (window.electron && window.electron.ipcRenderer) {
                       await window.electron.ipcRenderer.invoke('open-external-url', url);

@@ -44,6 +44,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
   const [isServiciosOpen, setIsServiciosOpen] = useState(false)
   const [isUsersOpen, setIsUsersOpen] = useState(false)
   const [isWebOpen, setIsWebOpen] = useState(false)
+  const [isReportesOpen, setIsReportesOpen] = useState(false)
+  const [reportesMenuPos, setReportesMenuPos] = useState<MenuPos | null>(null)
   const [showUpdateModal, setShowUpdateModal] = useState(false)
 
   const canAccess = (targetView: string): boolean => {
@@ -57,7 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
       clientes: 'view_clients',
       client_details: 'view_clients',
       ventas: 'create_sales',
-      ventas_estadisticas: 'create_sales',
+      reportes_estadisticas: 'create_sales',
       caja: 'view_cashbox',
       pedidos: 'view_orders',
       servicios: 'view_services',
@@ -106,6 +108,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         setIsServiciosOpen(false)
         setIsUsersOpen(false)
         setIsWebOpen(false)
+        setIsReportesOpen(false)
       }
     }
   }
@@ -132,6 +135,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         setIsServiciosOpen(false)
         setIsUsersOpen(false)
         setIsWebOpen(false)
+        setIsReportesOpen(false)
       }
     }
   }
@@ -158,6 +162,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         setIsServiciosOpen(false)
         setIsUsersOpen(false)
         setIsWebOpen(false)
+        setIsReportesOpen(false)
       }
     }
   }
@@ -184,6 +189,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         setIsVentasOpen(false)
         setIsUsersOpen(false)
         setIsWebOpen(false)
+        setIsReportesOpen(false)
       }
     }
   }
@@ -210,6 +216,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         setIsVentasOpen(false)
         setIsServiciosOpen(false)
         setIsWebOpen(false)
+        setIsReportesOpen(false)
       }
     }
   }
@@ -236,6 +243,35 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         setIsVentasOpen(false)
         setIsServiciosOpen(false)
         setIsUsersOpen(false)
+        setIsReportesOpen(false)
+      }
+    }
+  }
+
+  const toggleReportesMenu = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (collapsed) {
+      if (reportesMenuPos) {
+        setReportesMenuPos(null)
+      } else {
+        const rect = e.currentTarget.getBoundingClientRect()
+        setReportesMenuPos({ top: rect.top, left: rect.right })
+        setConfigMenuPos(null)
+        setInventoryMenuPos(null)
+        setVentasMenuPos(null)
+        setServiciosMenuPos(null)
+        setUsersMenuPos(null)
+        setWebMenuPos(null)
+      }
+    } else {
+      setIsReportesOpen(!isReportesOpen)
+      if (!isReportesOpen) {
+        setIsConfigOpen(false)
+        setIsInventoryOpen(false)
+        setIsVentasOpen(false)
+        setIsServiciosOpen(false)
+        setIsUsersOpen(false)
+        setIsWebOpen(false)
       }
     }
   }
@@ -479,17 +515,67 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
         </button>
         )}
 
-        {/* Ventas Stats Submenu */}
-        {canAccess('ventas_estadisticas') && (
-        <button className={`${itemBase} ${view === 'ventas_estadisticas' ? activeClass : ''}`} onClick={() => setView('ventas_estadisticas')} title="Estadísticas de Venta">
-          {view === 'ventas_estadisticas' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-          <span className={`${iconBoxClass} bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 ${view === 'ventas_estadisticas' ? 'ring-1 ring-white/20' : ''}`}>
-            <Icon name="dashboard" className="w-4 h-4" />
-          </span>
-          <span className={textClass}>Estadísticas</span>
-          <span className={tooltipClass}>Estadísticas</span>
-        </button>
-        )}
+        {/* Reportes */}
+        <div className="relative">
+          <button className={`${itemBase} ${['reportes', 'reportes_calendario', 'reportes_estadisticas'].includes(view) ? activeClass : ''}`} onClick={toggleReportesMenu} title="Reportes">
+            {['reportes', 'reportes_calendario', 'reportes_estadisticas'].includes(view) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
+            <span className={`${iconBoxClass} bg-violet-100 dark:bg-violet-500/10 text-violet-600 dark:text-violet-400 ${['reportes', 'reportes_calendario', 'reportes_estadisticas'].includes(view) ? 'ring-1 ring-white/20' : ''}`}>
+              <Icon name="dashboard" className="w-4 h-4" />
+            </span>
+            <span className={textClass}>Reportes</span>
+            <span className={tooltipClass}>Reportes</span>
+            {!collapsed && (
+              <svg className={`w-3.5 h-3.5 ml-auto text-gray-500 dark:text-gray-400 transition-transform ${reportesMenuPos || isReportesOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            )}
+          </button>
+
+          {reportesMenuPos && collapsed && (
+            <div
+              style={{ position: 'fixed', top: reportesMenuPos.top, left: reportesMenuPos.left, zIndex: 9999 }}
+              className="w-52 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 ml-2"
+            >
+              <button
+                onClick={(e) => { e.stopPropagation(); setView('reportes_calendario'); setReportesMenuPos(null); }}
+                className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'reportes' || view === 'reportes_calendario' ? 'text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+              >
+                <Icon name="dashboard" className="w-3 h-3" />
+                <span>Calendario</span>
+              </button>
+              {canAccess('reportes_estadisticas') && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('reportes_estadisticas'); setReportesMenuPos(null); }}
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'reportes_estadisticas' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="dashboard" className="w-3 h-3" />
+                  <span>Estadísticas</span>
+                </button>
+              )}
+            </div>
+          )}
+
+          {isReportesOpen && !collapsed && (
+            <div className="mt-1 ml-1 space-y-1 bg-gray-50 dark:bg-black/20 rounded-md p-1">
+              <button
+                onClick={(e) => { e.stopPropagation(); setView('reportes_calendario'); }}
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'reportes' || view === 'reportes_calendario' ? 'text-violet-600 dark:text-violet-400 bg-violet-100 dark:bg-violet-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+              >
+                <Icon name="dashboard" className="w-3 h-3" />
+                <span>Calendario</span>
+              </button>
+              {canAccess('reportes_estadisticas') && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setView('reportes_estadisticas'); }}
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'reportes_estadisticas' ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                >
+                  <Icon name="dashboard" className="w-3 h-3" />
+                  <span>Estadísticas</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Clientes */}
         <div className={`px-4 pt-4 pb-2 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ${collapsed ? 'hidden' : 'block'}`}>
@@ -922,8 +1008,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                   onClick={(e) => { e.stopPropagation(); setView('configuracion_google'); setConfigMenuPos(null); }} 
                   className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'configuracion_google' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
                 >
-                  <Icon name="web" className="w-3 h-3" />
-                  <span>Google API</span>
+                  <Icon name="mail" className="w-3 h-3" />
+                  <span>Correo Electrónico</span>
                 </button>
               </div>
             )}
@@ -964,8 +1050,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                   onClick={(e) => { e.stopPropagation(); setView('configuracion_google'); }} 
                   className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'configuracion_google' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
                 >
-                  <Icon name="web" className="w-3 h-3" />
-                  <span>Google API</span>
+                  <Icon name="mail" className="w-3 h-3" />
+                  <span>Correo Electrónico</span>
                 </button>
               </div>
             )}

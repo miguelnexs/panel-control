@@ -44,6 +44,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import ImageCropper from './ui/ImageCropper';
+import VariantsTab from './dashboard/VariantsTab';
 
 const SortableImage = ({ id, src, onRemove, onCrop, isMain = false }: any) => {
   const {
@@ -119,7 +120,7 @@ interface ProductFormPageProps {
   onSaved?: () => void;
 }
 
-interface Color {
+export interface Color {
   id?: number;
   clientId?: string;
   name: string;
@@ -128,7 +129,7 @@ interface Color {
   images?: any[];
 }
 
-interface Variant {
+export interface Variant {
   id?: number;
   clientId?: string;
   name: string;
@@ -168,6 +169,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
   // Unified Images State
   const [productImages, setProductImages] = useState<any[]>([]);
   
+  const [hasColors, setHasColors] = useState(true);
   const [colors, setColors] = useState<Color[]>([]);
   const [initialColors, setInitialColors] = useState<Color[]>([]);
   const [colorName, setColorName] = useState('');
@@ -192,10 +194,19 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
   const [autoGenerateSkus, setAutoGenerateSkus] = useState(true);
 
   // Cropper State
-  const [croppingImage, setCroppingImage] = useState<{ src: string, index: number, type: 'main' | 'gallery' | 'new' } | null>(null);
+  const [croppingImage, setCroppingImage] = useState<{ src: string, index: number, type: 'main' | 'gallery' | 'new' | 'existing' } | null>(null);
 
   const [activeTab, setActiveTab] = useState('detalles');
   const [loading, setLoading] = useState(false);
+  const [aiOptions, setAiOptions] = useState({
+    name: true,
+    description: true,
+    price: true,
+    category: true,
+    features: true,
+    variants: true,
+    colors: true
+  });
   const skuCheckTimeout = useRef<any>(null);
   const [highlightSkuKey, setHighlightSkuKey] = useState<string | null>(null);
   const [hasAppliedFocusSku, setHasAppliedFocusSku] = useState(false);
@@ -697,7 +708,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
         const res = await fetch(`${apiBase}/products/${product.id}/colors/`, { headers: authHeaders(token) });
         const data = await res.json();
         const list = Array.isArray(data.results) ? data.results : data;
-        const loaded = (Array.isArray(list) ? list : []).map((c: any, idx: number) => ({ id: c.id, clientId: `color-${c.id}`, name: c.name, hex: c.hex, stock: '0', position: idx, images: [] }));
+        const loaded = (Array.isArray(list) ? list : []).map((c: any, idx: number) => ({ id: c.id, clientId: `color-${c.id}`, name: c.name, hex: c.hex, stock: '0', position: idx, images: [] as any[] }));
         for (let i = 0; i < loaded.length; i++) {
           const color = loaded[i];
           const imgsRes = await fetch(`${apiBase}/products/colors/${color.id}/images/`, { headers: authHeaders(token) });
@@ -707,6 +718,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
         }
         setColors(loaded);
         setInitialColors(loaded);
+        setHasColors(loaded.length > 0);
 
         // Load Variants
         const varsRes = await fetch(`${apiBase}/products/${product.id}/variants/`, { headers: authHeaders(token) });
@@ -729,8 +741,8 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
         const skusData = await skusRes.json();
         const skusList = Array.isArray(skusData.results) ? skusData.results : (Array.isArray(skusData) ? skusData : []);
         const loadedSkus = skusList.map((s: any) => {
-          const colorObj = loaded.find(c => c.id === s.color);
-          const variantObj = loadedVars.find(v => v.id === s.variant);
+          const colorObj = loaded.find((c: any) => c.id === s.color);
+          const variantObj = loadedVars.find((v: any) => v.id === s.variant);
           const normalizedSku = String(s?.sku ?? '');
           return {
             id: s.id,
@@ -752,7 +764,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
         // Reconstruct variantColorLinks from loaded SKUs
         const reconstructedLinks: Record<string, string[] | null> = {};
-        loadedVars.forEach((v) => {
+        loadedVars.forEach((v: any) => {
           const vKey = `variant-${v.id}`;
           const variantSkus = skusList.filter((s: any) => s.variant === v.id);
           if (variantSkus.length > 0) {
@@ -884,18 +896,18 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       if (!res.ok) throw new Error('No se pudo analizar la imagen.');
       const data = await res.json();
 
-      if (data.name) setName(data.name);
-      if (data.description) setDescription(data.description);
-      if (data.price) setPrice(String(data.price));
-      if (data.category_name) {
+      if (data.name && aiOptions.name) setName(data.name);
+      if (data.description && aiOptions.description) setDescription(data.description);
+      if (data.price && aiOptions.price) setPrice(String(data.price));
+      if (data.category_name && aiOptions.category) {
         const found = categories.find(c => c.name.toLowerCase().includes(data.category_name.toLowerCase()));
         if (found) setCategoryId(String(found.id));
       }
-      if (Array.isArray(data.features)) {
+      if (Array.isArray(data.features) && aiOptions.features) {
         const newFeats = data.features.map((f: string) => ({ name: f }));
         setFeatures([...features, ...newFeats]);
       }
-      if (Array.isArray(data.suggested_variants)) {
+      if (Array.isArray(data.suggested_variants) && aiOptions.variants) {
         const newVars = data.suggested_variants.map((v: any) => ({
           clientId: `variant-ai-${Math.random().toString(36).substr(2, 9)}`,
           name: (v.name || v).substring(0, 50), // Truncate to 50 chars
@@ -904,7 +916,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
         }));
         setVariants([...variants, ...newVars]);
       }
-      if (Array.isArray(data.suggested_colors)) {
+      if (Array.isArray(data.suggested_colors) && aiOptions.colors) {
         const newCols = data.suggested_colors.map((c: any) => ({
           clientId: `color-ai-${Math.random().toString(36).substr(2, 9)}`,
           name: c.name || c,
@@ -955,9 +967,9 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
               const res = await fetch(url, { headers: authHeaders(token) });
               const data = await res.json();
               if (!data.available) {
-                setErrors(prev => ({ ...prev, sku: 'Este SKU ya está en uso' }));
+                setErrors((prev: any) => ({ ...prev, sku: 'Este SKU ya está en uso' }));
               } else {
-                setErrors(prev => {
+                setErrors((prev: any) => {
                   const e = { ...prev };
                   delete e.sku;
                   return e;
@@ -1124,7 +1136,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       }
     }
     
-    if (colors.length > 0) {
+    if (hasColors && colors.length > 0) {
       if (colors.some((c) => !c.name)) {
         errs.colors = 'Todos los colores deben tener un nombre.';
       }
@@ -1259,7 +1271,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       const currentSkuIds = new Set(currentSkus.filter((s) => s.id).map((s) => String(s.id)));
 
       const existingColors = initialColors;
-      const currentColors = colors.map((c, idx) => ({ ...c, position: idx }));
+      const currentColors = hasColors ? colors.map((c, idx) => ({ ...c, position: idx })) : [];
       const currentColorIds = new Set(currentColors.filter((e) => e.id).map((e) => String(e.id)));
       const removedColorIds = new Set(
         existingColors
@@ -1321,7 +1333,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
             return;
           }
         } else {
-          const prev = existingColors.find((e) => String(e.id) === String(c.id)) || {};
+          const prev = existingColors.find((e) => String(e.id) === String(c.id)) || ({} as any);
           const changed = prev.name !== c.name || prev.hex !== c.hex || Number(prev.position) !== Number(c.position);
           if (changed) {
             const fdColor = new FormData();
@@ -1786,6 +1798,75 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                         placeholder="Ej: 'Añade tallas S y M', 'El material es seda'..."
                         className="w-full bg-white dark:bg-gray-900 border border-indigo-200 dark:border-indigo-500/30 rounded-xl p-3 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/50 focus:outline-none resize-none h-24 transition-all mb-4"
                       />
+
+                      <label className="block text-[10px] font-bold text-indigo-500/60 dark:text-indigo-400/60 uppercase tracking-widest mb-2">
+                        ¿Qué deseas rellenar con IA?
+                      </label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5 bg-white/50 dark:bg-gray-900/50 p-3 rounded-xl border border-indigo-100/50 dark:border-indigo-500/10">
+                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                          <input 
+                            type="checkbox" 
+                            checked={aiOptions.name} 
+                            onChange={(e) => setAiOptions({ ...aiOptions, name: e.target.checked })}
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                          />
+                          Nombre
+                        </label>
+                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                          <input 
+                            type="checkbox" 
+                            checked={aiOptions.description} 
+                            onChange={(e) => setAiOptions({ ...aiOptions, description: e.target.checked })}
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                          />
+                          Descripción
+                        </label>
+                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                          <input 
+                            type="checkbox" 
+                            checked={aiOptions.price} 
+                            onChange={(e) => setAiOptions({ ...aiOptions, price: e.target.checked })}
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                          />
+                          Precio
+                        </label>
+                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                          <input 
+                            type="checkbox" 
+                            checked={aiOptions.category} 
+                            onChange={(e) => setAiOptions({ ...aiOptions, category: e.target.checked })}
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                          />
+                          Categoría
+                        </label>
+                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                          <input 
+                            type="checkbox" 
+                            checked={aiOptions.features} 
+                            onChange={(e) => setAiOptions({ ...aiOptions, features: e.target.checked })}
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                          />
+                          Características
+                        </label>
+                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                          <input 
+                            type="checkbox" 
+                            checked={aiOptions.colors} 
+                            onChange={(e) => setAiOptions({ ...aiOptions, colors: e.target.checked })}
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                          />
+                          Colores
+                        </label>
+                        <label className="flex items-center gap-2 text-xs font-semibold text-gray-700 dark:text-gray-300 cursor-pointer select-none">
+                          <input 
+                            type="checkbox" 
+                            checked={aiOptions.variants} 
+                            onChange={(e) => setAiOptions({ ...aiOptions, variants: e.target.checked })}
+                            className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5"
+                          />
+                          Variantes
+                        </label>
+                      </div>
                       
                       <div className="flex items-center gap-3">
                         <button
@@ -1894,7 +1975,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
 
                   {/* Row 2: Category & Global Inventory */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
+                    <div className={colors.length > 0 || variants.length > 0 ? "md:col-span-2" : ""}>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-400 mb-1.5">Categoría</label>
                       <select 
                         value={categoryId} 
@@ -1904,45 +1985,25 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                         {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
                       </select>
                     </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-1.5">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-400">Inventario Base / Standalone</label>
-                        {(colors.length > 0 || variants.length > 0) && (
-                          <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-100 dark:border-blue-500/20">Tiene Variantes</span>
-                        )}
+                    {!(colors.length > 0 || variants.length > 0) && (
+                      <div>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-400">Inventario Base</label>
+                        </div>
+                        <input 
+                          type="number" 
+                          value={inventoryQty} 
+                          onChange={(e) => setInventoryQty(e.target.value)} 
+                          min={0}
+                          className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.inventoryQty ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
+                        />
+                        <p className="text-[10px] text-gray-500 mt-1">Stock que no depende de variantes específicas.</p>
                       </div>
-                      <input 
-                        type="number" 
-                        value={inventoryQty} 
-                        onChange={(e) => setInventoryQty(e.target.value)} 
-                        min={0}
-                        className={`w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800 border ${errors.inventoryQty ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all`}
-                      />
-                      <p className="text-[10px] text-gray-500 mt-1">Stock que no depende de variantes específicas.</p>
-                    </div>
+                    )}
                   </div>
                   
-                  {/* Total Stock Summary */}
-                  {(colors.length > 0 || variants.length > 0) && (
-                    <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-500/5 border border-emerald-100 dark:border-emerald-500/10 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-emerald-100 dark:border-emerald-500/20">
-                          <Package className="w-4 h-4 text-emerald-500" />
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-widest font-bold">Stock Total Consolidado</p>
-                          <p className="text-lg font-bold text-gray-900 dark:text-white">
-                            {(() => {
-                              const base = Number(inventoryQty || 0);
-                              const skuTotal = skus.reduce((acc, s) => acc + Number(s.stock || 0), 0);
-                              return base + skuTotal;
-                            })()}
-                            <span className="ml-2 text-xs font-medium text-gray-400">unidades</span>
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+
+
 
                   {/* Row 3: Prices */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -2143,633 +2204,43 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
                   </div>
                 </div>
               </div>
-
             </div>
           )}
 
           {activeTab === 'variantes' && (
-            <div className="lg:col-span-3 space-y-6">
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                  <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
-                    <Palette className="w-4 h-4" />
-                    <span>Colores</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddColor((v) => !v)}
-                    className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border transition-colors ${showAddColor ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700' : 'bg-blue-600 text-white border-blue-600 hover:bg-blue-500'}`}
-                  >
-                    {showAddColor ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-                    <span>{showAddColor ? 'Cerrar' : 'Nuevo'}</span>
-                  </button>
-                </div>
-
-                {showAddColor && (
-                  <div className="p-4 bg-blue-50/50 dark:bg-blue-500/5 rounded-2xl border border-blue-100 dark:border-blue-500/10 mb-6">
-                    <div className="flex flex-wrap items-end gap-3">
-                      <div className="flex-1 min-w-[200px]">
-                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Nombre</label>
-                        <input 
-                          type="text" 
-                          value={colorName} 
-                          onChange={(e) => { setColorName(e.target.value); setColorInputError(''); }} 
-                          placeholder="Ej. Azul Midnight" 
-                          className={`w-full px-3 py-2 bg-white dark:bg-gray-900 border ${colorInputError ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:outline-none transition-all`}
-                        />
-                      </div>
-                      <div className="w-20">
-                        <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Color</label>
-                        <input 
-                          type="color" 
-                          value={colorHex} 
-                          onChange={(e) => setColorHex(e.target.value)} 
-                          className="h-9 w-full rounded-xl cursor-pointer bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-1"
-                        />
-                      </div>
-                      <button 
-                        type="button" 
-                        onClick={() => { 
-                          if (!colorName) { setColorInputError('Nombre requerido'); return; }
-                          const newColor = { clientId: makeClientId('color'), name: colorName, hex: colorHex, images: [] as any[] };
-                          setColors((cols) => [...cols, newColor]); 
-                          setActiveColorKey(colorKeyOf(newColor, colors.length));
-                          setColorName(''); setColorHex('#000000'); setColorInputError(''); setShowAddColor(false);
-                        }} 
-                        className="h-9 w-9 inline-flex items-center justify-center bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-600/20 transition-all active:scale-95"
-                        title="Añadir color"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
-                    {colorInputError && <p className="mt-2 text-xs text-rose-400 flex items-center gap-1 font-medium"><AlertCircle className="w-3 h-3" /> {colorInputError}</p>}
-                  </div>
-                )}
-
-                {errors.colors && (
-                  <div className="p-3 mb-4 rounded-lg bg-rose-500/10 border border-rose-500/20 text-sm text-rose-400">
-                    {errors.colors}
-                  </div>
-                )}
-
-                {colors.length > 0 ? (
-                  <div className="flex flex-wrap gap-3">
-                    {colors.map((c, idx) => {
-                      const key = colorKeyOf(c, idx);
-                      const selected = key === activeColorKey;
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData('text/plain', key);
-                            e.dataTransfer.setData('dragType', 'color');
-                          }}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            const draggedKey = e.dataTransfer.getData('text/plain');
-                            const type = e.dataTransfer.getData('dragType');
-                            if (draggedKey && type === 'variant') {
-                              setVariantColorLinks(prev => {
-                                const current = prev[draggedKey] || [];
-                                if (!current.includes(key)) {
-                                  return { ...prev, [draggedKey]: [...current, key] };
-                                }
-                                return prev;
-                              });
-                            }
-                          }}
-                          onClick={() => setActiveColorKey((prev) => (prev === key ? null : key))}
-                          className={`w-11 h-11 rounded-full border transition-all cursor-grab active:cursor-grabbing flex items-center justify-center ${selected ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}
-                          title={String(c?.name || 'Color (Arrastra para combinar)')}
-                        >
-                          <div className="w-9 h-9 rounded-full border border-white/70" style={{ backgroundColor: c.hex }} />
-                        </button>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-10 text-gray-500 dark:text-gray-500">
-                    <Palette className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                    <p>No hay colores agregados.</p>
-                  </div>
-                )}
-
-                {(() => {
-                  if (!activeColorKey) return null;
-                  const idx = colors.findIndex((c, i) => colorKeyOf(c, i) === activeColorKey);
-                  if (idx < 0) return null;
-                  const c = colors[idx];
-                  return (
-                    <div className="mt-6 bg-gray-50 dark:bg-gray-800/30 border border-gray-200 dark:border-gray-700 rounded-2xl p-5">
-                      <div className="flex flex-wrap items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-700" style={{ backgroundColor: c.hex }} />
-                        <div className="flex-1 min-w-[220px]">
-                          <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Nombre</label>
-                          <input
-                            type="text"
-                            value={c.name}
-                            onChange={(e) => setColors((cols) => cols.map((x, i) => i === idx ? { ...x, name: e.target.value } : x))}
-                            className="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:outline-none transition-all"
-                          />
-                        </div>
-                        <div className="w-24">
-                          <label className="block text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wider">Color</label>
-                          <input
-                            type="color"
-                            value={c.hex}
-                            onChange={(e) => setColors((cols) => cols.map((x, i) => i === idx ? { ...x, hex: e.target.value } : x))}
-                            className="h-9 w-full rounded-xl cursor-pointer bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-1"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => { setColors((cols) => cols.filter((_, i) => i !== idx)); setActiveColorKey(null); }}
-                          className="h-9 w-9 inline-flex items-center justify-center rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 hover:border-rose-300 dark:hover:border-rose-500/40 transition-colors"
-                          title="Eliminar color"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Imágenes (Máx 4)</div>
-                          <div className="w-44">
-                            <label className="flex items-center justify-center px-3 py-1.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:border-gray-300 dark:hover:border-gray-500 cursor-pointer transition-all">
-                              <Plus className="w-3 h-3 mr-1.5" />
-                              Agregar
-                              <input 
-                                type="file" 
-                                multiple 
-                                accept="image/*" 
-                                className="hidden" 
-                                onChange={(e) => {
-                                  const files = Array.from(e.target.files || []);
-                                  setColors((cols) => cols.map((x, i) => { 
-                                    if (i !== idx) return x; 
-                                    const imgs = Array.isArray(x.images) ? x.images.slice() : []; 
-                                    for (const f of files) { 
-                                      if (imgs.length >= 4) break; 
-                                      if (['image/jpeg','image/png','image/webp'].includes(f.type)) { 
-                                        imgs.push({ file: f, preview: URL.createObjectURL(f) }); 
-                                      } 
-                                    } 
-                                    return { ...x, images: imgs }; 
-                                  }));
-                                }}
-                              />
-                            </label>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                          {(c.images || []).map((img: any, j) => (
-                            <div key={`img-${j}`} className="relative group aspect-square rounded-lg bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 overflow-hidden">
-                              <SafeImage 
-                                src={img.preview ? img.preview : mediaUrl(img.image)} 
-                                alt="Color variant" 
-                                className="w-full h-full object-cover transition-transform group-hover:scale-110" 
-                              />
-                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <button 
-                                  type="button" 
-                                  onClick={() => setColors((cols) => cols.map((x, i) => i === idx ? { ...x, images: (x.images || []).filter((_, k) => k !== j) } : x))} 
-                                  className="p-1.5 bg-rose-500 text-white rounded-full hover:bg-rose-600 transition-colors"
-                                  title="Eliminar imagen"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                          {(!c.images || c.images.length === 0) && (
-                            <div className="col-span-full py-4 text-center text-gray-500 dark:text-gray-500 text-xs border border-dashed border-gray-300 dark:border-gray-800 rounded-lg">
-                              No hay imágenes para este color
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
-                 <div className="flex items-center gap-2 mb-6 text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
-                    <Layers className="w-4 h-4" />
-                    <span>Variantes de Producto (Talla, Material, etc.)</span>
-                 </div>
-                 
-                 <div className="p-5 bg-blue-50/50 dark:bg-blue-500/5 rounded-2xl border border-blue-100 dark:border-blue-500/10 mb-8">
-                    <div className="flex items-center gap-2 mb-4 text-blue-600 dark:text-blue-400">
-                      <Plus className="w-4 h-4" />
-                      <h4 className="text-sm font-bold uppercase tracking-widest">Nueva Variante</h4>
-                    </div>
-                    <div className="flex flex-wrap items-end gap-4">
-                      <div className="flex-1 min-w-[200px]">
-                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Nombre (ej. Talla L, XL, Material)</label>
-                        <input 
-                          type="text" 
-                          value={variantName} 
-                          onChange={(e) => setVariantName(e.target.value)} 
-                          placeholder="Ej. Talla XL"
-                          className="w-full px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:outline-none transition-all"
-                        />
-                      </div>
-                      <div className="w-40">
-                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5 uppercase tracking-wider">Sobrecosto (COP)</label>
-                        <div className="relative">
-                          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                          <input 
-                            type="number" 
-                            value={variantPrice} 
-                            onChange={(e) => setVariantPrice(e.target.value)} 
-                            min={0}
-                            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:outline-none transition-all"
-                          />
-                        </div>
-                      </div>
-                      <button 
-                        type="button" 
-                        onClick={() => { if (!variantName) return; setVariants([...variants, { clientId: makeClientId('variant'), name: variantName, extra_price: variantPrice }]); setVariantName(''); setVariantPrice('0'); }} 
-                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-blue-600/20 transition-all flex items-center gap-2 h-[42px]"
-                      >
-                        <Plus className="w-4 h-4" />
-                        <span>Añadir</span>
-                      </button>
-                    </div>
-                 </div>
-
-                 <div className="space-y-3">
-                    {variants.map((v, idx) => {
-                      const rowKey = variantKeyOf(v, idx);
-                      const linked = variantColorLinks?.[rowKey];
-                      const label =
-                        linked == null
-                          ? 'Todos'
-                          : linked.length === 0
-                            ? 'Solo'
-                            : `${linked.length}`;
-                      return (
-                      <div key={rowKey} id={`variant-row-${rowKey}`} className="space-y-2">
-                        <div
-                          draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData('text/plain', rowKey);
-                            e.dataTransfer.setData('dragType', 'variant');
-                          }}
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                          }}
-                          onDragEnter={() => setDragOverVariantKey(rowKey)}
-                          onDragLeave={() => setDragOverVariantKey(null)}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            setDragOverVariantKey(null);
-                            const cKey = e.dataTransfer.getData('text/plain');
-                            const type = e.dataTransfer.getData('dragType');
-                            if (cKey && type === 'color') {
-                              setVariantColorLinks(prev => {
-                                const current = prev[rowKey] || [];
-                                if (!current.includes(cKey)) {
-                                  return { ...prev, [rowKey]: [...current, cKey] };
-                                }
-                                return prev;
-                              });
-                            }
-                          }}
-                          className={`flex items-center justify-between p-3 border rounded-lg cursor-grab active:cursor-grabbing transition-all duration-200 ${
-                            highlightVariantKey === rowKey ? 'ring-2 ring-blue-500/60' : ''
-                          } ${
-                            dragOverVariantKey === rowKey
-                              ? 'border-dashed border-blue-500 bg-blue-50/50 dark:bg-blue-950/30 scale-[1.01]'
-                              : 'bg-gray-50 dark:bg-gray-800/30 border-gray-200 dark:border-gray-700'
-                          }`}
-                        >
-                          <div className="flex items-center gap-4 flex-1">
-                            <input 
-                              type="text" 
-                              value={v.name} 
-                              onChange={(e) => setVariants(vars => vars.map((x, i) => i === idx ? { ...x, name: e.target.value } : x))}
-                              className="bg-transparent border-none text-gray-900 dark:text-white focus:ring-0 p-0 text-sm font-medium w-full"
-                            />
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <button
-                              type="button"
-                              onClick={() => setOpenVariantLinkKey((prev) => (prev === rowKey ? null : rowKey))}
-                              disabled={colors.length === 0}
-                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-xs font-bold text-gray-700 dark:text-gray-200 hover:border-blue-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              title="Vincular colores"
-                            >
-                              <Palette className="w-4 h-4 text-purple-500" />
-                              <span>{label}</span>
-                            </button>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-gray-500">+$</span>
-                              <input 
-                                type="number" 
-                                value={v.extra_price} 
-                                onChange={(e) => setVariants(vars => vars.map((x, i) => i === idx ? { ...x, extra_price: e.target.value } : x))}
-                                className="w-24 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded px-2 py-1 text-sm text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none text-right"
-                              />
-                            </div>
-                            <button onClick={() => setVariants(vars => vars.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {openVariantLinkKey === rowKey && colors.length > 0 && (
-                          <div className="p-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Colores vinculados</div>
-                              <div className="flex items-center gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setVariantColorLinks((prev) => ({ ...(prev || {}), [rowKey]: null }))}
-                                  className="px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:border-blue-400 transition-colors"
-                                >
-                                  Todos
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setVariantColorLinks((prev) => ({ ...(prev || {}), [rowKey]: [] }))}
-                                  className="px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:border-blue-400 transition-colors"
-                                >
-                                  Ninguno
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="flex flex-wrap gap-2">
-                              {colors.map((c, cIdx) => {
-                                const cKey = colorKeyOf(c, cIdx);
-                                const isOn = linked == null ? true : linked.includes(cKey);
-                                return (
-                                  <button
-                                    key={cKey}
-                                    type="button"
-                                    onClick={() => {
-                                      const allKeys = colors.map((cc, ii) => colorKeyOf(cc, ii));
-                                      setVariantColorLinks((prev) => {
-                                        const current = prev?.[rowKey];
-                                        if (current == null) {
-                                          const next = allKeys.filter((k) => k !== cKey);
-                                          return { ...(prev || {}), [rowKey]: next.length === allKeys.length ? null : next };
-                                        }
-                                        const has = current.includes(cKey);
-                                        const next = has ? current.filter((k) => k !== cKey) : [...current, cKey];
-                                        return { ...(prev || {}), [rowKey]: next.length === allKeys.length ? null : next };
-                                      });
-                                    }}
-                                    className={`w-10 h-10 rounded-full border flex items-center justify-center transition-all ${isOn ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-gray-200 dark:border-gray-700 opacity-50 hover:opacity-80'}`}
-                                    title={String(c?.name || 'Color')}
-                                  >
-                                    <div className="w-8 h-8 rounded-full border border-white/70" style={{ backgroundColor: c.hex }} />
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      );
-                    })}
-                    {variants.length === 0 && <p className="text-center text-gray-500 dark:text-gray-500 text-sm py-4">No hay variantes definidas.</p>}
-                 </div>
-
-                 {/* Combinations Generator Section */}
-                 {(colors.length > 0 || variants.length > 0) && (
-                  <div className="pt-8 border-t border-gray-100 dark:border-gray-800 space-y-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-sm font-bold text-gray-900 dark:text-white">Variaciones y SKUs de Inventario</h4>
-                        <p className="text-xs text-gray-500">Gestione el stock y SKU específico para cada variación</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Auto-generar</span>
-                        <button
-                          type="button"
-                          onClick={() => setAutoGenerateSkus(!autoGenerateSkus)}
-                          className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none ${autoGenerateSkus ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-700'}`}
-                        >
-                          <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${autoGenerateSkus ? 'translate-x-6' : 'translate-x-1'}`} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-separate border-spacing-y-2">
-                         <thead>
-                           <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                             <th className="px-4 pb-2">Variación / Color</th>
-                             <th className="px-4 pb-2">SKU</th>
-                             <th className="px-4 pb-2">Principal</th>
-                             <th className="px-4 pb-2">Stock</th>
-                             <th className="px-4 pb-2 text-right">Acciones</th>
-                           </tr>
-                         </thead>
-                         <tbody>
-                           {skus.map((skuItem, idx) => {
-                             const colorPart = skuItem && skuItem.colorId !== undefined && skuItem.colorId !== null 
-                               ? skuItem.colorId 
-                               : (skuItem && skuItem.colorClientId ? skuItem.colorClientId : 'n');
-                             const variantPart = skuItem && skuItem.variantId !== undefined && skuItem.variantId !== null 
-                               ? skuItem.variantId 
-                               : (skuItem && skuItem.variantClientId ? skuItem.variantClientId : 'n');
-                             const rowKey = skuItem && skuItem.id !== undefined && skuItem.id !== null 
-                               ? String(skuItem.id) 
-                               : `${colorPart}-${variantPart}-${idx}`;
-                             const isCombined = skuItem && skuItem.colorName && skuItem.variantName;
-                             const isColorOnly = skuItem && skuItem.colorName && !skuItem.variantName;
-                             const isVariantOnly = skuItem && !skuItem.colorName && skuItem.variantName;
-                             const vKey = skuItem ? (skuItem.variantClientId ? skuItem.variantClientId : (skuItem.variantId !== null && skuItem.variantId !== undefined ? `variant-${skuItem.variantId}` : null)) : null;
-                             const cKey = skuItem ? (skuItem.colorClientId ? skuItem.colorClientId : (skuItem.colorId !== null && skuItem.colorId !== undefined ? `color-${skuItem.colorId}` : null)) : null;
-                             const dragOverKey = (isVariantOnly && dragOverVariantKey === vKey) || (isColorOnly && dragOverVariantKey === cKey);
-
-                             return (
-                            <tr
-                              key={rowKey}
-                              id={`sku-row-${rowKey}`}
-                              draggable={Boolean(isColorOnly || isVariantOnly)}
-                              onDragStart={(e) => {
-                                const dragKey = isColorOnly ? cKey : vKey;
-                                const dragType = isColorOnly ? 'color' : 'variant';
-                                if (dragKey) {
-                                  e.dataTransfer.setData('text/plain', dragKey);
-                                  e.dataTransfer.setData('dragType', dragType);
-                                }
-                              }}
-                              onDragOver={(e) => {
-                                if (isVariantOnly || isColorOnly) {
-                                  e.preventDefault();
-                                }
-                              }}
-                              onDragEnter={() => {
-                                if (isVariantOnly && vKey) {
-                                  setDragOverVariantKey(vKey);
-                                } else if (isColorOnly && cKey) {
-                                  setDragOverVariantKey(cKey);
-                                }
-                              }}
-                              onDragLeave={() => {
-                                if (isVariantOnly || isColorOnly) {
-                                  setDragOverVariantKey(null);
-                                }
-                              }}
-                              onDrop={(e) => {
-                                e.preventDefault();
-                                setDragOverVariantKey(null);
-                                const draggedKey = e.dataTransfer.getData('text/plain');
-                                const dragType = e.dataTransfer.getData('dragType');
-                                if (!draggedKey) return;
-
-                                if (isVariantOnly && vKey && dragType === 'color') {
-                                  setVariantColorLinks(prev => {
-                                    const current = prev[vKey] || [];
-                                    if (!current.includes(draggedKey)) {
-                                      return { ...prev, [vKey]: [...current, draggedKey] };
-                                    }
-                                    return prev;
-                                  });
-                                } else if (isColorOnly && cKey && dragType === 'variant') {
-                                  setVariantColorLinks(prev => {
-                                    const current = prev[draggedKey] || [];
-                                    if (!current.includes(cKey)) {
-                                      return { ...prev, [draggedKey]: [...current, cKey] };
-                                    }
-                                    return prev;
-                                  });
-                                }
-                              }}
-                              className={`bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden group ${!skuItem.active ? 'opacity-50' : ''} ${highlightSkuKey === rowKey ? 'ring-2 ring-blue-500/60' : ''} ${(isColorOnly || isVariantOnly) ? 'cursor-grab active:cursor-grabbing hover:bg-gray-100/80 dark:hover:bg-gray-700/80' : ''} ${dragOverKey ? 'ring-2 ring-dashed ring-blue-500 bg-blue-500/10' : ''} transition-all duration-200`}
-                            >
-                              <td className="px-4 py-3 rounded-l-xl">
-                                <div className="flex items-center gap-2">
-                                  {skuItem.colorName && (
-                                    <span className="flex items-center gap-1.5 px-2 py-1 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-[10px] font-bold text-gray-900 dark:!text-white">
-                                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.find(c => c.name === skuItem.colorName)?.hex }} />
-                                      {skuItem.colorName}
-                                    </span>
-                                  )}
-                                  {skuItem.variantName && (
-                                     <span className="px-2 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:!text-white rounded-lg border border-blue-100 dark:border-blue-500/20 text-[10px] font-bold uppercase tracking-wider">
-                                       {skuItem.variantName}
-                                       {(() => {
-                                         const vObj = skuItem.variantId != null 
-                                           ? variants.find(v => v.id === skuItem.variantId) 
-                                           : (skuItem.variantClientId ? variants.find(v => v.clientId === skuItem.variantClientId) : null);
-                                         if (vObj && Number(vObj.extra_price) > 0) {
-                                           return ` (+${formatCurrency(vObj.extra_price)})`;
-                                         }
-                                         return '';
-                                       })()}
-                                     </span>
-                                   )}
-                                  {isColorOnly && (
-                                    <span className="text-[9px] text-gray-400 font-medium select-none ml-1">(Arrastrar o soltar variante aquí)</span>
-                                  )}
-                                  {isVariantOnly && (
-                                    <span className="text-[9px] text-gray-400 font-medium select-none ml-1">(Arrastrar o soltar color aquí)</span>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="px-4 py-3">
-                                <input 
-                                  type="text" 
-                                  value={String(skuItem.sku ?? '')}
-                                  disabled={Boolean(skuItem.useMainSku)}
-                                  onChange={(e) => setSkus(prev => prev.map((s, i) => i === idx ? { ...s, sku: e.target.value.toUpperCase(), useMainSku: false } : s))}
-                                  onBlur={(e) => {
-                                    const v = String(e.target.value ?? '').trim();
-                                    if (v !== '') return;
-                                    setSkus(prev => prev.map((s, i) => i === idx ? { ...s, sku: '', useMainSku: true } : s));
-                                  }}
-                                  className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs font-mono text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 outline-none disabled:opacity-60 disabled:cursor-not-allowed"
-                                  placeholder="SKU específico"
-                                />
-                              </td>
-                              <td className="px-4 py-3">
-                                <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300 select-none cursor-pointer">
-                                  <input
-                                    type="checkbox"
-                                    checked={Boolean(skuItem.useMainSku)}
-                                    onChange={(e) => {
-                                      const checked = e.target.checked;
-                                      setSkus(prev => prev.map((s, i) => {
-                                        if (i !== idx) return s;
-                                        if (checked) return { ...s, sku: '', useMainSku: true };
-                                        const baseSku = String(sku || '').toUpperCase();
-                                        const cn = s.colorName ? String(s.colorName) : null;
-                                        const vn = s.variantName ? String(s.variantName) : null;
-                                        const generated = cn && vn ? `${baseSku}-${cn.substring(0,2)}-${vn.substring(0,2)}`.toUpperCase() : cn ? `${baseSku}-${cn.substring(0,3)}`.toUpperCase() : vn ? `${baseSku}-${vn.substring(0,3)}`.toUpperCase() : baseSku;
-                                        return { ...s, sku: generated, useMainSku: false };
-                                      }));
-                                    }}
-                                    className="rounded border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-blue-600 focus:ring-blue-500"
-                                  />
-                                  <span>Usar SKU principal</span>
-                                </label>
-                              </td>
-                              <td className="px-4 py-3">
-                                <input 
-                                  type="number" 
-                                  value={skuItem.stock}
-                                  onChange={(e) => setSkus(prev => prev.map((s, i) => i === idx ? { ...s, stock: e.target.value } : s))}
-                                  className="w-24 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-1.5 text-xs font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none"
-                                />
-                              </td>
-                              <td className="px-4 py-3 rounded-r-xl text-right flex items-center justify-end gap-2">
-                                {isCombined && (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      if (vKey && cKey) {
-                                        setVariantColorLinks(prev => {
-                                          const current = prev[vKey] || [];
-                                          return { ...prev, [vKey]: current.filter(k => k !== cKey) };
-                                        });
-                                      }
-                                    }}
-                                    className="px-2.5 py-1 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all transform active:scale-95 shadow-sm hover:shadow"
-                                  >
-                                    Separar
-                                  </button>
-                                )}
-                                <button
-                                  type="button"
-                                  onClick={() => setSkus(prev => prev.map((s, i) => i === idx ? { ...s, active: !s.active } : s))}
-                                  className={`p-1.5 rounded-lg transition-colors ${skuItem.active ? 'text-gray-400 hover:text-emerald-500' : 'text-gray-300 hover:text-gray-500'}`}
-                                  title={skuItem.active ? 'Desactivar variación' : 'Activar variación'}
-                                >
-                                  {skuItem.active ? <CheckCircle2 className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                                </button>
-                              </td>
-                            </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-blue-50 dark:bg-blue-500/5 border border-blue-100 dark:border-blue-500/10 flex items-start gap-3">
-                      <div className="p-1.5 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
-                        <Wand2 className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <p className="text-[11px] text-blue-700 dark:text-blue-300 leading-relaxed">
-                        <span className="font-bold">Variaciones y SKUs independientes:</span> El sistema mantiene tus colores y variantes independientes por defecto. Si deseas combinarlos, puedes <span className="font-bold">arrastrar un color y soltarlo encima de una variante</span> (ya sea en la lista superior o en esta tabla). Usa el botón <span className="font-bold text-rose-500">Separar</span> para dividirlos de nuevo.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            <VariantsTab
+              hasColors={hasColors}
+              setHasColors={setHasColors}
+              colors={colors}
+              setColors={setColors}
+              variants={variants}
+              setVariants={setVariants}
+              skus={skus}
+              setSkus={setSkus}
+              showAddColor={showAddColor}
+              setShowAddColor={setShowAddColor}
+              colorName={colorName}
+              setColorName={setColorName}
+              colorHex={colorHex}
+              setColorHex={setColorHex}
+              colorInputError={colorInputError}
+              setColorInputError={setColorInputError}
+              makeClientId={makeClientId}
+              colorKeyOf={colorKeyOf}
+              variantKeyOf={variantKeyOf}
+              variantColorLinks={variantColorLinks}
+              setVariantColorLinks={setVariantColorLinks}
+              sku={sku}
+              autoGenerateSkus={autoGenerateSkus}
+              setAutoGenerateSkus={setAutoGenerateSkus}
+              highlightSkuKey={highlightSkuKey}
+              dragOverVariantKey={dragOverVariantKey}
+              setDragOverVariantKey={setDragOverVariantKey}
+              formatCurrency={formatCurrency}
+              mediaUrl={mediaUrl}
+              errors={errors}
+              inventoryQty={inventoryQty}
+            />
           )}
 
           {activeTab === 'caracteristicas' && (

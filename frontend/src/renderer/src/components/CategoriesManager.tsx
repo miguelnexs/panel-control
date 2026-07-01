@@ -14,7 +14,8 @@ import {
   FolderOpen,
   Layers,
   CheckCircle2,
-  GripVertical
+  GripVertical,
+  Lock
 } from 'lucide-react';
 import SafeImage from './SafeImage';
 import { useOfflineSync } from '../hooks/useOfflineSync';
@@ -102,6 +103,14 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
   const [errors, setErrors] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState<any>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [showPasswordConfirmModal, setShowPasswordConfirmModal] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [verifyingPassword, setVerifyingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [onPasswordSuccess, setOnPasswordSuccess] = useState<(() => void) | null>(null);
   const [croppingImage, setCroppingImage] = useState<string | null>(null);
   const searchTimeout = useRef<any>(null);
   const [searchValue, setSearchValue] = useState('');
@@ -300,10 +309,84 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
       });
       if (!result.ok) throw new Error('No se pudo eliminar');
       setMsg({ type: 'success', text: result.queued ? 'Categoría eliminada localmente. Se sincronizará al reconectar.' : 'Categoría eliminada' });
+      setSelectedIds(prev => prev.filter(id => id !== deletingCategory.id));
       setDeletingCategory(null);
       loadCategories();
     } catch (e: any) {
       setMsg({ type: 'error', text: e.message });
+    }
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setMsg(null);
+    setBulkDeleting(true);
+    try {
+      const promises = selectedIds.map(id => 
+        offlineSync.queueMutation({
+          token,
+          method: 'DELETE',
+          url: `${apiBase}/products/categories/${id}/`,
+          deleteLocalId: id,
+          store: 'categories',
+        })
+      );
+      const results = await Promise.all(promises);
+      const allOk = results.every(r => r.ok);
+      const queuedCount = results.filter(r => r.queued).length;
+      
+      if (!allOk) {
+        throw new Error('Algunas categorías no se pudieron eliminar');
+      }
+      
+      setMsg({
+        type: 'success',
+        text: queuedCount > 0 
+          ? `${selectedIds.length} categorías eliminadas localmente. Se sincronizarán al reconectar.` 
+          : `${selectedIds.length} categorías eliminadas correctamente`
+      });
+      setSelectedIds([]);
+      setShowBulkDeleteModal(false);
+      loadCategories();
+    } catch (e: any) {
+      setMsg({ type: 'error', text: e.message });
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  const handleDeleteRequest = (action: () => void) => {
+    setConfirmPassword('');
+    setPasswordError(null);
+    setOnPasswordSuccess(() => action);
+    setShowPasswordConfirmModal(true);
+  };
+
+  const handleVerifyPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setVerifyingPassword(true);
+    try {
+      const res = await fetch(`${apiBase}/users/api/auth/verify-password/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders(token)
+        },
+        body: JSON.stringify({ password: confirmPassword })
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || 'Contraseña incorrecta');
+      }
+      setShowPasswordConfirmModal(false);
+      if (onPasswordSuccess) {
+        onPasswordSuccess();
+      }
+    } catch (err: any) {
+      setPasswordError(err.message || 'Error al verificar la contraseña');
+    } finally {
+      setVerifyingPassword(false);
     }
   };
 
@@ -326,6 +409,33 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
       return true;
     });
   }, [items, cardFilter]);
+
+  const isAllDisplayedSelected = displayedItems.length > 0 && displayedItems.every(c => selectedIds.includes(c.id));
+  const isSomeDisplayedSelected = displayedItems.length > 0 && displayedItems.some(c => selectedIds.includes(c.id)) && !isAllDisplayedSelected;
+
+  const handleSelectAllToggle = () => {
+    if (isAllDisplayedSelected) {
+      const displayedIds = displayedItems.map(c => c.id);
+      setSelectedIds(prev => prev.filter(id => !displayedIds.includes(id)));
+    } else {
+      const displayedIds = displayedItems.map(c => c.id);
+      setSelectedIds(prev => {
+        const newSelection = [...prev];
+        displayedIds.forEach(id => {
+          if (!newSelection.includes(id)) {
+            newSelection.push(id);
+          }
+        });
+        return newSelection;
+      });
+    }
+  };
+
+  const handleSelectToggle = (id: number) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
 
   const StatCard = ({ label, value, icon: Icon, color, filterKey, isActive, onClick }: any) => (
     <div
@@ -458,6 +568,16 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                 <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 dark:text-gray-500 pointer-events-none" />
               </div>
 
+              {canDeleteSafe && selectedIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowBulkDeleteModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-rose-900/20 animate-in zoom-in-95 duration-150"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Eliminar ({selectedIds.length})</span>
+                </button>
+              )}
               {canCreateSafe && (
                 <button 
                   onClick={() => setOpen(true)} 
@@ -482,6 +602,19 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
                   <th className="w-10 px-2"></th>
+                  <th className="w-10 px-2 text-center">
+                    <input
+                      type="checkbox"
+                      checked={isAllDisplayedSelected}
+                      ref={(el) => {
+                        if (el) {
+                          el.indeterminate = isSomeDisplayedSelected;
+                        }
+                      }}
+                      onChange={handleSelectAllToggle}
+                      className="rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                    />
+                  </th>
                   <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Categoría</th>
                   {role === 'super_admin' && (
                     <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Inquilino / Admin</th>
@@ -499,6 +632,14 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                 >
                   {displayedItems.map((c) => (
                     <SortableRow key={c.id} category={c} disabled={!canReorderSafe}>
+                      <td className="px-2 py-4 w-10 text-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(c.id)}
+                          onChange={() => handleSelectToggle(c.id)}
+                          className="rounded border-gray-300 dark:border-gray-700 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                        />
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-500 font-bold text-sm">
@@ -568,7 +709,7 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                 </SortableContext>
                 {displayedItems.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500 dark:text-gray-500">
+                    <td colSpan={role === 'super_admin' ? 8 : 7} className="px-6 py-12 text-center text-gray-500 dark:text-gray-500">
                       <div className="flex flex-col items-center justify-center">
                         <FolderOpen className="w-12 h-12 mb-3 opacity-20" />
                         <p>No se encontraron categorías</p>
@@ -740,6 +881,48 @@ const CategoriesManager: React.FC<CategoriesManagerProps> = ({ token, apiBase, r
                   className="flex-1 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium shadow-lg shadow-rose-900/20 transition-all transform hover:scale-[1.02]"
                 >
                   Eliminar ahora
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-md shadow-2xl scale-100 animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-rose-100 dark:bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-rose-600 dark:text-rose-500" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Eliminar categorías seleccionadas?</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
+                Estás a punto de eliminar <span className="font-bold text-gray-900 dark:text-white">{selectedIds.length} categorías</span>. 
+                Esta acción no se puede deshacer y podría afectar a los productos asociados.
+              </p>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowBulkDeleteModal(false)}
+                  className="flex-1 px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium transition-colors"
+                  disabled={bulkDeleting}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={confirmBulkDelete}
+                  className="flex-1 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium shadow-lg shadow-rose-900/20 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                  disabled={bulkDeleting}
+                >
+                  {bulkDeleting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Eliminando...</span>
+                    </>
+                  ) : (
+                    <span>Eliminar ahora</span>
+                  )}
                 </button>
               </div>
             </div>

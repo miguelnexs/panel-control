@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, dialog } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import path from 'path';
 import http from 'http';
@@ -22,8 +22,7 @@ const GH_TOKEN = process.env.GH_TOKEN;
 if (GH_TOKEN) {
   autoUpdater.logger.info('GH_TOKEN cargado y configurado para auto-updates.');
   autoUpdater.requestHeaders = {
-    'Authorization': `Bearer ${GH_TOKEN}`,
-    'Accept': 'application/vnd.github.v3+json'
+    'Authorization': `Bearer ${GH_TOKEN}`
   };
 } else {
   autoUpdater.logger.error('GH_TOKEN no encontrado. Las actualizaciones privadas fallarán.');
@@ -537,6 +536,64 @@ ipcMain.handle('open-path', async (_, pathStr: string) => {
   }
 });
 
+ipcMain.handle('save-pdf-dialog', async (_, { html, defaultName }) => {
+  if (!mainWindow) return { success: false, error: 'No se detectó la ventana principal.' };
+
+  const tempPath = path.join(app.getPath('temp'), `reporte-${Date.now()}.html`);
+
+  try {
+    const { filePath } = await dialog.showSaveDialog(mainWindow, {
+      title: 'Guardar Reporte PDF',
+      defaultPath: defaultName || 'reporte.pdf',
+      filters: [{ name: 'Documentos PDF', extensions: ['pdf'] }]
+    });
+
+    if (!filePath) {
+      return { success: false, cancelled: true };
+    }
+
+    fs.writeFileSync(tempPath, html, 'utf8');
+
+    const printWindow = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true
+      }
+    });
+
+    try {
+      await printWindow.loadFile(tempPath);
+      
+      await printWindow.webContents.executeJavaScript(
+        'new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))',
+      );
+
+      const pdfBuffer = await printWindow.webContents.printToPDF({
+        margins: { marginType: 'default' },
+        printBackground: true,
+        displayHeaderFooter: false
+      });
+
+      fs.writeFileSync(filePath, pdfBuffer);
+      return { success: true, filePath };
+    } finally {
+      printWindow.close();
+    }
+  } catch (error) {
+    console.error('PDF generation failed:', error);
+    return { success: false, error: String(error) };
+  } finally {
+    try {
+      if (fs.existsSync(tempPath)) {
+        fs.unlinkSync(tempPath);
+      }
+    } catch (e) {
+      console.error('Failed to cleanup temp file:', e);
+    }
+  }
+});
+
 ipcMain.handle('print-silent', async (_, { content, printerName, paperWidthMm }) => {
     console.log('Main: Received print-silent request');
     const widthMm = Number(paperWidthMm || 58);
@@ -621,7 +678,38 @@ ipcMain.on('check-for-updates', () => {
 });
 
 ipcMain.on('quit-and-install', () => {
-  autoUpdater.quitAndInstall();
+  autoUpdater.logger.info('quit-and-install recibido. Preparando la salida...');
+  
+  try {
+    // Intentar cerrar e instalar usando autoUpdater
+    autoUpdater.quitAndInstall(false, true);
+  } catch (err) {
+    autoUpdater.logger.error('Error al llamar a autoUpdater.quitAndInstall:', err);
+  }
+
+  // Cerrar y destruir todas las ventanas abiertas para agilizar la desconexión
+  setTimeout(() => {
+    try {
+      autoUpdater.logger.info('Cerrando y destruyendo ventanas...');
+      BrowserWindow.getAllWindows().forEach((win) => {
+        if (win && !win.isDestroyed()) {
+          win.destroy();
+        }
+      });
+    } catch (err) {
+      autoUpdater.logger.error('Error al destruir ventanas:', err);
+    }
+  }, 500);
+
+  // Forzar la salida de la aplicación si el proceso queda colgado liberando los archivos bloqueados
+  setTimeout(() => {
+    try {
+      autoUpdater.logger.info('Forzando la salida absoluta del proceso con app.exit(0)...');
+      app.exit(0);
+    } catch (err) {
+      console.error('Error al forzar salida con app.exit:', err);
+    }
+  }, 2500);
 });
 
 app.on('window-all-closed', () => {
@@ -630,8 +718,4 @@ app.on('window-all-closed', () => {
   }
 });
 
-app.on('before-quit', () => {
-  if (templatesServer) {
-    templatesServer.close();
-  }
-});
+

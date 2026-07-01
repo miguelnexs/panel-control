@@ -564,7 +564,7 @@ const SalesPage: React.FC<SalesPageProps> = ({ token, apiBase, onSaleCreated, ca
       ? Number(item.product.sale_price)
       : Number(item.product.price || 0);
     if (item.variantId) {
-      const vars = variantOptions[item.product.id] || [];
+      const vars = variantOptions[item.product.id] || item.product.variants || [];
       const v = vars.find(v => String(v.id) === String(item.variantId));
       if (v) price += Number(v.extra_price || 0);
     }

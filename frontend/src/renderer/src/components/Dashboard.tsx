@@ -36,6 +36,7 @@ const UsersStatsPage = React.lazy(() => import('./dashboard/UsersStatsPage'));
 const SuperAdminWebRequests = React.lazy(() => import('./SuperAdminWebRequests'));
 const SuppliersPage = React.lazy(() => import('./SuppliersPage'));
 const PurchasesPage = React.lazy(() => import('./PurchasesPage'));
+const ReportesPage = React.lazy(() => import('./ReportesPage'));
 
 import AIChatAssistant from './AIChatAssistant';
 import WebsiteRequestForm from './WebsiteRequestForm';
@@ -102,7 +103,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
       clientes: 'view_clients',
       client_details: 'view_clients',
       ventas: 'create_sales',
-      ventas_estadisticas: 'create_sales',
+      reportes_estadisticas: 'create_sales',
       caja: 'view_cashbox',
       pedidos: 'view_orders',
       servicios: 'view_services',
@@ -307,7 +308,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
           '6': 'dashboard',
           '7': 'users_empleados',
           '8': 'configuracion_empresa',
-          '9': 'ventas_estadisticas',
+          '9': 'reportes_estadisticas',
           '0': 'web'
         };
 
@@ -396,7 +397,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
           webSyncEnabled={webSyncEnabled}
         />
       )}
-      <main className="flex-1 p-6 space-y-6 relative overflow-y-auto bg-[#e8ecf4] dark:bg-transparent">
+      <main className={`flex-1 relative bg-[#e8ecf4] dark:bg-transparent flex flex-col overflow-hidden ${
+        ['reportes','reportes_calendario'].includes(view) ? 'p-4' : 'p-6 overflow-y-auto'
+      }`}>
         {!hideFloatingWidgets && view !== 'onboarding' && (role === 'admin' || role === 'super_admin') && (
           <SupportChatWidget 
             token={token} 
@@ -430,7 +433,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
             </div>
           </div>
         )}
-        <div className={`${navLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}>
+        <div className={`${navLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300 flex flex-col ${
+          ['reportes','reportes_calendario'].includes(view) ? 'flex-1 min-h-0' : 'space-y-6'
+        }`}>
           {accessMsg && (
             <div className="mb-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 text-sm">
               {accessMsg}
@@ -449,7 +454,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
                view === 'categorias' ? 'Categorías' : 
                view === 'clientes' ? 'Clientes' : 
                view === 'ventas' ? 'Ventas' : 
-               view === 'ventas_estadisticas' ? 'Ventas / Estadísticas' :
                view === 'web' || view === 'web_productos' ? 'Página web / Productos' :
                view === 'web_request' ? 'Página web / Solicitud' :
                view === 'super_admin_requests' ? 'Súper Admin / Solicitudes Web' :
@@ -471,6 +475,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
                view === 'proveedores' ? 'Proveedores' :
                view === 'compras' ? 'Compras / Recarga Stock' :
                view === 'ai_support' ? 'Soporte y Diagnóstico Inteligente IA' :
+               view === 'reportes' || view === 'reportes_calendario' ? 'Reportes / Calendario' :
+               view === 'reportes_estadisticas' ? 'Reportes / Estadísticas' :
                'Pedidos'}
             </h1>
             <div className="flex items-center gap-2">
@@ -586,9 +592,6 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
               onSaleCreated={() => setOrderNotif((n) => n + 1)} 
               canCreate={permsUi.sales.create}
             />
-          )}
-          {view === 'ventas_estadisticas' && (
-            <SalesStatsPage token={token} apiBase={apiBase} role={role} />
           )}
           {(view === 'web' || view === 'web_productos') && (
             <WebProductsPage
@@ -726,6 +729,12 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
               apiBase={apiBase}
               role={role}
             />
+          )}
+          {(view === 'reportes' || view === 'reportes_calendario') && (
+            <ReportesPage token={token} apiBase={apiBase} role={role} />
+          )}
+          {view === 'reportes_estadisticas' && (
+            <SalesStatsPage token={token} apiBase={apiBase} role={role} />
           )}
         </React.Suspense>
         </div>

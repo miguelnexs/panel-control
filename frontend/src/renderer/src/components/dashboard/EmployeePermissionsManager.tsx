@@ -55,7 +55,7 @@ const GROUPS: Array<{ title: string; icon: any; color: string; items: Array<{ ke
   {
     title: 'Clientes',
     icon: UsersIcon,
-    color: 'purple',
+    color: 'indigo',
     items: [
       { key: 'view_clients', label: 'Ver' },
       { key: 'create_clients', label: 'Crear' },
@@ -387,19 +387,16 @@ const EmployeePermissionsManager: React.FC<EmployeePermissionsManagerProps> = ({
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-12">
       {/* HEADER SECTION */}
-      <div className="bg-gradient-to-br from-blue-900 to-indigo-900 rounded-3xl p-8 text-white shadow-2xl relative overflow-hidden">
-        <div className="absolute top-[-50%] right-[-10%] w-[80%] h-[200%] bg-white/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-[50%] h-[150%] bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 flex flex-col xl:flex-row xl:items-center justify-between gap-4 bg-gray-50/80 dark:bg-gray-900/50 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 w-full">
           <div>
-            <div className="inline-flex items-center justify-center p-3 bg-white/10 backdrop-blur-md rounded-2xl shadow-sm border border-white/20 mb-4">
-              <ShieldCheck className="w-8 h-8 text-blue-300" />
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-indigo-500/10 rounded-lg">
+                <ShieldCheck className="w-5 h-5 text-indigo-500" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Gestión de Permisos</h2>
             </div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-2">
-              Gestión de Permisos
-            </h1>
-            <p className="text-blue-200 font-medium text-lg max-w-xl">
+            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xl">
               Controla exactamente qué puede ver y hacer cada miembro de tu equipo. Asigna permisos detallados o usa perfiles predeterminados.
             </p>
           </div>
@@ -409,11 +406,11 @@ const EmployeePermissionsManager: React.FC<EmployeePermissionsManagerProps> = ({
               <select
                 value={tenantId}
                 onChange={(e) => setTenantId(e.target.value)}
-                className="px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-400 cursor-pointer"
+                className="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all cursor-pointer"
               >
-                <option value="" className="text-black">Selecciona tenant</option>
+                <option value="">Selecciona tenant</option>
                 {tenants.map((t) => (
-                  <option key={t.id} value={String(t.id)} className="text-black">
+                  <option key={t.id} value={String(t.id)}>
                     {t.admin_username || `Tenant ${t.id}`}
                   </option>
                 ))}
@@ -421,9 +418,9 @@ const EmployeePermissionsManager: React.FC<EmployeePermissionsManagerProps> = ({
             )}
             <button
               onClick={load}
-              className="flex items-center justify-center gap-2 px-5 py-3 bg-white text-blue-900 hover:bg-blue-50 rounded-xl text-sm font-bold shadow-lg transition-colors w-full md:w-auto"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-900/20"
             >
-              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               <span>Actualizar Datos</span>
             </button>
           </div>

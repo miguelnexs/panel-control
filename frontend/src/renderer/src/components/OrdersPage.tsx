@@ -203,6 +203,9 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
   const [dianModalOrder, setDianModalOrder] = useState<Order | null>(null);
   const [isEmittingDian, setIsEmittingDian] = useState(false);
 
+  const [selectedOrderIds, setSelectedOrderIds] = useState<number[]>([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+
   const authHeaders = (tkn: string) => ({ ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) });
 
   const loadSettings = async () => {
@@ -443,6 +446,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
   };
 
   useEffect(() => {
+    setSelectedOrderIds([]);
     if (token) loadOrders();
   }, [token, page, pageSize, search, statusFilter]);
 
@@ -581,6 +585,29 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
     }
   };
 
+  const handleBulkDelete = async () => {
+    setShowBulkDeleteModal(false);
+    showToast('Eliminando pedidos...', 'loading');
+    try {
+      const res = await fetch(`${apiBase}/sales/bulk-delete/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ ids: selectedOrderIds })
+      });
+      if (!res.ok) {
+        throw new Error('Error al eliminar pedidos en lote');
+      }
+      showToast('Pedidos eliminados correctamente', 'success');
+      setSelectedOrderIds([]);
+      loadOrders();
+    } catch (e: any) {
+      showToast(e.message, 'error');
+    }
+  };
+
   const handleAddPayment = async () => {
     if (!paymentModalOrder) return;
     if (!newPaymentAmount || Number(newPaymentAmount) <= 0) {
@@ -661,6 +688,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
       case 'completed':
       case 'delivered': return 'Entregado';
       case 'pending': return 'Pendiente';
+      case 'canceled':
       case 'cancelled': return 'Cancelado';
       case 'processing': return 'Procesando';
       default: return status;
@@ -850,7 +878,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
                 <option value="apartado">Separado</option>
                 <option value="processing">Procesando</option>
                 <option value="delivered">Entregado</option>
-                <option value="cancelled">Cancelado</option>
+                <option value="canceled">Cancelado</option>
               </select>
             </div>
 
@@ -899,6 +927,17 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
                 )}
               </div>
 
+              {selectedOrderIds.length > 0 && canDeleteSafe && (
+                <button 
+                  onClick={() => setShowBulkDeleteModal(true)} 
+                  className="flex items-center gap-2 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-medium transition-all shadow-sm"
+                  title="Eliminar seleccionados"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Eliminar ({selectedOrderIds.length})</span>
+                </button>
+              )}
+
               <button onClick={loadOrders} className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title="Recargar">
                 <RefreshCw className="w-4 h-4" />
               </button>
@@ -911,6 +950,22 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
+                {canDeleteSafe && (
+                  <th className="px-4 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-10">
+                    <input 
+                      type="checkbox"
+                      checked={orders.length > 0 && selectedOrderIds.length === orders.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedOrderIds(orders.map(o => o.id));
+                        } else {
+                          setSelectedOrderIds([]);
+                        }
+                      }}
+                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer"
+                    />
+                  </th>
+                )}
                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pedido</th>
                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cliente</th>
                 <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total</th>
@@ -923,6 +978,22 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
             <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
               {orders.map((o) => (
                 <tr key={o.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors group">
+                  {canDeleteSafe && (
+                    <td className="px-4 py-4 w-10">
+                      <input 
+                        type="checkbox"
+                        checked={selectedOrderIds.includes(o.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedOrderIds(prev => [...prev, o.id]);
+                          } else {
+                            setSelectedOrderIds(prev => prev.filter(id => id !== o.id));
+                          }
+                        }}
+                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer"
+                      />
+                    </td>
+                  )}
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
@@ -1497,6 +1568,39 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
                   className="flex-1 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium shadow-lg shadow-rose-900/20 transition-all transform hover:scale-[1.02]"
                 >
                   Eliminar ahora
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-md shadow-2xl scale-100 animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-rose-100 dark:bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-rose-600 dark:text-rose-500" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">¿Eliminar múltiples pedidos?</h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
+                Estás a punto de eliminar <span className="font-bold text-gray-900 dark:text-white">{selectedOrderIds.length}</span> pedidos seleccionados. 
+                Esta acción no se puede deshacer y se borrarán todos los datos asociados.
+              </p>
+              
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowBulkDeleteModal(false)}
+                  className="flex-1 px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 font-medium transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handleBulkDelete}
+                  className="flex-1 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-medium shadow-lg shadow-rose-900/20 transition-all transform hover:scale-[1.02]"
+                >
+                  Eliminar seleccionados
                 </button>
               </div>
             </div>

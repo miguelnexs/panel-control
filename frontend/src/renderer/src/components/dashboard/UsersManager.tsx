@@ -281,14 +281,17 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
 
   if (role !== 'admin' && role !== 'super_admin') return null;
 
-  const StatCard = ({ label, value, icon: Icon, color }: any) => (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-4 flex items-center justify-between shadow-sm hover:border-gray-300 dark:hover:border-gray-700 transition-all group">
-      <div>
-        <p className="text-gray-500 dark:text-gray-400 text-xs font-medium uppercase tracking-wider mb-1">{label}</p>
-        <p className="text-2xl font-bold text-gray-900 dark:text-white group-hover:scale-105 transition-transform origin-left">{value}</p>
+  const StatCard = ({ label, value, icon: Icon, styles }: any) => (
+    <div className={`relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 flex flex-col justify-between shadow-sm hover:shadow-xl transition-all duration-300 group overflow-hidden ${styles.hoverBorder}`}>
+      <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full blur-2xl transition-all duration-500 ${styles.blob}`}></div>
+      <div className="flex items-start justify-between relative z-10 mb-4">
+        <div className={`p-3 rounded-xl group-hover:scale-110 transition-transform duration-300 shadow-sm ${styles.iconBg}`}>
+          <Icon className={`w-6 h-6 ${styles.iconText}`} />
+        </div>
       </div>
-      <div className={`p-3 rounded-lg bg-opacity-10 ${color.bg}`}>
-        <Icon className={`w-6 h-6 ${color.text}`} />
+      <div className="relative z-10">
+        <p className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">{label}</p>
+        <p className={`text-3xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tight`}>{value}</p>
       </div>
     </div>
   );
@@ -305,11 +308,11 @@ const UsersManager: React.FC<UsersManagerProps> = ({ token, apiBase, role, creat
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Usuarios" value={stats.total} icon={Users} color={{ bg: 'bg-blue-500', text: 'text-blue-500' }} />
-        <StatCard label="Empleados" value={stats.active} icon={Briefcase} color={{ bg: 'bg-emerald-500', text: 'text-emerald-500' }} />
-        <StatCard label="Administradores" value={stats.admins} icon={Shield} color={{ bg: 'bg-purple-500', text: 'text-purple-500' }} />
-        <StatCard label="Departamentos" value={stats.depts} icon={Building} color={{ bg: 'bg-amber-500', text: 'text-amber-500' }} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <StatCard label="Total Usuarios" value={stats.total} icon={Users} styles={{ hoverBorder: 'hover:border-blue-300 dark:hover:border-blue-700', blob: 'bg-blue-500/10 group-hover:bg-blue-500/20', iconBg: 'bg-blue-50 dark:bg-blue-500/10 border border-blue-100 dark:border-blue-500/20', iconText: 'text-blue-600 dark:text-blue-400' }} />
+        <StatCard label="Empleados" value={stats.active} icon={Briefcase} styles={{ hoverBorder: 'hover:border-emerald-300 dark:hover:border-emerald-700', blob: 'bg-emerald-500/10 group-hover:bg-emerald-500/20', iconBg: 'bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-100 dark:border-emerald-500/20', iconText: 'text-emerald-600 dark:text-emerald-400' }} />
+        <StatCard label="Administradores" value={stats.admins} icon={Shield} styles={{ hoverBorder: 'hover:border-indigo-300 dark:hover:border-indigo-700', blob: 'bg-indigo-500/10 group-hover:bg-indigo-500/20', iconBg: 'bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20', iconText: 'text-indigo-600 dark:text-indigo-400' }} />
+        <StatCard label="Departamentos" value={stats.depts} icon={Building} styles={{ hoverBorder: 'hover:border-amber-300 dark:hover:border-amber-700', blob: 'bg-amber-500/10 group-hover:bg-amber-500/20', iconBg: 'bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20', iconText: 'text-amber-600 dark:text-amber-400' }} />
       </div>
 
       {msg && (

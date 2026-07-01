@@ -549,7 +549,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
             { id: 'datos', label: 'Datos Personales', icon: User },
             { id: 'empresa', label: 'Empresa', icon: Building },
             { id: 'impresora', label: 'Impresora', icon: Printer },
-            { id: 'google', label: 'Google API', icon: Globe },
+            { id: 'google', label: 'Correo Electrónico', icon: Mail },
           ].map((t) => (
             <button
               key={t.id}
