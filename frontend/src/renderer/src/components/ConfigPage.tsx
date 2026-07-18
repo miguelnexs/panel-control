@@ -549,7 +549,6 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
             { id: 'datos', label: 'Datos Personales', icon: User },
             { id: 'empresa', label: 'Empresa', icon: Building },
             { id: 'impresora', label: 'Impresora', icon: Printer },
-            { id: 'google', label: 'Correo Electrónico', icon: Mail },
           ].map((t) => (
             <button
               key={t.id}
@@ -1261,9 +1260,25 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
           </div>
         )}
 
-        {/* Google */}
+        {/* Google / Email — Moved to Extensions */}
         {tab === 'google' && (
-          <GoogleConfig token={token} apiBase={apiBase} />
+          <div className="flex flex-col items-center justify-center py-20 space-y-5 text-center max-w-md mx-auto">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-xl shadow-violet-500/20">
+              <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Correo Electrónico SMTP</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                La configuración de correo electrónico ahora es una extensión instalable. Ve a la sección de <strong className="text-gray-700 dark:text-gray-200">Extensiones</strong> en el menú de Configuración para instalar y configurar el módulo de correo.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/20 rounded-xl text-xs font-medium text-violet-700 dark:text-violet-300">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              <span>Configuración → Extensiones → Correo Electrónico SMTP</span>
+            </div>
+          </div>
         )}
       </div>
 

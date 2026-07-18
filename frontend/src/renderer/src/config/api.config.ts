@@ -2,7 +2,7 @@
 // Este archivo centraliza la configuración de la API
 
 // ===== CONFIGURACIÓN DE API =====
-export const API_BASE_URL: string = (import.meta as any).env?.VITE_API_URL || 'https://asenting.com';
+export const API_BASE_URL: string = (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
 // ===== FIN CONFIGURACIÓN =====
 
 // Helper para construir URLs completas

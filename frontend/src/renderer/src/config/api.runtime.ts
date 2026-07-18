@@ -1,5 +1,5 @@
 export const candidateApiBases = (): string[] => {
-  return [(import.meta as any).env?.VITE_API_URL || 'https://asenting.com'];
+  return [(import.meta as any).env?.VITE_API_URL || 'http://localhost:8000'];
 };
 
 const tryHealth = async (base: string): Promise<boolean> => {
@@ -22,5 +22,5 @@ export const detectApiBase = async (): Promise<string> => {
     const ok = await tryHealth(b);
     if (ok) return b.replace(/\/+$/, '');
   }
-  return (import.meta as any).env?.VITE_API_URL || 'https://asenting.com';
+  return (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
 };

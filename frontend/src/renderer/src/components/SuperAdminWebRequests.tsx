@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Globe, Calendar, User, Building2, Palette, Link as LinkIcon, MessageSquare, Loader2, CheckCircle2, Clock, Send, Upload, HelpCircle, FileText, Layout, Trash, Eye, X, Plus } from 'lucide-react';
+import { Globe, Calendar, User, Building2, Palette, Link as LinkIcon, MessageSquare, Loader2, CheckCircle2, Clock, Send, Upload, HelpCircle, FileText, Layout, Trash, Eye, X, Plus, Instagram, Facebook } from 'lucide-react';
 import Icon from './dashboard/Icon';
 
 interface Template {
@@ -17,6 +17,15 @@ interface WebsiteRequest {
   primary_colors: string;
   preferred_subdomain: string;
   additional_notes: string;
+  site_type?: string;
+  design_style?: string;
+  sections?: string[];
+  payment_methods?: string[];
+  social_whatsapp?: string;
+  social_instagram?: string;
+  social_facebook?: string;
+  has_logo?: string;
+  inspiration_urls?: string;
   proposals: string[];
   files: { name: string; url: string }[];
   questions: string[];
@@ -38,7 +47,40 @@ interface WebsiteRequest {
 interface Props {
   apiBase: string;
   token: string | null;
-}
+const siteTypeLabels: Record<string, string> = {
+  'e-commerce': 'Tienda Virtual 🛒',
+  catalog: 'Catálogo Digital 📦',
+  landing: 'Página Corporativa 🏢'
+};
+
+const designStyleLabels: Record<string, string> = {
+  minimalist: 'Minimalista & Moderno 📱',
+  premium: 'Elegante & Premium 💎',
+  colorful: 'Divertido & Colorido 🎨',
+  rustic: 'Rústico / Eco 🌿'
+};
+
+const logoLabels: Record<string, string> = {
+  yes: 'Tiene Logo ✅',
+  no_text_only: 'Texto Elegante ✍️',
+  no_need_ai: 'Generar con IA 🤖'
+};
+
+const sectionLabels: Record<string, string> = {
+  home: 'Inicio',
+  about: 'Nosotros',
+  catalog: 'Tienda',
+  services: 'Servicios',
+  contact: 'Contacto',
+  faq: 'FAQ',
+  reviews: 'Testimonios'
+};
+
+const paymentLabels: Record<string, string> = {
+  whatsapp: 'Pedidos WhatsApp',
+  bank_transfer: 'Transferencia',
+  gateway: 'Pasarela Online'
+};
 
 const SuperAdminWebRequests: React.FC<Props> = ({ apiBase, token }) => {
   const [requests, setRequests] = useState<WebsiteRequest[]>([]);
@@ -247,24 +289,98 @@ const SuperAdminWebRequests: React.FC<Props> = ({ apiBase, token }) => {
                       </div>
                    </div>
 
-                   <div className="bg-gray-50 dark:bg-black/20 rounded-3xl p-6 border border-gray-100 dark:border-white/5">
-                      <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <Palette className="w-3 h-3" /> Preferencias
-                      </h4>
-                      <div className="space-y-4">
-                        <div>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Colores:</p>
-                          <p className="text-sm text-gray-900 dark:text-white font-bold">{req.primary_colors || 'Sin definir'}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">Subdominio:</p>
-                          <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-black">
-                            <LinkIcon className="w-3 h-3" />
-                            <span>{req.preferred_subdomain || 'Auto'}.asenting.com</span>
-                          </div>
-                        </div>
-                      </div>
-                   </div>
+                                         <div className="bg-gray-50 dark:bg-black/20 rounded-3xl p-6 border border-gray-100 dark:border-white/5 space-y-4">
+                       <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                         <Palette className="w-3 h-3" /> Detalle del Sitio Solicitado
+                       </h4>
+                       <div className="space-y-3.5 text-xs text-left">
+                         <div>
+                           <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Subdominio Reservado:</p>
+                           <div className="flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400 font-black">
+                             <LinkIcon className="w-3 h-3" />
+                             <span>{req.preferred_subdomain || 'Auto'}.asenting.com</span>
+                           </div>
+                         </div>
+                         <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200/50 dark:border-white/5">
+                           <div>
+                             <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Tipo de Sitio:</p>
+                             <p className="font-semibold text-gray-900 dark:text-white">{siteTypeLabels[req.site_type || ''] || req.site_type || 'No especificado'}</p>
+                           </div>
+                           <div>
+                             <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Estilo Estético:</p>
+                             <p className="font-semibold text-gray-900 dark:text-white">{designStyleLabels[req.design_style || ''] || req.design_style || 'No especificado'}</p>
+                           </div>
+                         </div>
+                         <div className="pt-2 border-t border-gray-200/50 dark:border-white/5">
+                           <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Identidad del Logo:</p>
+                           <p className="font-semibold text-gray-900 dark:text-white">{logoLabels[req.has_logo || ''] || req.has_logo || 'No especificado'}</p>
+                         </div>
+                         <div className="pt-2 border-t border-gray-200/50 dark:border-white/5">
+                           <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Paleta de Colores:</p>
+                           <p className="font-semibold text-gray-900 dark:text-white">{req.primary_colors || 'Por defecto'}</p>
+                         </div>
+                         <div className="pt-2 border-t border-gray-200/50 dark:border-white/5">
+                           <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">Secciones Solicitadas:</p>
+                           <div className="flex flex-wrap gap-1">
+                             {req.sections && req.sections.length > 0 ? (
+                               req.sections.map((sec) => (
+                                 <span key={sec} className="px-1.5 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-500 rounded text-[9px] font-bold">
+                                   {sectionLabels[sec] || sec}
+                                 </span>
+                               ))
+                             ) : (
+                               <span className="text-gray-400 italic text-[10px]">Ninguna seleccionada</span>
+                             )}
+                           </div>
+                         </div>
+                         <div className="pt-2 border-t border-gray-200/50 dark:border-white/5">
+                           <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-1.5">Métodos de Pago:</p>
+                           <div className="flex flex-wrap gap-1">
+                             {req.payment_methods && req.payment_methods.length > 0 ? (
+                               req.payment_methods.map((p) => (
+                                 <span key={p} className="px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 rounded text-[9px] font-bold">
+                                   {paymentLabels[p] || p}
+                                 </span>
+                               ))
+                             ) : (
+                               <span className="text-gray-400 italic text-[10px]">Ninguno seleccionado</span>
+                             )}
+                           </div>
+                         </div>
+                         {(req.social_whatsapp || req.social_instagram || req.social_facebook) && (
+                           <div className="pt-2 border-t border-gray-200/50 dark:border-white/5 space-y-1">
+                             <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Canales & Redes:</p>
+                             {req.social_whatsapp && (
+                               <p className="text-[10px] text-gray-700 dark:text-gray-300 font-medium flex items-center gap-1.5">
+                                 🟢 <b>WA:</b> {req.social_whatsapp}
+                               </p>
+                             )}
+                             {req.social_instagram && (
+                               <p className="text-[10px] text-gray-700 dark:text-gray-300 font-medium flex items-center gap-1.5">
+                                 📸 <b>IG:</b> {req.social_instagram}
+                               </p>
+                             )}
+                             {req.social_facebook && (
+                               <p className="text-[10px] text-gray-700 dark:text-gray-300 font-medium flex items-center gap-1.5">
+                                 👤 <b>FB:</b> {req.social_facebook}
+                               </p>
+                             )}
+                           </div>
+                         )}
+                         {req.inspiration_urls && (
+                           <div className="pt-2 border-t border-gray-200/50 dark:border-white/5">
+                             <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Inspiración / Referencias:</p>
+                             <p className="text-[10px] text-gray-700 dark:text-gray-300 break-words font-medium">{req.inspiration_urls}</p>
+                           </div>
+                         )}
+                         {req.additional_notes && (
+                           <div className="pt-2 border-t border-gray-200/50 dark:border-white/5">
+                             <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Notas adicionales del cliente:</p>
+                             <p className="text-[10px] text-gray-700 dark:text-gray-300 italic">{req.additional_notes}</p>
+                           </div>
+                         )}
+                       </div>
+                    </div>
 
                    <div className="bg-blue-500/5 rounded-3xl p-6 border border-blue-500/10">
                       <div className="flex items-center justify-between mb-4">

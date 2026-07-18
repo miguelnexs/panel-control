@@ -74,6 +74,31 @@ const SupportChatWidget: React.FC<SupportChatWidgetProps> = ({ token, apiBase: r
 
   const expiredRef = useRef(false);
 
+  const prevUnreadRef = useRef(0);
+
+  const playNotificationSound = () => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); // D5 note
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.1); // A5 note
+
+      gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+
+      osc.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.3);
+    } catch (err) {
+      console.error('Error playing notification sound:', err);
+    }
+  };
+
   const loadChats = async (silent?: boolean) => {
     if (!token || !canUse || expiredRef.current) return;
     try {
@@ -94,7 +119,13 @@ const SupportChatWidget: React.FC<SupportChatWidgetProps> = ({ token, apiBase: r
         last_seen_id: Number(c.last_seen_id || 0),
       })) : [];
       setChats(items);
-      setUnread(Number(data?.total_unread || 0));
+      
+      const newUnread = Number(data?.total_unread || 0);
+      if (newUnread > prevUnreadRef.current) {
+        playNotificationSound();
+      }
+      prevUnreadRef.current = newUnread;
+      setUnread(newUnread);
     } catch (e: any) {
       if (!silent) setErr(e.message);
     }
@@ -166,12 +197,28 @@ const SupportChatWidget: React.FC<SupportChatWidgetProps> = ({ token, apiBase: r
     load({ replace: true });
   }, [token, canUse, role, tenantId]);
 
+  // Polling loop for real-time updates of chats and messages
   useEffect(() => {
     if (!token || !canUse) return;
-    if (role === 'super_admin' && !tenantId) return;
-    if (newestId) load({ sinceId: newestId, silent: true });
-    else load({ replace: true, silent: true });
-  }, [token, canUse, role, tenantId, newestId]);
+
+    const timer = setInterval(() => {
+      // Poll chats list to keep unread badges updated
+      loadChats(true);
+
+      // Poll messages if active and open
+      if (open) {
+        if (role === 'admin' || (role === 'super_admin' && tenantId)) {
+          if (newestId) {
+            load({ sinceId: newestId, silent: true });
+          } else {
+            load({ replace: true, silent: true });
+          }
+        }
+      }
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, [token, canUse, role, tenantId, open, newestId]);
 
   useEffect(() => {
     if (!open) return;

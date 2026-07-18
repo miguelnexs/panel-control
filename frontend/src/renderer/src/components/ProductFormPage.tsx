@@ -705,40 +705,71 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       setProductImages(initialImages);
 
       try {
-        const res = await fetch(`${apiBase}/products/${product.id}/colors/`, { headers: authHeaders(token) });
-        const data = await res.json();
-        const list = Array.isArray(data.results) ? data.results : data;
-        const loaded = (Array.isArray(list) ? list : []).map((c: any, idx: number) => ({ id: c.id, clientId: `color-${c.id}`, name: c.name, hex: c.hex, stock: '0', position: idx, images: [] as any[] }));
-        for (let i = 0; i < loaded.length; i++) {
-          const color = loaded[i];
-          const imgsRes = await fetch(`${apiBase}/products/colors/${color.id}/images/`, { headers: authHeaders(token) });
-          const imgsData = await imgsRes.json();
-          const imgsList = Array.isArray(imgsData.results) ? imgsData.results : imgsData;
-          loaded[i] = { ...color, images: (Array.isArray(imgsList) ? imgsList : []).map((im: any, pos: number) => ({ id: im.id, image: im.image, position: pos })) };
-        }
+        // Fetch colors, variants, features, and skus in parallel!
+        const [colorsRes, varsRes, featsRes, skusRes] = await Promise.all([
+          fetch(`${apiBase}/products/${product.id}/colors/`, { headers: authHeaders(token) }),
+          fetch(`${apiBase}/products/${product.id}/variants/`, { headers: authHeaders(token) }),
+          fetch(`${apiBase}/products/${product.id}/features/`, { headers: authHeaders(token) }),
+          fetch(`${apiBase}/products/${product.id}/skus/`, { headers: authHeaders(token) }),
+        ]);
+
+        const [colorsData, varsData, featsData, skusData] = await Promise.all([
+          colorsRes.json(),
+          varsRes.json(),
+          featsRes.json(),
+          skusRes.json()
+        ]);
+
+        const list = Array.isArray(colorsData.results) ? colorsData.results : colorsData;
+        const colorsRaw = (Array.isArray(list) ? list : []).map((c: any, idx: number) => ({
+          id: c.id,
+          clientId: `color-${c.id}`,
+          name: c.name,
+          hex: c.hex,
+          stock: '0',
+          position: idx,
+          images: [] as any[]
+        }));
+
+        // Fetch color images in parallel
+        const loaded = await Promise.all(colorsRaw.map(async (color) => {
+          try {
+            const imgsRes = await fetch(`${apiBase}/products/colors/${color.id}/images/`, { headers: authHeaders(token) });
+            const imgsData = await imgsRes.json();
+            const imgsList = Array.isArray(imgsData.results) ? imgsData.results : imgsData;
+            return {
+              ...color,
+              images: (Array.isArray(imgsList) ? imgsList : []).map((im: any, pos: number) => ({ id: im.id, image: im.image, position: pos }))
+            };
+          } catch (e) {
+            console.error("Error loading images for color:", color.id, e);
+            return color;
+          }
+        }));
+
         setColors(loaded);
         setInitialColors(loaded);
         setHasColors(loaded.length > 0);
 
         // Load Variants
-        const varsRes = await fetch(`${apiBase}/products/${product.id}/variants/`, { headers: authHeaders(token) });
-        const varsData = await varsRes.json();
         const varsList = Array.isArray(varsData.results) ? varsData.results : (Array.isArray(varsData) ? varsData : []);
-        const loadedVars = varsList.map((v: any) => ({ id: v.id, clientId: `variant-${v.id}`, name: v.name, extra_price: String(v.extra_price || '0'), position: v.position }));
+        const loadedVars = varsList.map((v: any) => ({
+          id: v.id,
+          clientId: `variant-${v.id}`,
+          name: v.name,
+          extra_price: String(v.extra_price || '0'),
+          position: v.position
+        }));
         setVariants(loadedVars);
         setInitialVariants(loadedVars);
 
         // Load Features
-        const featsRes = await fetch(`${apiBase}/products/${product.id}/features/`, { headers: authHeaders(token) });
-        const featsData = await featsRes.json();
         const featsList = Array.isArray(featsData.results) ? featsData.results : (Array.isArray(featsData) ? featsData : []);
         const loadedFeats = featsList.map((f: any) => ({ id: f.id, name: f.name, position: f.position }));
         setFeatures(loadedFeats);
         setInitialFeatures(loadedFeats);
 
         // Load SKUs (Combinations)
-        const skusRes = await fetch(`${apiBase}/products/${product.id}/skus/`, { headers: authHeaders(token) });
-        const skusData = await skusRes.json();
         const skusList = Array.isArray(skusData.results) ? skusData.results : (Array.isArray(skusData) ? skusData : []);
         const loadedSkus = skusList.map((s: any) => {
           const colorObj = loaded.find((c: any) => c.id === s.color);
@@ -1093,7 +1124,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
     const priceNum = Number(priceNorm);
     if (!priceNorm || Number.isNaN(priceNum) || priceNum <= 0) errs.price = 'Precio debe ser positivo con 2 decimales.';
     
-    if (description.length > 500) errs.description = 'Descripción máximo 500 caracteres.';
+    if (description.length > 5000) errs.description = 'Descripción máximo 5000 caracteres.';
     if (!forceDraft) {
       if (!categoryId || categoryId === 'null' || categoryId === 'undefined') {
         errs.category = 'Debe seleccionar una categoría.';
@@ -1136,7 +1167,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       }
     }
     
-    if (hasColors && colors.length > 0) {
+    if (colors.length > 0) {
       if (colors.some((c) => !c.name)) {
         errs.colors = 'Todos los colores deben tener un nombre.';
       }
@@ -1271,7 +1302,7 @@ const ProductFormPage: React.FC<ProductFormPageProps> = ({ token, apiBase, produ
       const currentSkuIds = new Set(currentSkus.filter((s) => s.id).map((s) => String(s.id)));
 
       const existingColors = initialColors;
-      const currentColors = hasColors ? colors.map((c, idx) => ({ ...c, position: idx })) : [];
+      const currentColors = colors.length > 0 ? colors.map((c, idx) => ({ ...c, position: idx })) : [];
       const currentColorIds = new Set(currentColors.filter((e) => e.id).map((e) => String(e.id)));
       const removedColorIds = new Set(
         existingColors

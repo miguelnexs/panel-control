@@ -80,36 +80,9 @@ const VariantsTab: React.FC<VariantsTabProps> = ({
 
   return (
     <div className="lg:col-span-3 space-y-6">
-      {/* Selector de variación (Con/Sin Colores) */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h4 className="text-sm font-bold text-gray-900 dark:text-white">Variaciones de Producto</h4>
-            <p className="text-xs text-gray-500">¿Este producto varía en colores específicos o solo varía en tallas, medidas u otros atributos?</p>
-          </div>
-          <label className="flex items-center gap-3 cursor-pointer group select-none shrink-0">
-            <span className="text-xs font-semibold text-gray-600 dark:text-gray-400">¿Tiene color?</span>
-            <div className={`w-12 h-6 rounded-full p-1 transition-colors duration-200 ease-in-out ${hasColors ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
-              <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ease-in-out ${hasColors ? 'translate-x-6' : 'translate-x-0'}`} />
-            </div>
-            <input
-              type="checkbox"
-              checked={hasColors}
-              onChange={(e) => {
-                const next = e.target.checked;
-                setHasColors(next);
-              }}
-              className="hidden"
-            />
-          </label>
-        </div>
-      </div>
 
-      {/* Toggle exclusivo: ON → solo colores | OFF → solo variantes sin color */}
 
-      {/* SECCIÓN COLORES: solo cuando toggle está activo */}
-      {hasColors && (
-        <div className="space-y-6">
+      <div className="space-y-6">
           {/* Creador de Colores (header siempre visible si hay colores o toggle activo) */}
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -340,325 +313,171 @@ const VariantsTab: React.FC<VariantsTabProps> = ({
                             }}
                             className="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 outline-none w-36"
                           />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const input = document.getElementById(`new-var-input-${cKey}`) as HTMLInputElement;
-                              const val = input?.value?.trim();
-                              if (!val) return;
-                              const existing = variants.find(v => v.name.toUpperCase() === val.toUpperCase());
-                              let vKey = '';
-                              if (!existing) {
-                                const clientV = makeClientId('variant');
-                                const newVar: Variant = { clientId: clientV, name: val, extra_price: '0' };
-                                setVariants(prev => [...prev, newVar]);
-                                vKey = clientV;
-                              } else {
-                                vKey = existing.clientId ?? `variant-${existing.id}`;
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const input = document.getElementById(`new-var-input-${cKey}`) as HTMLInputElement;
+                            const val = input?.value?.trim();
+                            if (!val) return;
+                            const existing = variants.find(v => v.name.toUpperCase() === val.toUpperCase());
+                            let vKey = '';
+                            if (!existing) {
+                              const clientV = makeClientId('variant');
+                              const newVar: Variant = { clientId: clientV, name: val, extra_price: '0' };
+                              setVariants(prev => [...prev, newVar]);
+                              vKey = clientV;
+                            } else {
+                              vKey = existing.clientId ?? `variant-${existing.id}`;
+                            }
+                            setVariantColorLinks(prev => {
+                              const current = prev[vKey] || [];
+                              if (!current.includes(cKey)) {
+                                return { ...prev, [vKey]: [...current, cKey] };
                               }
-                              setVariantColorLinks(prev => {
-                                const current = prev[vKey] || [];
-                                if (!current.includes(cKey)) {
-                                  return { ...prev, [vKey]: [...current, cKey] };
-                                }
-                                return prev;
-                              });
-                              if (input) input.value = '';
-                            }}
-                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-colors uppercase tracking-wider flex items-center gap-1"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>Añadir</span>
-                          </button>
-                        </div>
+                              return prev;
+                            });
+                            if (input) input.value = '';
+                          }}
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-colors uppercase tracking-wider flex items-center gap-1"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Añadir</span>
+                        </button>
                       </div>
+                    </div>
 
-                      {colorSkus.length > 0 ? (
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left border-collapse">
-                            <thead>
-                              <tr className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b border-gray-100 dark:border-gray-800">
-                                <th className="pb-2">Variante</th>
-                                <th className="pb-2">Sobrecosto (+COP)</th>
-                                <th className="pb-2">SKU Código</th>
-                                <th className="pb-2">Stock</th>
-                                <th className="pb-2 text-right">Acciones</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100 dark:divide-gray-800/50">
-                              {colorSkus.map((skuItem) => {
-                                const matchSku = (s: any) => {
-                                  const c1 = s.colorClientId ?? (s.colorId ? `color-${s.colorId}` : null);
-                                  const c2 = skuItem.colorClientId ?? (skuItem.colorId ? `color-${skuItem.colorId}` : null);
-                                  const v1 = s.variantClientId ?? (s.variantId ? `variant-${s.variantId}` : null);
-                                  const v2 = skuItem.variantClientId ?? (skuItem.variantId ? `variant-${skuItem.variantId}` : null);
-                                  return c1 === c2 && v1 === v2;
-                                };
+                    {colorSkus.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b border-gray-100 dark:border-gray-800">
+                              <th className="pb-2">Variante</th>
+                              <th className="pb-2">Sobrecosto (+COP)</th>
+                              <th className="pb-2">SKU Código</th>
+                              <th className="pb-2">Stock</th>
+                              <th className="pb-2 text-right">Acciones</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 dark:divide-gray-800/50">
+                            {colorSkus.map((skuItem) => {
+                              const matchSku = (s: any) => {
+                                const c1 = s.colorClientId ?? (s.colorId ? `color-${s.colorId}` : null);
+                                const c2 = skuItem.colorClientId ?? (skuItem.colorId ? `color-${skuItem.colorId}` : null);
+                                const v1 = s.variantClientId ?? (s.variantId ? `variant-${s.variantId}` : null);
+                                const v2 = skuItem.variantClientId ?? (skuItem.variantId ? `variant-${skuItem.variantId}` : null);
+                                return c1 === c2 && v1 === v2;
+                              };
 
-                                return (
-                                  <tr key={skuItem.id || `${skuItem.colorClientId}-${skuItem.variantClientId}`} className={!skuItem.active ? 'opacity-50' : ''}>
-                                    <td className="py-2.5">
-                                      <span className="px-2.5 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold uppercase tracking-wider">
-                                        {skuItem.variantName || 'ÚNICA'}
-                                      </span>
-                                    </td>
-                                    <td className="py-2.5">
-                                      {/* Sobrecosto de la variante */}
-                                      {(() => {
-                                        const vObj = variants.find(v => v.clientId === skuItem.variantClientId || (v.id && String(v.id) === String(skuItem.variantId)));
-                                        if (!vObj) {
-                                          return <span className="text-gray-400 dark:text-gray-500 text-xs font-medium pl-4">—</span>;
-                                        }
-                                        return (
-                                          <input
-                                            type="number"
-                                            value={vObj && Number(vObj.extra_price) !== 0 ? vObj.extra_price : ''}
-                                            min={0}
-                                            onChange={(e) => {
-                                              if (!vObj) return;
-                                              setVariants(prev => prev.map(v =>
-                                                v.clientId === vObj.clientId || (v.id && String(v.id) === String(vObj.id))
-                                                  ? { ...v, extra_price: e.target.value }
-                                                  : v
-                                              ));
-                                            }}
-                                            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1 text-xs font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none w-24 text-right"
-                                            placeholder="0"
-                                          />
-                                        );
-                                      })()}
-                                    </td>
-                                    <td className="py-2.5">
-                                      <input 
-                                        type="text" 
-                                        value={skuItem.variantName === 'Única' ? sku : skuItem.sku}
-                                        readOnly={skuItem.variantName === 'Única'}
-                                        onChange={(e) => setSkus(prev => prev.map(s => matchSku(s) ? { ...s, sku: e.target.value.toUpperCase(), useMainSku: false } : s))}
-                                        className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1 text-xs font-mono text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none w-36 ${skuItem.variantName === 'Única' ? 'opacity-70 cursor-not-allowed bg-gray-50 dark:bg-gray-800' : ''}`}
-                                        placeholder={skuItem.useMainSku ? sku : "SKU"}
-                                      />
-                                    </td>
-                                    <td className="py-2.5">
-                                      <input 
-                                        type="number" 
-                                        value={Number(skuItem.stock) !== 0 ? skuItem.stock : ''}
-                                        min={0}
-                                        onChange={(e) => setSkus(prev => prev.map(s => matchSku(s) ? { ...s, stock: e.target.value } : s))}
-                                        className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1 text-xs font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none w-20"
-                                        placeholder="0"
-                                      />
-                                    </td>
-                                    <td className="py-2.5 text-right">
-                                      <div className="flex items-center justify-end gap-2">
-                                        <button
-                                          type="button"
-                                          onClick={() => setSkus(prev => prev.map(s => matchSku(s) ? { ...s, active: !s.active } : s))}
-                                          className={`p-1.5 rounded-lg transition-colors ${skuItem.active ? 'text-gray-400 hover:text-emerald-500' : 'text-gray-300 hover:text-gray-500'}`}
-                                          title={skuItem.active ? 'Desactivar variación' : 'Activar variación'}
-                                        >
-                                          {skuItem.active ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4" />}
-                                        </button>
-                                        {colorSkus.length > 1 && skuItem.variantName !== 'Única' && (
+                              return (
+                                <tr key={skuItem.id || `${skuItem.colorClientId}-${skuItem.variantClientId}`} className={!skuItem.active ? 'opacity-50' : ''}>
+                                  <td className="py-2.5">
+                                    <span className="px-2.5 py-1 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-bold uppercase tracking-wider">
+                                      {skuItem.variantName || 'ÚNICA'}
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5">
+                                    {(() => {
+                                      const vObj = variants.find(v => v.clientId === skuItem.variantClientId || (v.id && String(v.id) === String(skuItem.variantId)));
+                                      if (!vObj || skuItem.variantName === 'Única') {
+                                        return <span className="text-gray-400 dark:text-gray-500 text-xs font-medium pl-4">—</span>;
+                                      }
+                                      return (
+                                        <input
+                                          type="number"
+                                          value={vObj && Number(vObj.extra_price) !== 0 ? vObj.extra_price : ''}
+                                          min={0}
+                                          onChange={(e) => {
+                                            if (!vObj) return;
+                                            setVariants(prev => prev.map(v =>
+                                              v.clientId === vObj.clientId || (v.id && String(v.id) === String(vObj.id))
+                                                ? { ...v, extra_price: e.target.value }
+                                                : v
+                                            ));
+                                          }}
+                                          className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1 text-xs font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none w-24 text-right"
+                                          placeholder="0"
+                                        />
+                                      );
+                                    })()}
+                                  </td>
+                                  <td className="py-2.5">
+                                    <input 
+                                      type="text" 
+                                      value={skuItem.variantName === 'Única' ? sku : skuItem.sku}
+                                      readOnly={skuItem.variantName === 'Única'}
+                                      onChange={(e) => setSkus(prev => prev.map(s => matchSku(s) ? { ...s, sku: e.target.value.toUpperCase(), useMainSku: false } : s))}
+                                      className={`bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1 text-xs font-mono text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none w-36 ${skuItem.variantName === 'Única' ? 'opacity-70 cursor-not-allowed bg-gray-50 dark:bg-gray-800' : ''}`}
+                                      placeholder={skuItem.useMainSku ? sku : "SKU"}
+                                    />
+                                  </td>
+                                  <td className="py-2.5">
+                                    <input 
+                                      type="number" 
+                                      value={Number(skuItem.stock) !== 0 ? skuItem.stock : ''}
+                                      min={0}
+                                      onChange={(e) => setSkus(prev => prev.map(s => matchSku(s) ? { ...s, stock: e.target.value } : s))}
+                                      className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1 text-xs font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none w-20"
+                                      placeholder="0"
+                                    />
+                                  </td>
+                                  <td className="py-2.5 text-right">
+                                    <div className="flex items-center justify-end gap-2">
+                                      {skuItem.variantName === 'Única' ? (
+                                        <span className="text-gray-400 dark:text-gray-500 text-xs font-medium pr-3">—</span>
+                                      ) : (
+                                        <>
                                           <button
                                             type="button"
-                                            onClick={() => {
-                                              setVariantColorLinks(prev => {
-                                                const vKey = skuItem.variantClientId ?? `variant-${skuItem.variantId}`;
-                                                const cKey = skuItem.colorClientId ?? `color-${skuItem.colorId}`;
-                                                const current = prev[vKey];
-                                                if (current == null) {
-                                                  const allColors = colors.map((cc, ii) => colorKeyOf(cc, ii));
-                                                  return { ...prev, [vKey]: allColors.filter(k => k !== cKey) };
-                                                }
-                                                return { ...prev, [vKey]: current.filter(k => k !== cKey) };
-                                              });
-                                            }}
-                                            className="p-1.5 text-gray-400 hover:text-rose-500 transition-colors"
-                                            title="Eliminar talla del color"
+                                            onClick={() => setSkus(prev => prev.map(s => matchSku(s) ? { ...s, active: !s.active } : s))}
+                                            className={`p-1.5 rounded-lg transition-colors ${skuItem.active ? 'text-gray-400 hover:text-emerald-500' : 'text-gray-300 hover:text-gray-500'}`}
+                                            title={skuItem.active ? 'Desactivar variación' : 'Activar variación'}
                                           >
-                                            <Trash2 className="w-4 h-4" />
+                                            {skuItem.active ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4" />}
                                           </button>
-                                        )}
-                                      </div>
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      ) : (
-                        <div className="text-center py-4 text-gray-400 text-xs">
-                          No hay variantes/tallas agregadas a este color. Escribe una arriba y presiona enter.
-                        </div>
-                      )}
-                    </div>
+                                          {colorSkus.length > 1 && (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setVariantColorLinks(prev => {
+                                                  const vKey = skuItem.variantClientId ?? `variant-${skuItem.variantId}`;
+                                                  const cKey = skuItem.colorClientId ?? `color-${skuItem.colorId}`;
+                                                  const current = prev[vKey];
+                                                  if (current == null) {
+                                                    const allColors = colors.map((cc, ii) => colorKeyOf(cc, ii));
+                                                    return { ...prev, [vKey]: allColors.filter(k => k !== cKey) };
+                                                  }
+                                                  return { ...prev, [vKey]: current.filter(k => k !== cKey) };
+                                                });
+                                              }}
+                                              className="p-1.5 text-gray-400 hover:text-rose-500 transition-colors"
+                                              title="Eliminar talla del color"
+                                            >
+                                              <Trash2 className="w-4 h-4" />
+                                            </button>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-gray-400 text-xs">
+                        No hay variantes/tallas agregadas a este color. Escribe una arriba y presiona enter.
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* SECCIÓN VARIANTES SIN COLOR — solo cuando toggle está desactivado */}
-      {!hasColors && (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 shadow-sm space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider">
-            <Layers className="w-4 h-4" />
-            <span>Variantes / Tallas {colors.length > 0 ? 'Sin Color Asignado' : 'Disponibles'}</span>
-          </div>
-          
-          {/* Inline Form to add color-less variant */}
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              placeholder="Ej. Talla M"
-              id="new-colorless-var-input"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  const input = e.currentTarget;
-                  const val = input.value.trim();
-                  if (!val) return;
-                  const newVar: Variant = { clientId: makeClientId('variant'), name: val, extra_price: '0' };
-                  setVariants(prev => [...prev, newVar]);
-                  input.value = '';
-                }
-              }}
-              className="px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500/50 outline-none w-44"
-            />
-            <button
-              type="button"
-              onClick={() => {
-                const input = document.getElementById('new-colorless-var-input') as HTMLInputElement;
-                const val = input?.value?.trim();
-                if (!val) return;
-                const newVar: Variant = { clientId: makeClientId('variant'), name: val, extra_price: '0' };
-                setVariants(prev => [...prev, newVar]);
-                if (input) input.value = '';
-              }}
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-colors uppercase tracking-wider flex items-center gap-1"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Añadir</span>
-            </button>
-          </div>
-        </div>
-
-        {(() => {
-          const colorLessSkus = skus.filter(s => s.colorId === null && s.colorClientId === null);
-          if (colorLessSkus.length > 0) {
-            return (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest border-b border-gray-100 dark:border-gray-800">
-                      <th className="pb-2">Variante Nombre</th>
-                      <th className="pb-2">Sobrecosto (+COP)</th>
-                      <th className="pb-2">SKU Código</th>
-                      <th className="pb-2">Stock</th>
-                      <th className="pb-2 text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800/50">
-                    {colorLessSkus.map((skuItem) => {
-                      const vObj = variants.find(v => v.clientId === skuItem.variantClientId || (v.id && String(v.id) === String(skuItem.variantId)));
-                      if (!vObj) return null;
-
-                      const matchSku = (s: any) => {
-                        const c1 = s.colorId ?? null;
-                        const v1 = s.variantClientId ?? (s.variantId ? `variant-${s.variantId}` : null);
-                        const v2 = skuItem.variantClientId ?? (skuItem.variantId ? `variant-${skuItem.variantId}` : null);
-                        return c1 === null && v1 === v2;
-                      };
-
-                      return (
-                        <tr key={vObj.clientId || vObj.id} className={!skuItem.active ? 'opacity-50' : ''}>
-                          <td className="py-3">
-                            <input 
-                              type="text" 
-                              value={vObj.name}
-                              onChange={(e) => {
-                                const nextName = e.target.value;
-                                setVariants(prev => prev.map(v => v.clientId === vObj.clientId || (v.id && String(v.id) === String(vObj.id)) ? { ...v, name: nextName } : v));
-                                setSkus(prev => prev.map(s => matchSku(s) ? { ...s, variantName: nextName } : s));
-                              }}
-                              className="bg-transparent border-none text-sm font-bold text-gray-900 dark:text-white focus:ring-0 p-0 w-36 focus:outline-none"
-                            />
-                          </td>
-                          <td className="py-3">
-                            <input 
-                              type="number" 
-                              value={Number(vObj.extra_price) !== 0 ? vObj.extra_price : ''}
-                              min={0}
-                              onChange={(e) => {
-                                const nextPrice = e.target.value;
-                                setVariants(prev => prev.map(v => v.clientId === vObj.clientId || (v.id && String(v.id) === String(vObj.id)) ? { ...v, extra_price: nextPrice } : v));
-                              }}
-                              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none w-24 text-right font-bold"
-                              placeholder="0"
-                            />
-                          </td>
-                          <td className="py-3">
-                            <input 
-                              type="text" 
-                              value={skuItem.sku}
-                              onChange={(e) => setSkus(prev => prev.map(s => matchSku(s) ? { ...s, sku: e.target.value.toUpperCase(), useMainSku: false } : s))}
-                              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-xs font-mono text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none w-36"
-                              placeholder="SKU"
-                            />
-                          </td>
-                          <td className="py-3">
-                            <input 
-                              type="number" 
-                              value={Number(skuItem.stock) !== 0 ? skuItem.stock : ''}
-                              min={0}
-                              onChange={(e) => setSkus(prev => prev.map(s => matchSku(s) ? { ...s, stock: e.target.value } : s))}
-                              className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg px-2.5 py-1.5 text-xs font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 outline-none w-20"
-                              placeholder="0"
-                            />
-                          </td>
-                          <td className="py-3 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                type="button"
-                                onClick={() => setSkus(prev => prev.map(s => matchSku(s) ? { ...s, active: !s.active } : s))}
-                                className={`p-1.5 rounded-lg transition-colors ${skuItem.active ? 'text-gray-400 hover:text-emerald-500' : 'text-gray-300 hover:text-gray-500'}`}
-                                title={skuItem.active ? 'Desactivar' : 'Activar'}
-                              >
-                                {skuItem.active ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <X className="w-4 h-4" />}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setVariants(prev => prev.filter(v => !(v.clientId === vObj.clientId || (v.id && String(v.id) === String(vObj.id)))));
-                                }}
-                                className="p-1.5 text-gray-400 hover:text-rose-500 transition-colors"
-                                title="Eliminar variante"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            );
-          }
-          return (
-            <div className="text-center py-10 text-gray-400">
-              <Layers className="w-10 h-10 mx-auto mb-3 opacity-20" />
-              <p>No hay variantes/tallas agregadas. Escribe una arriba y presiona enter para iniciar.</p>
+                </div>
+              )}
             </div>
           );
-        })()}
-      </div>
-      )}
+          })}
+        </div>
     </div>
   );
 };

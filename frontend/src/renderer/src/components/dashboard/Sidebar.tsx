@@ -456,16 +456,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
           <span className={tooltipClass}>Dashboard</span>
         </button>
 
-        {role === 'super_admin' && (
-          <button className={`${itemBase} ${view === 'super_admin_requests' ? activeClass : ''}`} onClick={() => setView('super_admin_requests')} title="Solicitudes Web">
-            {view === 'super_admin_requests' && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-            <span className={`${iconBoxClass} bg-rose-100 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 ${view === 'super_admin_requests' ? 'ring-1 ring-white/20' : ''}`}>
-              <Icon name="web" className="w-4 h-4" />
-            </span>
-            <span className={textClass}>Solicitudes Web</span>
-            <span className={tooltipClass}>Solicitudes Web</span>
-          </button>
-        )}
+
 
         <div className={`px-4 pt-4 pb-2 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ${collapsed ? 'hidden' : 'block'}`}>
           Operaciones
@@ -951,8 +942,8 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
 
         {(role === 'admin' || role === 'super_admin') && (
           <div className="relative">
-            <button className={`${itemBase} ${['configuracion', 'configuracion_empresa', 'configuracion_impresora', 'configuracion_google', 'planes'].includes(view) ? activeClass : ''}`} onClick={toggleConfigMenu} title="Configuración">
-              <span className={`${iconBoxClass} ${toneClasses('web')} ${['configuracion', 'configuracion_empresa', 'configuracion_impresora', 'configuracion_google', 'planes'].includes(view) ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
+            <button className={`${itemBase} ${['configuracion', 'configuracion_empresa', 'configuracion_impresora', 'configuracion_google', 'planes', 'configuracion_extensiones'].includes(view) ? activeClass : ''}`} onClick={toggleConfigMenu} title="Configuración">
+              <span className={`${iconBoxClass} ${toneClasses('web')} ${['configuracion', 'configuracion_empresa', 'configuracion_impresora', 'configuracion_google', 'planes', 'configuracion_extensiones'].includes(view) ? 'ring-1 ring-gray-200 dark:ring-white/20' : ''}`}>
                 <Icon name="settings" className="w-4 h-4" />
               </span>
               <span className={textClass}>Configuración</span>
@@ -974,15 +965,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 }}
                 className="w-56 max-h-[70vh] overflow-y-auto bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg shadow-xl py-1 ml-2"
               >
-                {role === 'super_admin' && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setView('planes'); setConfigMenuPos(null); }} 
-                    className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'planes' ? 'text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
-                  >
-                    <Icon name="plans" className="w-3 h-3" />
-                    <span>Planes</span>
-                  </button>
-                )}
+
                 <button 
                   onClick={(e) => { e.stopPropagation(); setView('configuracion'); setConfigMenuPos(null); }} 
                   className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'configuracion' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
@@ -1004,27 +987,20 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                   <Icon name="templates" className="w-3 h-3" />
                   <span>Impresora</span>
                 </button>
+
                 <button 
-                  onClick={(e) => { e.stopPropagation(); setView('configuracion_google'); setConfigMenuPos(null); }} 
-                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'configuracion_google' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                  onClick={(e) => { e.stopPropagation(); setView('configuracion_extensiones'); setConfigMenuPos(null); }} 
+                  className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'configuracion_extensiones' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
                 >
-                  <Icon name="mail" className="w-3 h-3" />
-                  <span>Correo Electrónico</span>
+                  <Icon name="extensions" className="w-3 h-3" />
+                  <span>Extensiones</span>
                 </button>
               </div>
             )}
 
             {isConfigOpen && !collapsed && (
               <div className="mt-1 ml-1 space-y-1 bg-gray-50 dark:bg-black/20 rounded-md p-1">
-                {role === 'super_admin' && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); setView('planes'); }} 
-                    className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'planes' ? 'text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
-                  >
-                    <Icon name="plans" className="w-3 h-3" />
-                    <span>Planes</span>
-                  </button>
-                )}
+
                 <button 
                   onClick={(e) => { e.stopPropagation(); setView('configuracion'); }} 
                   className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'configuracion' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
@@ -1046,12 +1022,13 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                   <Icon name="templates" className="w-3 h-3" />
                   <span>Impresora</span>
                 </button>
+
                 <button 
-                  onClick={(e) => { e.stopPropagation(); setView('configuracion_google'); }} 
-                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'configuracion_google' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                  onClick={(e) => { e.stopPropagation(); setView('configuracion_extensiones'); }} 
+                  className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'configuracion_extensiones' ? 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
                 >
-                  <Icon name="mail" className="w-3 h-3" />
-                  <span>Correo Electrónico</span>
+                  <Icon name="extensions" className="w-3 h-3" />
+                  <span>Extensiones</span>
                 </button>
               </div>
             )}

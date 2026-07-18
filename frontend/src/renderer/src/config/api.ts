@@ -1,6 +1,6 @@
 // Configuración de API
 export const API_CONFIG = {
-  baseURL: (import.meta as any).env?.VITE_API_URL || 'https://asenting.com',
+  baseURL: (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000',
 
   // Timeout para peticiones (en milisegundos)
   timeout: 30000,

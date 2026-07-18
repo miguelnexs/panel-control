@@ -635,22 +635,22 @@ const PurchasesPage: React.FC<PurchasesPageProps> = ({ token, apiBase }) => {
                           const hasSkus = details.skus && details.skus.length > 0;
 
                           if (type === 'combination' && hasSkus) {
-                            const matchedSku = details.skus.find(s =>
+                            const matchedSku = details.skus.find((s: any) =>
                               String(s.color) === String(color_id) &&
                               String(s.variant) === String(variant_id)
                             );
                             if (matchedSku) {
                               targetSkuId = matchedSku.id;
-                              const colorName = details.colors.find(c => String(c.id) === String(matchedSku.color))?.name || '';
-                              const variantName = details.variants.find(v => String(v.id) === String(matchedSku.variant))?.name || '';
+                              const colorName = details.colors.find((c: any) => String(c.id) === String(matchedSku.color))?.name || '';
+                              const variantName = details.variants.find((v: any) => String(v.id) === String(matchedSku.variant))?.name || '';
                               skuCode = [colorName, variantName].filter(Boolean).join(' / ') || matchedSku.sku || `SKU #${matchedSku.id}`;
                             }
                           } else if (hasSkus) {
                             const selectedSku = details.skus[0];
                             targetSkuId = selectedSku ? selectedSku.id : undefined;
                             if (selectedSku) {
-                              const colorName = details.colors.find(c => String(c.id) === String(selectedSku.color))?.name || '';
-                              const variantName = details.variants.find(v => String(v.id) === String(selectedSku.variant))?.name || '';
+                              const colorName = details.colors.find((c: any) => String(c.id) === String(selectedSku.color))?.name || '';
+                              const variantName = details.variants.find((v: any) => String(v.id) === String(selectedSku.variant))?.name || '';
                               skuCode = [colorName, variantName].filter(Boolean).join(' / ') || selectedSku.sku || `SKU #${selectedSku.id}`;
                             }
                           }

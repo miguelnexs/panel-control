@@ -23,6 +23,7 @@ const ConfigCompanyPage = React.lazy(() => import('./ConfigCompanyPage'));
 const ConfigPrinterPage = React.lazy(() => import('./ConfigPrinterPage'));
 const ConfigGoogleApiPage = React.lazy(() => import('./ConfigGoogleApiPage'));
 const ConfigAlegraPage = React.lazy(() => import('./ConfigAlegraPage'));
+const ConfigExtensionsPage = React.lazy(() => import('./ConfigExtensionsPage'));
 const CashboxPage = React.lazy(() => import('./CashboxPage'));
 const ServicesPage = React.lazy(() => import('./ServicesPage'));
 const FullServiceFormPage = React.lazy(() => import('./FullServiceFormPage'));
@@ -57,6 +58,8 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
   const [view, setView] = useState('dashboard');
   const [orderNotif, setOrderNotif] = useState(0);
   const [navLoading, setNavLoading] = useState(false);
+  const activeFetchesRef = React.useRef(0);
+  const navTimeoutRef = React.useRef<any>(null);
   const [productEditing, setProductEditing] = useState<any>(null);
   const [lastNet, setLastNet] = useState<{ method: string; path: string; ms: number; ok: boolean } | null>(null);
   const [stats, setStats] = useState({ usersCount: 0, clientsNewMonth: 0, ordersTotal: 0, salesAmount: 0, statusCounts: { pending: 0, shipped: 0, delivered: 0, canceled: 0 } });
@@ -122,6 +125,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
       configuracion_impresora: 'manage_settings',
       configuracion_google: 'manage_settings',
       configuracion_alegra: 'manage_settings',
+      configuracion_extensiones: 'manage_settings',
       users: 'manage_users',
       users_empleados: 'manage_users',
       users_permisos: 'manage_users',
@@ -196,12 +200,18 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
       setAccessMsg('No tienes permiso para acceder a esta sección.');
       return;
     }
+    if (navTimeoutRef.current) {
+      clearTimeout(navTimeoutRef.current);
+    }
+    activeFetchesRef.current = 0;
     setNavLoading(true);
     setView(v);
     if (v === 'dashboard') {
        refreshWebSettings().catch(() => {});
     }
-    setTimeout(() => setNavLoading(false), 800);
+    navTimeoutRef.current = setTimeout(() => {
+      setNavLoading(false);
+    }, 150);
     if (v === 'pedidos') {
       const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
       fetch(`${apiBase}/sales/notifications/read/`, { method: 'POST', headers }).then(() => setOrderNotif(0)).catch(() => setOrderNotif(0));
@@ -354,22 +364,37 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
       const started = performance.now();
       const method = String(init?.method || 'GET').toUpperCase();
       const url = typeof input === 'string' ? input : (input as any)?.url ? String((input as any).url) : String(input);
+      const isIgnored = ignore(url, method);
+
+      if (!isIgnored) {
+        activeFetchesRef.current += 1;
+      }
 
       try {
         const res = await originalFetch(input as any, init);
         const ms = Math.round(performance.now() - started);
-        if (!ignore(url, method)) {
+        if (!isIgnored) {
           const path = url.replace(apiBase, '');
           setLastNet({ method, path, ms, ok: res.ok });
         }
         return res;
       } catch (e) {
         const ms = Math.round(performance.now() - started);
-        if (!ignore(url, method)) {
+        if (!isIgnored) {
           const path = url.replace(apiBase, '');
           setLastNet({ method, path, ms, ok: false });
         }
         throw e;
+      } finally {
+        if (!isIgnored) {
+          activeFetchesRef.current = Math.max(0, activeFetchesRef.current - 1);
+          if (activeFetchesRef.current === 0) {
+            setNavLoading(false);
+            if (navTimeoutRef.current) {
+              clearTimeout(navTimeoutRef.current);
+            }
+          }
+        }
       }
     }) as any;
 
@@ -468,6 +493,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
                view === 'configuracion_impresora' ? 'Configuración / Impresora' :
                view === 'configuracion_google' ? 'Configuración / Google API' :
                view === 'configuracion_alegra' ? 'Configuración / Facturación Alegra' :
+               view === 'configuracion_extensiones' ? 'Configuración / Extensiones' :
                view === 'caja' ? 'Caja' :
                view === 'servicios' ? 'Servicios' :
                view === 'service_form' ? 'Nuevo Servicio' :
@@ -663,17 +689,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
               canDelete={permsUi.orders.del}
             />
           )}
-          {view === 'planes' && (
-            <PlansManager token={token} role={role} />
-          )}
           {view === 'web_request' && (
             <div className="p-6">
               <WebsiteRequestForm apiBase={apiBase} token={token} onSuccess={() => navigate('dashboard')} />
-            </div>
-          )}
-          {view === 'super_admin_requests' && (
-            <div className="p-6">
-              <SuperAdminWebRequests apiBase={apiBase} token={token} />
             </div>
           )}
           {view === 'configuracion' && (
@@ -690,6 +708,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
           )}
           {view === 'configuracion_alegra' && (
             <ConfigAlegraPage token={token} apiBase={apiBase} />
+          )}
+          {view === 'configuracion_extensiones' && (
+            <ConfigExtensionsPage token={token!} apiBase={apiBase} />
           )}
           {view === 'caja' && (
             <CashboxPage token={token} apiBase={apiBase} />

@@ -305,7 +305,7 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
                       { key: 'enable_api_access', label: 'Acceso a API' },
                       { key: 'enable_priority_support', label: 'Soporte Prioritario' },
                       { key: 'enable_whatsapp_notifications', label: 'Notif. WhatsApp' },
-                      { key: 'enable_electronic_invoicing', label: 'Facturación Electrónica' },
+                      // { key: 'enable_electronic_invoicing', label: 'Facturación Electrónica' },
                     ].map((feature) => (
                       <div key={feature.key} className="flex items-start gap-3 text-sm group/item">
                         <div className={`mt-0.5 p-0.5 rounded-full ${plan[feature.key as keyof Plan] ? 'text-indigo-600 bg-indigo-50 dark:text-indigo-400 dark:bg-indigo-500/10' : 'text-gray-400 bg-gray-150 dark:text-slate-600 dark:bg-slate-800'}`}>
@@ -582,7 +582,7 @@ const PlansManager: React.FC<PlansManagerProps> = ({ token, role }) => {
                     { key: 'enable_api_access', label: 'Acceso a API' },
                     { key: 'enable_priority_support', label: 'Soporte Prioritario' },
                     { key: 'enable_whatsapp_notifications', label: 'Notif. WhatsApp' },
-                    { key: 'enable_electronic_invoicing', label: 'Facturación Electrónica' },
+                    // { key: 'enable_electronic_invoicing', label: 'Facturación Electrónica' },
                   ].map((feature) => (
                     <label key={feature.key} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-slate-900 cursor-pointer transition-colors">
                       <input 

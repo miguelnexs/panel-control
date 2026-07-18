@@ -21,7 +21,8 @@ import {
   X,
   GripVertical,
   FileText,
-  Lock
+  Lock,
+  Download
 } from 'lucide-react';
 import SafeImage from './SafeImage';
 import { useOfflineSync } from '../hooks/useOfflineSync';
@@ -89,6 +90,7 @@ const SortableRow = ({ product, children, disabled }: { product: any, children: 
   };
 
 const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, role, netInfo, onCreate, onEdit, canCreate, canEdit, canDelete, canReorder }) => {
+
   const offlineSync = useOfflineSync(token);
   const [items, setItems] = useState<any[]>([]);
   const [msg, setMsg] = useState<{ type: string; text: string } | null>(null);
@@ -96,6 +98,10 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, rol
   const [viewing, setViewing] = useState<any>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [viewColors, setViewColors] = useState<any[]>([]);
+  const [dropiActive, setDropiActive] = useState<boolean>(false);
+  const [importingDropi, setImportingDropi] = useState<boolean>(false);
+  const [dropiImportUrl, setDropiImportUrl] = useState<string>('');
+
   const [viewVariants, setViewVariants] = useState<any[]>([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(30);
@@ -207,6 +213,188 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, rol
   };
 
   useEffect(() => { if (token) loadProducts(); }, [token, page, pageSize, search, categoryFilter, activeFilter, hasVariantsFilter, dateSort]);
+
+  useEffect(() => {
+    const checkDropi = async () => {
+      try {
+        const res = await fetch(`${apiBase}/webconfig/settings/`, {
+          headers: authHeaders(token)
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const pageContent = data.page_content || {};
+          const installed = pageContent.installed_extensions || {};
+          const dropiConfig = pageContent.dropi_config || {};
+          if (installed.dropi && dropiConfig.email && dropiConfig.token) {
+            setDropiActive(true);
+          }
+        }
+      } catch (err) {
+        console.error('Error checking Dropi active state:', err);
+      }
+    };
+    if (token) checkDropi();
+  }, [token]);
+
+  const handleImportDropi = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dropiImportUrl.trim()) return;
+
+    setImportingDropi(true);
+    setMsg(null);
+    try {
+      const value = dropiImportUrl.trim();
+      let productIdStr = value;
+      const urlMatch = value.match(/product-details?\/(\d+)/i) || value.match(/\/products\/(\d+)/i) || value.match(/(\d{5,10})/);
+      if (urlMatch) {
+        productIdStr = urlMatch[1];
+      }
+
+      // If it's one of the demo IDs, we can use the simulated local list
+      const demoIds = ['101', '102', '103', '104', '105', '106'];
+      if (demoIds.includes(productIdStr)) {
+        const simulatedProducts: Record<string, any> = {
+          '101': {
+            name: 'Reloj Inteligente Ultra 9 Pro',
+            description: 'Smartwatch de alta gama con pantalla AMOLED, monitoreo de salud completo, llamadas bluetooth y resistencia al agua IP68.',
+            suggestedPrice: 89900,
+            imageSrc: 'https://images.unsplash.com/photo-1542496658-e33a6d0d50f6?auto=format&fit=crop&w=300&q=80',
+            categoryName: 'Tecnología'
+          },
+          '102': {
+            name: 'Mini Proyector Portátil HD',
+            description: 'Disfruta del cine en casa con este proyector compacto que admite resolución 1080p, conectividad HDMI, USB y WiFi para streaming.',
+            suggestedPrice: 220000,
+            imageSrc: 'https://images.unsplash.com/photo-1535016120720-40c646be5580?auto=format&fit=crop&w=300&q=80',
+            categoryName: 'Tecnología'
+          },
+          '103': {
+            name: 'Auriculares Bluetooth F9-5',
+            description: 'Audífonos inalámbricos de emparejamiento rápido con estuche de carga que funciona como Powerbank para tu celular.',
+            suggestedPrice: 49900,
+            imageSrc: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=300&q=80',
+            categoryName: 'Accesorios y Viaje'
+          },
+          '104': {
+            name: 'Humidificador Ultrasónico RGB',
+            description: 'Difusor de aroma y humidificador con luces LED de colores para crear ambientes relajantes en el hogar u oficina.',
+            suggestedPrice: 45000,
+            imageSrc: 'https://images.unsplash.com/photo-1519183071298-a2962feb14f4?auto=format&fit=crop&w=300&q=80',
+            categoryName: 'Hogar y Cocina'
+          },
+          '105': {
+            name: 'Aspiradora Portátil Recargable',
+            description: 'Aspiradora inalámbrica compacta de alta potencia para limpieza rápida en el carro, teclado, muebles y esquinas difíciles.',
+            suggestedPrice: 79900,
+            imageSrc: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?auto=format&fit=crop&w=300&q=80',
+            categoryName: 'Hogar y Cocina'
+          },
+          '106': {
+            name: 'Pistola de Masaje Muscular Pro',
+            description: 'Masajeador de percusión con 6 cabezales intercambiables y velocidades ajustables para aliviar el dolor muscular y acelerar la recuperación.',
+            suggestedPrice: 139900,
+            imageSrc: 'https://images.unsplash.com/photo-1519826314647-72538027e850?auto=format&fit=crop&w=300&q=80',
+            categoryName: 'Salud y Bienestar'
+          }
+        };
+        
+        const baseProd = simulatedProducts[productIdStr];
+
+        // 1. Resolve or create category
+        let categoryId: number | null = null;
+        try {
+          const catRes = await fetch(`${apiBase}/products/categories/?page_size=100`, {
+            headers: authHeaders(token)
+          });
+          if (catRes.ok) {
+            const catData = await catRes.json();
+            const catList = Array.isArray(catData) ? catData : (Array.isArray(catData.results) ? catData.results : []);
+            const existing = catList.find((c: any) => c.name.toLowerCase() === baseProd.categoryName.toLowerCase());
+            if (existing) categoryId = existing.id;
+          }
+          if (!categoryId) {
+            const fdCat = new FormData();
+            fdCat.append('name', baseProd.categoryName);
+            fdCat.append('description', `Productos importados desde Dropi bajo la categoría ${baseProd.categoryName}`);
+            fdCat.append('active', 'true');
+            const createCatRes = await fetch(`${apiBase}/products/categories/`, {
+              method: 'POST',
+              headers: authHeaders(token),
+              body: fdCat
+            });
+            if (createCatRes.ok) {
+              const createdCat = await createCatRes.json();
+              categoryId = createdCat.id;
+            }
+          }
+        } catch (catErr) {
+          console.error(catErr);
+        }
+
+        const fd = new FormData();
+        fd.append('name', `${baseProd.name} (Dropi #${productIdStr})`);
+        fd.append('description', baseProd.description);
+        fd.append('price', String(baseProd.suggestedPrice));
+        fd.append('inventory_qty', '100');
+        fd.append('is_draft', 'false');
+        fd.append('is_sale', 'false');
+        if (categoryId) {
+          fd.append('category', String(categoryId));
+        }
+
+        try {
+          const response = await fetch(baseProd.imageSrc, { mode: 'cors' });
+          if (response.ok) {
+            const blob = await response.blob();
+            const file = new File([blob], `${productIdStr}.jpg`, { type: 'image/jpeg' });
+            fd.append('image', file);
+          }
+        } catch (err) {
+          console.warn('CORS block or error downloading product image, importing without image:', err);
+        }
+
+        const res = await fetch(`${apiBase}/products/`, {
+          method: 'POST',
+          headers: authHeaders(token),
+          body: fd
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.detail || JSON.stringify(data));
+        }
+
+        setMsg({ type: 'success', text: `¡Producto "${baseProd.name}" importado con éxito!` });
+        setDropiImportUrl('');
+        loadProducts();
+        return;
+      }
+
+      // Real integration API call
+      const res = await fetch(`${apiBase}/products/import-dropi/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...authHeaders(token)
+        },
+        body: JSON.stringify({ product_id: productIdStr })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || 'Error al conectar con la API de Dropi');
+      }
+
+      const importedProduct = await res.json();
+      setMsg({ type: 'success', text: `¡Producto "${importedProduct.name}" importado con éxito desde Dropi!` });
+      setDropiImportUrl('');
+      loadProducts();
+    } catch (err: any) {
+      setMsg({ type: 'error', text: `Error al importar de Dropi: ${err.message}` });
+    } finally {
+      setImportingDropi(false);
+    }
+  };
 
   const handleSearchChange = (val: string) => {
     setSearchValue(val);
@@ -668,6 +856,29 @@ const ProductosManager: React.FC<ProductosManagerProps> = ({ token, apiBase, rol
                   <ArrowUpDown className="w-4 h-4" />
                 </div>
               </button>
+            {dropiActive && (
+              <form onSubmit={handleImportDropi} className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-800 pl-2 ml-2">
+                <input
+                  type="text"
+                  placeholder="Enlace o ID de Dropi..."
+                  value={dropiImportUrl}
+                  onChange={(e) => setDropiImportUrl(e.target.value)}
+                  className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-xs text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 w-44 md:w-56"
+                />
+                <button
+                  type="submit"
+                  disabled={importingDropi || !dropiImportUrl.trim()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-orange-500/20 whitespace-nowrap font-sans"
+                >
+                  {importingDropi ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Download className="w-3.5 h-3.5" />
+                  )}
+                  <span>Importar Dropi</span>
+                </button>
+              </form>
+            )}
             {canDeleteSafe && selectedIds.length > 0 && (
               <button
                 onClick={() => setShowBulkDeleteModal(true)}

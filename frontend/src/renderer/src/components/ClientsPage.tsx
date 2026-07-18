@@ -115,8 +115,21 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
   const [editClient, setEditClient] = useState<Client | null>(null);
   const [editForm, setEditForm] = useState<ClientForm>({ client_type: 'person', full_name: '', cedula: '', email: '', phone: '', address: '', identification_type: 'CC', tax_regime: 'O-99', city: '', department: '' });
   const [deletingClient, setDeletingClient] = useState<Client | null>(null);
+  const [alegraActive, setAlegraActive] = useState<boolean>(false);
 
   const authHeaders = (tkn: string) => ({ ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) });
+
+  const loadSettings = async () => {
+    try {
+      const res = await fetch(`${apiBase}/webconfig/settings/`, { headers: authHeaders(token) });
+      if (!res.ok) return;
+      const data = await res.json();
+      const installed = (data.page_content || {}).installed_extensions || {};
+      const email = data.alegra_config?.email || '';
+      const tkn = data.alegra_config?.token || '';
+      setAlegraActive(!!installed.alegra && !!email && !!tkn);
+    } catch (_) { /* sin alegra */ }
+  };
 
   const loadClients = async () => {
     setMsg(null);
@@ -145,6 +158,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
   };
 
   useEffect(() => { if (token) { loadClients(); loadStats(); } }, [token, page, pageSize, search, ordering]);
+  useEffect(() => { if (token) { loadSettings(); } }, [token]);
+
 
   const validateForm = () => {
     const e: Record<string, string> = {};
@@ -639,55 +654,78 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
                 {errors.address && <p className="mt-1 text-xs text-rose-400">{errors.address}</p>}
               </div>
 
-              <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Datos de Facturación Electrónica DIAN</h4>
+              {/* Separador DIAN — solo si Alegra está activo */}
+              {alegraActive && (<div className="pt-2">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 whitespace-nowrap">Datos de Facturación DIAN</span>
+                  <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800" />
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Tipo de Documento */}
                   <div>
                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Tipo de Documento</label>
                     <select
                       value={form.identification_type}
-                      onChange={(e) => setForm(f => ({ ...f, identification_type: e.target.value }))}
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none"
+                      onChange={(e) => setForm((f) => ({ ...f, identification_type: e.target.value }))}
+                      className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all"
                     >
-                      <option value="CC">Cédula de Ciudadanía (CC)</option>
-                      <option value="NIT">NIT</option>
-                      <option value="CE">Cédula de Extranjería (CE)</option>
-                      <option value="PP">Pasaporte</option>
+                      {form.client_type === 'person' ? (
+                        <>
+                          <option value="CC">Cédula de Ciudadanía (CC)</option>
+                          <option value="CE">Cédula de Extranjería (CE)</option>
+                          <option value="PP">Pasaporte (PP)</option>
+                          <option value="PEP">Permiso Especial (PEP)</option>
+                        </>
+                      ) : (
+                        <option value="NIT">NIT (Número de Identificación Tributaria)</option>
+                      )}
                     </select>
                   </div>
+
+                  {/* Régimen Fiscal */}
                   <div>
                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Régimen Fiscal</label>
                     <select
                       value={form.tax_regime}
-                      onChange={(e) => setForm(f => ({ ...f, tax_regime: e.target.value }))}
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none"
+                      onChange={(e) => setForm((f) => ({ ...f, tax_regime: e.target.value }))}
+                      className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all"
                     >
-                      <option value="O-99">No responsable de IVA (O-99)</option>
-                      <option value="O-47">Responsable de IVA (O-47)</option>
+                      <option value="O-99">Régimen Simplificado — No responsable IVA</option>
+                      <option value="O-47">Régimen Común — Responsable de IVA</option>
                     </select>
                   </div>
+
+                  {/* Ciudad */}
                   <div>
                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Ciudad</label>
-                    <input
-                      type="text"
-                      value={form.city}
-                      onChange={(e) => setForm(f => ({ ...f, city: e.target.value }))}
-                      placeholder="Ej. Bogotá"
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none"
-                    />
+                    <div className="relative group">
+                      <input
+                        type="text"
+                        value={form.city}
+                        onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                        placeholder="Ej. Bogotá"
+                        className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                      />
+                    </div>
                   </div>
+
+                  {/* Departamento */}
                   <div>
                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Departamento</label>
-                    <input
-                      type="text"
-                      value={form.department}
-                      onChange={(e) => setForm(f => ({ ...f, department: e.target.value }))}
-                      placeholder="Ej. Cundinamarca"
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none"
-                    />
+                    <div className="relative group">
+                      <input
+                        type="text"
+                        value={form.department}
+                        onChange={(e) => setForm((f) => ({ ...f, department: e.target.value }))}
+                        placeholder="Ej. Cundinamarca"
+                        className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              </div>)}
 
               <div className="pt-6 flex gap-4">
                 <button 
@@ -736,20 +774,52 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{viewClient.email}</p>
                   
                   <div className="w-full space-y-3 text-left">
-                    <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <CreditCard className="w-4 h-4 text-gray-400 dark:text-gray-500" />
-                      <span>{viewClient.cedula}</span>
-                    </div>
+                    {viewClient.identification_type && (
+                      <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <CreditCard className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Tipo de Doc.</div>
+                          <div className="truncate">{viewClient.identification_type} — {viewClient.cedula || 'Sin número'}</div>
+                        </div>
+                      </div>
+                    )}
+                    {!viewClient.identification_type && viewClient.cedula && (
+                      <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <CreditCard className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                        <span>{viewClient.cedula}</span>
+                      </div>
+                    )}
                     {viewClient.phone && (
                       <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
                         <Phone className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                         <span>{viewClient.phone}</span>
                       </div>
                     )}
-                    <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5" />
-                      <span>{viewClient.address}</span>
-                    </div>
+                    {viewClient.address && (
+                      <div className="flex items-start gap-3 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <MapPin className="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Dirección</div>
+                          <div>{viewClient.address}</div>
+                          {(viewClient.city || viewClient.department) && (
+                            <div className="text-xs text-gray-400 mt-0.5">{[viewClient.city, viewClient.department].filter(Boolean).join(', ')}</div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {viewClient.tax_regime && (
+                      <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <svg className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <div className="min-w-0">
+                          <div className="text-[10px] text-gray-400 uppercase tracking-wider font-bold">Régimen Fiscal</div>
+                          <div className="text-xs">
+                            {viewClient.tax_regime === 'O-99' ? 'Régimen Simplificado (O-99)' :
+                             viewClient.tax_regime === 'O-47' ? 'Régimen Común (O-47)' :
+                             viewClient.tax_regime}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1022,55 +1092,70 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
                 {errors.address && <p className="mt-1 text-xs text-rose-400">{errors.address}</p>}
               </div>
 
-              <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Datos de Facturación Electrónica DIAN</h4>
+              {/* Separador DIAN - Edición — solo si Alegra está activo */}
+              {alegraActive && (<div className="pt-2">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 whitespace-nowrap">Datos de Facturación DIAN</span>
+                  <div className="flex-1 h-px bg-gray-100 dark:bg-gray-800" />
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Tipo de Documento</label>
                     <select
                       value={editForm.identification_type}
-                      onChange={(e) => setEditForm(f => ({ ...f, identification_type: e.target.value }))}
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none"
+                      onChange={(e) => setEditForm((f) => ({ ...f, identification_type: e.target.value }))}
+                      className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none transition-all"
                     >
-                      <option value="CC">Cédula de Ciudadanía (CC)</option>
-                      <option value="NIT">NIT</option>
-                      <option value="CE">Cédula de Extranjería (CE)</option>
-                      <option value="PP">Pasaporte</option>
+                      {editForm.client_type === 'person' ? (
+                        <>
+                          <option value="CC">Cédula de Ciudadanía (CC)</option>
+                          <option value="CE">Cédula de Extranjería (CE)</option>
+                          <option value="PP">Pasaporte (PP)</option>
+                          <option value="PEP">Permiso Especial (PEP)</option>
+                        </>
+                      ) : (
+                        <option value="NIT">NIT (Número de Identificación Tributaria)</option>
+                      )}
                     </select>
                   </div>
+
                   <div>
                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Régimen Fiscal</label>
                     <select
                       value={editForm.tax_regime}
-                      onChange={(e) => setEditForm(f => ({ ...f, tax_regime: e.target.value }))}
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none"
+                      onChange={(e) => setEditForm((f) => ({ ...f, tax_regime: e.target.value }))}
+                      className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none transition-all"
                     >
-                      <option value="O-99">No responsable de IVA (O-99)</option>
-                      <option value="O-47">Responsable de IVA (O-47)</option>
+                      <option value="O-99">Régimen Simplificado — No responsable IVA</option>
+                      <option value="O-47">Régimen Común — Responsable de IVA</option>
                     </select>
                   </div>
+
                   <div>
                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Ciudad</label>
                     <input
                       type="text"
                       value={editForm.city}
-                      onChange={(e) => setEditForm(f => ({ ...f, city: e.target.value }))}
+                      onChange={(e) => setEditForm((f) => ({ ...f, city: e.target.value }))}
                       placeholder="Ej. Bogotá"
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none"
+                      className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
                     />
                   </div>
+
                   <div>
                     <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-widest">Departamento</label>
                     <input
                       type="text"
                       value={editForm.department}
-                      onChange={(e) => setEditForm(f => ({ ...f, department: e.target.value }))}
+                      onChange={(e) => setEditForm((f) => ({ ...f, department: e.target.value }))}
                       placeholder="Ej. Cundinamarca"
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none"
+                      className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 focus:outline-none transition-all placeholder:text-gray-400 dark:placeholder:text-gray-600"
                     />
                   </div>
                 </div>
-              </div>
+              </div>)}
 
               <div className="pt-6 flex gap-4">
                 <button 

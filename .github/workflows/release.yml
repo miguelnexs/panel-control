@@ -35,9 +35,9 @@ jobs:
         working-directory: frontend
         run: npm run lint --silent
 
-      - name: Build and Publish (Windows NSIS Web)
+      - name: Build and Publish (Windows NSIS)
         working-directory: frontend
-        run: npm run publish:win:web
+        run: npm run publish:win
 
       - name: Build Web (dist-web)
         working-directory: frontend

@@ -9,16 +9,24 @@ import {
   Briefcase, 
   Calendar,
   Clock,
-  CheckCircle,
-  AlertTriangle
+  Phone,
+  Building2,
+  FileText,
+  Tag
 } from 'lucide-react';
 
 interface Client {
   id: number;
   full_name: string;
-  cedula: string;
-  email: string;
-  address: string;
+  cedula?: string;
+  email?: string;
+  address?: string;
+  phone?: string;
+  client_type?: 'person' | 'company';
+  identification_type?: string;
+  tax_regime?: string;
+  city?: string;
+  department?: string;
   created_at?: string;
 }
 
@@ -51,6 +59,19 @@ interface ClientDetailsPageProps {
   client: Client;
   onBack: () => void;
 }
+
+const InfoBadge = ({ icon, label, value }: { icon: React.ReactNode; label: string; value?: string }) => {
+  if (!value) return null;
+  return (
+    <div className="flex items-start gap-3 p-3 bg-gray-800/40 border border-gray-800 rounded-xl">
+      <div className="mt-0.5 text-blue-400 shrink-0">{icon}</div>
+      <div>
+        <div className="text-[10px] uppercase tracking-widest font-bold text-gray-500">{label}</div>
+        <div className="text-sm text-gray-200 font-medium mt-0.5">{value}</div>
+      </div>
+    </div>
+  );
+};
 
 const ClientDetailsPage: React.FC<ClientDetailsPageProps> = ({ token, apiBase, client, onBack }) => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -88,6 +109,15 @@ const ClientDetailsPage: React.FC<ClientDetailsPageProps> = ({ token, apiBase, c
     fetchData();
   }, [client.id, token, apiBase]);
 
+  const taxRegimeLabel = (regime?: string) => {
+    if (!regime) return undefined;
+    if (regime === 'O-99' || regime.toLowerCase().includes('simplificado')) return 'Régimen Simplificado (O-99)';
+    if (regime === 'O-47' || regime.toLowerCase().includes('comun') || regime.toLowerCase().includes('común')) return 'Régimen Común (O-47)';
+    return regime;
+  };
+
+  const clientTypeLabel = client.client_type === 'company' ? 'Empresa' : 'Persona Natural';
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header / Navigation */}
@@ -103,37 +133,54 @@ const ClientDetailsPage: React.FC<ClientDetailsPageProps> = ({ token, apiBase, c
 
       {/* Client Profile Card */}
       <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-lg">
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-3xl font-bold text-white border-4 border-gray-800 shadow-xl">
-            {client.full_name.charAt(0).toUpperCase()}
-          </div>
-          
-          <div className="flex-1 space-y-2">
-            <h2 className="text-3xl font-bold text-white">{client.full_name}</h2>
-            <div className="flex flex-wrap gap-4 text-gray-400">
-              <div className="flex items-center gap-2 bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-800">
-                <Mail className="w-4 h-4 text-blue-400" />
-                <span>{client.email || 'Sin correo'}</span>
-              </div>
-              <div className="flex items-center gap-2 bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-800">
-                <CreditCard className="w-4 h-4 text-purple-400" />
-                <span>{client.cedula || 'Sin cédula'}</span>
-              </div>
-              <div className="flex items-center gap-2 bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-800">
-                <MapPin className="w-4 h-4 text-emerald-400" />
-                <span>{client.address || 'Sin dirección'}</span>
-              </div>
+        <div className="flex flex-col md:flex-row items-start gap-6">
+          {/* Avatar */}
+          <div className="flex flex-col items-center gap-2 shrink-0">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-3xl font-bold text-white border-4 border-gray-800 shadow-xl">
+              {client.full_name.charAt(0).toUpperCase()}
             </div>
+            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+              client.client_type === 'company' 
+                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+                : 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+            }`}>
+              {clientTypeLabel}
+            </span>
           </div>
 
-          <div className="flex gap-3">
-            <div className="text-center px-6 py-3 bg-gray-800 rounded-xl border border-gray-700">
-              <div className="text-2xl font-bold text-white">{orders.length}</div>
-              <div className="text-xs text-gray-500 uppercase tracking-wider font-medium">Pedidos</div>
+          {/* Name + Stats */}
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-white truncate">{client.full_name}</h2>
+                {client.created_at && (
+                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    Cliente desde {new Date(client.created_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-3 shrink-0">
+                <div className="text-center px-5 py-2.5 bg-gray-800 rounded-xl border border-gray-700">
+                  <div className="text-xl font-bold text-white">{orders.length}</div>
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Pedidos</div>
+                </div>
+                <div className="text-center px-5 py-2.5 bg-gray-800 rounded-xl border border-gray-700">
+                  <div className="text-xl font-bold text-white">{services.length}</div>
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Servicios</div>
+                </div>
+              </div>
             </div>
-            <div className="text-center px-6 py-3 bg-gray-800 rounded-xl border border-gray-700">
-              <div className="text-2xl font-bold text-white">{services.length}</div>
-              <div className="text-xs text-gray-500 uppercase tracking-wider font-medium">Servicios</div>
+
+            {/* Contact & Info Grid */}
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <InfoBadge icon={<Mail className="w-4 h-4" />} label="Correo Electrónico" value={client.email || 'Sin correo'} />
+              <InfoBadge icon={<Phone className="w-4 h-4" />} label="Teléfono" value={client.phone || 'Sin teléfono'} />
+              <InfoBadge icon={<CreditCard className="w-4 h-4" />} label={client.client_type === 'company' ? 'NIT' : 'Cédula / Documento'} value={client.cedula || 'Sin identificación'} />
+              <InfoBadge icon={<Tag className="w-4 h-4" />} label="Tipo de Documento" value={client.identification_type || 'CC'} />
+              <InfoBadge icon={<MapPin className="w-4 h-4" />} label="Dirección" value={client.address || 'Sin dirección'} />
+              <InfoBadge icon={<Building2 className="w-4 h-4" />} label="Ciudad / Departamento" value={[client.city, client.department].filter(Boolean).join(', ') || undefined} />
+              <InfoBadge icon={<FileText className="w-4 h-4" />} label="Régimen Fiscal (DIAN)" value={taxRegimeLabel(client.tax_regime)} />
             </div>
           </div>
         </div>

@@ -28,13 +28,18 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showTaxDetails, setShowTaxDetails] = useState(false);
   const [form, setForm] = useState({
     client_type: 'person' as 'person' | 'company',
     full_name: '',
     cedula: '',
     phone: '',
     email: '',
-    address: ''
+    address: '',
+    identification_type: 'CC',
+    tax_regime: 'O-99',
+    city: '',
+    department: ''
   });
 
   if (!isOpen) return null;
@@ -107,8 +112,13 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({
         cedula: '',
         phone: '',
         email: '',
-        address: ''
+        address: '',
+        identification_type: 'CC',
+        tax_regime: 'O-99',
+        city: '',
+        department: ''
       });
+      setShowTaxDetails(false);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -149,14 +159,14 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({
           <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl shadow-inner">
             <button
               type="button"
-              onClick={() => setForm(f => ({ ...f, client_type: 'person' }))}
+              onClick={() => setForm(f => ({ ...f, client_type: 'person', identification_type: 'CC', tax_regime: 'O-99' }))}
               className={`flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${form.client_type === 'person' ? `${colors.bg} text-white shadow-sm` : 'text-gray-500'}`}
             >
               Persona
             </button>
             <button
               type="button"
-              onClick={() => setForm(f => ({ ...f, client_type: 'company' }))}
+              onClick={() => setForm(f => ({ ...f, client_type: 'company', identification_type: 'NIT', tax_regime: 'O-47' }))}
               className={`flex-1 py-2 text-xs font-bold uppercase tracking-widest rounded-lg transition-all ${form.client_type === 'company' ? `${colors.bg} text-white shadow-sm` : 'text-gray-500'}`}
             >
               Empresa
@@ -238,10 +248,87 @@ const ClientFormModal: React.FC<ClientFormModalProps> = ({
                   value={form.address}
                   onChange={(e) => setForm({...form, address: e.target.value})}
                   placeholder="Dirección completa"
-                  className={`w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-900 dark:text-white focus:ring-4 ${colors.ring} ${colors.border} focus:outline-none transition-all placeholder:text-gray-400 min-h-[80px] resize-none shadow-inner`}
+                  className={`w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-xl pl-10 pr-4 py-3 text-sm text-gray-900 dark:text-white focus:ring-4 ${colors.ring} ${colors.border} focus:outline-none transition-all placeholder:text-gray-400 min-h-[70px] resize-none shadow-inner`}
                 />
               </div>
             </div>
+
+            {/* Tax Info Toggle */}
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={() => setShowTaxDetails(!showTaxDetails)}
+                className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline transition-all"
+              >
+                <span>{showTaxDetails ? '▲ Ocultar' : '▼ Mostrar'} Datos de Facturación DIAN (Opcionales)</span>
+              </button>
+            </div>
+
+            {showTaxDetails && (
+              <div className="p-4 rounded-2xl bg-gray-50/50 dark:bg-white/5 border border-gray-150 dark:border-gray-800 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Tipo de Documento */}
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-450 dark:text-gray-500 mb-1.5 uppercase tracking-widest">Tipo de Documento</label>
+                    <select
+                      value={form.identification_type}
+                      onChange={(e) => setForm({...form, identification_type: e.target.value})}
+                      className={`w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-500`}
+                    >
+                      {form.client_type === 'person' ? (
+                        <>
+                          <option value="CC">Cédula de Ciudadanía (CC)</option>
+                          <option value="CE">Cédula de Extranjería (CE)</option>
+                          <option value="PP">Pasaporte (PP)</option>
+                          <option value="PEP">Permiso Especial (PEP)</option>
+                        </>
+                      ) : (
+                        <option value="NIT">NIT (Número de Identificación Tributaria)</option>
+                      )}
+                    </select>
+                  </div>
+
+                  {/* Régimen Fiscal */}
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-450 dark:text-gray-500 mb-1.5 uppercase tracking-widest">Régimen Fiscal</label>
+                    <select
+                      value={form.tax_regime}
+                      onChange={(e) => setForm({...form, tax_regime: e.target.value})}
+                      className={`w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3 py-2.5 text-xs font-bold text-gray-700 dark:text-gray-300 focus:outline-none focus:border-blue-500`}
+                    >
+                      <option value="O-99">Régimen Simplificado (Persona Natural)</option>
+                      <option value="O-47">Régimen Común (Responsable IVA)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Ciudad */}
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-450 dark:text-gray-500 mb-1.5 uppercase tracking-widest">Ciudad</label>
+                    <input
+                      type="text"
+                      value={form.city}
+                      onChange={(e) => setForm({...form, city: e.target.value})}
+                      placeholder="Ej. Bogotá"
+                      className={`w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500`}
+                    />
+                  </div>
+
+                  {/* Departamento */}
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-450 dark:text-gray-500 mb-1.5 uppercase tracking-widest">Departamento</label>
+                    <input
+                      type="text"
+                      value={form.department}
+                      onChange={(e) => setForm({...form, department: e.target.value})}
+                      placeholder="Ej. Cundinamarca"
+                      className={`w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl px-3.5 py-2.5 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500`}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="pt-4 flex gap-3">

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useOfflineSync } from '../hooks/useOfflineSync';
 import SyncStatusBanner from './SyncStatusBanner';
+import { motion } from 'framer-motion';
 
 interface Service {
   id: number;
@@ -32,7 +33,9 @@ interface Service {
   client_name?: string;
   worker?: number;
   worker_name?: string;
-  status: 'recibido' | 'entregado';
+  status: 'agendado' | 'recibido' | 'en_progreso' | 'completado' | 'entregado' | 'cancelado';
+  scheduled_start?: string;
+  scheduled_end?: string;
   active?: boolean;
   created_at: string;
 }
@@ -64,6 +67,7 @@ interface CompanySettings {
   service_printer_type?: string;
   service_printer_name?: string;
   service_paper_width_mm?: number;
+  paper_width_mm?: number;
   service_receipt_footer?: string;
   primary_color?: string;
 }
@@ -94,7 +98,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
   const offlineSync = useOfflineSync(token);
   const [services, setServices] = useState<Service[]>([]);
   const [catalog, setCatalog] = useState<ServiceDefinition[]>([]);
-  const [viewMode, setViewMode] = useState<'tickets' | 'catalog'>('tickets');
+  const [viewMode, setViewMode] = useState<'tickets' | 'kanban' | 'catalog'>('tickets');
   const [clients, setClients] = useState<Client[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -142,7 +146,9 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     value: '',
     clientId: '',
     worker: '',
-    status: 'recibido' as 'recibido' | 'entregado'
+    status: 'recibido' as 'agendado' | 'recibido' | 'en_progreso' | 'completado' | 'entregado' | 'cancelado',
+    scheduled_start: '',
+    scheduled_end: ''
   });
   const [printReceipt, setPrintReceipt] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -214,6 +220,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
         service_printer_type: data.service_printer_type || 'system',
         service_printer_name: data.service_printer_name || '',
         service_paper_width_mm: data.service_paper_width_mm || 58,
+        paper_width_mm: data.service_paper_width_mm || 58,
         service_receipt_footer: data.service_receipt_footer || '',
         primary_color: data.primary_color || '#0ea5e9'
       };
@@ -558,7 +565,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleClientInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleClientInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setClientFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -730,7 +737,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
         
         // If all success
         setIsModalOpen(false);
-        setFormData({ name: '', description: '', third_party_provider: '', third_party_cost: '', value: '', clientId: '', worker: '', status: 'recibido' });
+        setFormData({ name: '', description: '', third_party_provider: '', third_party_cost: '', value: '', clientId: '', worker: '', status: 'recibido', scheduled_start: '', scheduled_end: '' });
         setEditingId(null);
         if (onClose) onClose();
         showToast('Todos los servicios creados correctamente', 'success');
@@ -789,7 +796,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       }
       
       setIsModalOpen(false);
-      setFormData({ name: '', description: '', third_party_provider: '', third_party_cost: '', value: '', clientId: '', worker: '', status: 'recibido' });
+      setFormData({ name: '', description: '', third_party_provider: '', third_party_cost: '', value: '', clientId: '', worker: '', status: 'recibido', scheduled_start: '', scheduled_end: '' });
       setEditingId(null);
       setServiceErrors({});
       if (onClose) onClose();
@@ -843,7 +850,64 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     }
   };
 
+  const handleWhatsAppNotification = (service: Service) => {
+    const client = clients.find(c => String(c.id) === String(service.client));
+    const phone = client?.phone || '';
+    if (!phone) {
+      showToast('El cliente no tiene un teléfono registrado para WhatsApp', 'error');
+      return;
+    }
+    const cleanPhone = phone.replace(/\D/g, '');
+    const msg = `Hola ${service.client_name || 'Cliente'}, te informamos que tu servicio de "${service.name}" se encuentra en estado: *${service.status.toUpperCase()}*. ${service.status === 'completado' ? `Ya puedes pasar a retirarlo. Total a pagar: $${Number(service.value || 0).toLocaleString()}.` : ''} ¡Muchas gracias por tu preferencia!`;
+    const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+  };
 
+  const handleUpdateStatus = async (service: Service, newStatus: string) => {
+    if (!token) return;
+    if (newStatus === 'entregado') {
+      handleDeliver(service);
+      return;
+    }
+    showToast('Actualizando estado...', 'loading');
+    try {
+      const res = await fetch(`${apiBase}/services/${service.id}/`, {
+        method: 'PATCH',
+        headers: authHeaders(token),
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || 'No se pudo actualizar el estado');
+      }
+      showToast('Estado del servicio actualizado', 'success');
+      loadServices();
+      loadStats();
+    } catch (e: any) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  const renderStatusBadge = (service: Service) => {
+    const statusMap: Record<string, { label: string; cls: string; icon: any }> = {
+      agendado: { label: 'Agendado', cls: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20', icon: Clock },
+      recibido: { label: 'Recibido', cls: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-500/20', icon: Clock },
+      en_progreso: { label: 'En Progreso', cls: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-500/20', icon: Clock },
+      completado: { label: 'Completado', cls: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20', icon: CheckCircle },
+      entregado: { label: 'Entregado', cls: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20', icon: CheckCircle },
+      cancelado: { label: 'Cancelado', cls: 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/20', icon: X },
+    };
+
+    const config = statusMap[service.status] || statusMap.recibido;
+    const Icon = config.icon;
+
+    return (
+      <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${config.cls}`}>
+        <Icon className="w-3 h-3" />
+        {config.label}
+      </span>
+    );
+  };
 
   const handleDelete = (service: Service) => {
     setDeletingService(service);
@@ -883,6 +947,8 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       clientId: String(service.client),
       worker: service.worker ? String(service.worker) : '',
       status: service.status,
+      scheduled_start: service.scheduled_start || '',
+      scheduled_end: service.scheduled_end || '',
     });
     setEditingId(service.id);
     setIsModalOpen(true);
@@ -998,6 +1064,134 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
     c.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const renderKanbanBoard = () => {
+    const columns = [
+      { id: 'agendado', title: 'Agendado', bg: 'bg-indigo-50 dark:bg-indigo-950/20 border-indigo-100 dark:border-indigo-950/50', badge: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400' },
+      { id: 'recibido', title: 'Recibido', bg: 'bg-amber-50 dark:bg-amber-950/20 border-amber-100 dark:border-amber-950/50', badge: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' },
+      { id: 'en_progreso', title: 'En Progreso', bg: 'bg-purple-50 dark:bg-purple-950/20 border-purple-100 dark:border-purple-950/50', badge: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400' },
+      { id: 'completado', title: 'Completado', bg: 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-950/50', badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' },
+    ];
+
+    const boardServices = services.filter(s => 
+      s.status !== 'entregado' && s.status !== 'cancelado' && (
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (s.client_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {columns.map(col => {
+          const colServices = boardServices.filter(s => s.status === col.id);
+          return (
+            <div key={col.id} className={`flex flex-col rounded-3xl border p-4 min-h-[500px] ${col.bg}`}>
+              <div className="flex items-center justify-between mb-4">
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${col.badge}`}>
+                  {col.title}
+                </span>
+                <span className="text-xs font-bold text-gray-400 dark:text-gray-500">
+                  {colServices.length}
+                </span>
+              </div>
+              
+              <div className="flex-1 space-y-3 overflow-y-auto max-h-[600px] pr-1">
+                {colServices.length === 0 ? (
+                  <div className="h-28 border border-dashed border-gray-200 dark:border-gray-800 rounded-2xl flex items-center justify-center text-xs text-gray-400 dark:text-gray-600">
+                    Sin servicios
+                  </div>
+                ) : (
+                  colServices.map(service => (
+                    <motion.div
+                      layout
+                      key={service.id}
+                      className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow relative group"
+                    >
+                      <h4 className="font-bold text-sm text-gray-900 dark:text-white truncate">{service.name}</h4>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{service.description}</p>
+                      
+                      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 flex flex-col gap-1.5">
+                        <div className="flex items-center gap-1.5 text-xs text-gray-600 dark:text-gray-300">
+                          <User className="w-3 h-3 text-gray-400" />
+                          <span className="font-semibold truncate">{service.client_name}</span>
+                        </div>
+                        {service.worker_name && (
+                          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                            <span>{service.worker_name}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="text-[10px] font-bold text-gray-400">#{service.id}</span>
+                          <span className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400">
+                            {Number(service.value) > 0 ? `$${Number(service.value).toLocaleString()}` : 'Pendiente'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between gap-1">
+                        <div className="flex items-center gap-1">
+                          {col.id !== 'agendado' && (
+                            <button
+                              onClick={() => {
+                                const prevs: Record<string, string> = { recibido: 'agendado', en_progreso: 'recibido', completado: 'en_progreso' };
+                                handleUpdateStatus(service, prevs[col.id]);
+                              }}
+                              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-500 hover:text-gray-700 transition-colors"
+                              title="Mover al estado anterior"
+                            >
+                              <span className="text-xs font-bold">←</span>
+                            </button>
+                          )}
+                          {col.id !== 'completado' && (
+                            <button
+                              onClick={() => {
+                                const nexts: Record<string, string> = { agendado: 'recibido', recibido: 'en_progreso', en_progreso: 'completado' };
+                                handleUpdateStatus(service, nexts[col.id]);
+                              }}
+                              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-500 hover:text-gray-700 transition-colors"
+                              title="Mover al siguiente estado"
+                            >
+                              <span className="text-xs font-bold">→</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleWhatsAppNotification(service)}
+                            className="p-1.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
+                            title="Enviar WhatsApp"
+                          >
+                            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.965C16.59 2.016 14.12 1.01 11.5 1.012c-5.443 0-9.87 4.372-9.874 9.802-.001 1.64.453 3.24 1.314 4.676l-.99 3.619 3.707-.973zm13.111-8.318c-.29-.145-1.72-.848-1.986-.944-.266-.096-.46-.145-.653.145-.19.29-.738.944-.906 1.139-.167.194-.336.217-.626.072-.29-.145-1.226-.452-2.335-1.441-.863-.77-1.445-1.721-1.614-2.012-.17-.291-.018-.448.127-.592.13-.13.29-.339.435-.509.145-.17.193-.291.29-.485.097-.194.048-.364-.025-.509-.072-.145-.653-1.573-.895-2.155-.236-.569-.475-.491-.653-.5-.17-.008-.364-.01-.557-.01-.193 0-.508.072-.773.364-.266.29-1.016.994-1.016 2.424s1.04 2.812 1.185 3.006c.145.194 2.046 3.125 4.958 4.38.693.3 1.233.478 1.656.613.696.22 1.33.19 1.83.115.558-.084 1.72-.703 1.962-1.382.242-.678.242-1.26.17-1.382-.073-.122-.266-.194-.557-.339z"/>
+                            </svg>
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleSilentPrint(service)}
+                            className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                            title="Imprimir"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeliver(service)}
+                            className="p-1 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded"
+                            title="Salida / Cobrar"
+                          >
+                            <DollarSign className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       {/* Header & Actions */}
@@ -1020,6 +1214,12 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'tickets' ? 'bg-white dark:bg-indigo-500 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
               >
                 Servicios Activos
+              </button>
+              <button
+                onClick={() => setViewMode('kanban')}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${viewMode === 'kanban' ? 'bg-white dark:bg-indigo-500 text-indigo-600 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+              >
+                Tablero Kanban
               </button>
               <button
                 onClick={() => setViewMode('catalog')}
@@ -1046,7 +1246,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                   if (onCreate) {
                     onCreate();
                   } else {
-                    setFormData({ name: '', description: '', third_party_provider: '', third_party_cost: '', value: '', clientId: '', worker: '', status: 'recibido' });
+                    setFormData({ name: '', description: '', third_party_provider: '', third_party_cost: '', value: '', clientId: '', worker: '', status: 'recibido', scheduled_start: '', scheduled_end: '' });
                     setEditingId(null);
                     setServiceItems([{ id: String(Date.now()), name: '', description: '', value: '', third_party_provider: '', third_party_cost: '', worker: '' }]);
                     setIsModalOpen(true);
@@ -1135,197 +1335,196 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
       </div>
 
       {/* Services Table Container */}
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm flex flex-col">
+      {viewMode === 'kanban' ? (
+        renderKanbanBoard()
+      ) : (
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-3xl overflow-hidden shadow-sm flex flex-col">
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase text-gray-500 dark:text-gray-400">
-              <tr className="border-b border-gray-200 dark:border-gray-800">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-gray-50 dark:bg-gray-800/50 text-xs uppercase text-gray-500 dark:text-gray-400">
+                <tr className="border-b border-gray-200 dark:border-gray-800">
+                  {viewMode === 'tickets' ? (
+                    <>
+                      <th className="px-6 py-3 font-medium tracking-wider">Servicio</th>
+                      <th className="px-6 py-3 font-medium tracking-wider">Cliente</th>
+                      <th className="px-6 py-3 font-medium tracking-wider">Asignado</th>
+                      <th className="px-6 py-3 font-medium tracking-wider">Prov. Externo</th>
+                      <th className="px-6 py-3 font-medium tracking-wider">Valor</th>
+                      <th className="px-6 py-3 font-medium tracking-wider">Estado</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="px-6 py-3 font-medium tracking-wider">Nombre</th>
+                      <th className="px-6 py-3 font-medium tracking-wider">Descripción</th>
+                      <th className="px-6 py-3 font-medium tracking-wider">Imagen</th>
+                    </>
+                  )}
+                  <th className="px-6 py-3 font-medium tracking-wider text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
                 {viewMode === 'tickets' ? (
-                  <>
-                    <th className="px-6 py-3 font-medium tracking-wider">Servicio</th>
-                    <th className="px-6 py-3 font-medium tracking-wider">Cliente</th>
-                    <th className="px-6 py-3 font-medium tracking-wider">Asignado</th>
-                    <th className="px-6 py-3 font-medium tracking-wider">Prov. Externo</th>
-                    <th className="px-6 py-3 font-medium tracking-wider">Valor</th>
-                    <th className="px-6 py-3 font-medium tracking-wider">Estado</th>
-                  </>
-                ) : (
-                  <>
-                    <th className="px-6 py-3 font-medium tracking-wider">Nombre</th>
-                    <th className="px-6 py-3 font-medium tracking-wider">Descripción</th>
-                    <th className="px-6 py-3 font-medium tracking-wider">Imagen</th>
-                  </>
-                )}
-                <th className="px-6 py-3 font-medium tracking-wider text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-              {viewMode === 'tickets' ? (
-                (services.length > 0 ? services : []).length > 0 ? (
-                (services || []).filter(s => 
-                  s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                  (s.client_name || '').toLowerCase().includes(searchTerm.toLowerCase())
-                ).map((service) => (
-                  <tr key={service.id} className="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900 dark:text-white">{service.name}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-500 truncate max-w-xs">{service.description}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-                        <User className="w-3 h-3 text-gray-400 dark:text-gray-500" />
-                        {service.client_name}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-gray-500 dark:text-gray-400 text-sm">
-                        {service.worker_name || '-'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-gray-500 dark:text-gray-400 text-sm">
-                         {service.third_party_provider || '-'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900 dark:text-white">
-                        {service.status === 'entregado' ? (
-                          `$${Number(service.value || 0).toLocaleString()}`
-                        ) : (
-                          <span className="text-amber-500 font-bold bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
-                            Pendiente
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button 
-                        onClick={() => {
-                          if (service.status === 'recibido') {
-                            handleDeliver(service);
-                          }
-                        }}
-                        disabled={service.status === 'entregado'}
-                        title={service.status === 'recibido' ? "Entregar y cobrar servicio" : "Servicio ya entregado"}
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border transition-all ${
-                          service.status === 'entregado' 
-                            ? 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20 opacity-80 cursor-default' 
-                            : 'bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20 hover:bg-blue-200 dark:hover:bg-blue-500/20 cursor-pointer shadow-sm hover:shadow'
-                        }`}
-                      >
-                        {service.status === 'entregado' ? (
-                          <>
-                            <CheckCircle className="w-3 h-3" /> Entregado
-                          </>
-                        ) : (
-                          <>
-                            <DollarSign className="w-3 h-3" /> Salida / Cobrar
-                          </>
-                        )}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button 
-                          onClick={() => handleSilentPrint(service)}
-                          className="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
-                          title="Imprimir Recibo"
-                        >
-                          <Printer className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleSendEmail(service)}
-                          className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-colors"
-                          title="Enviar por Correo"
-                        >
-                          <Mail className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleEdit(service)}
-                          className="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(service)}
-                          className="p-1.5 text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
-                        >
-                          <Trash className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-              <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center justify-center text-gray-500">
-                      <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-full mb-3">
-                        <Briefcase className="w-8 h-8 opacity-50" />
-                      </div>
-                      <p className="text-lg font-medium text-gray-600 dark:text-gray-400">No hay servicios registrados</p>
-                      <p className="text-sm mt-1">Comienza agregando un nuevo servicio para tus clientes.</p>
-                    </div>
-                  </td>
-                </tr>
-              )
-            ) : (
-              // Catalog View
-              filteredCatalog.length > 0 ? (
-                filteredCatalog.map((item) => (
-                  <tr key={item.id} className="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900 dark:text-white">{item.name}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-500 dark:text-gray-500 truncate max-w-xs">{item.description}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {item.image ? (
-                        <img src={item.image} alt={item.name} className="w-10 h-10 rounded-lg object-cover bg-gray-100 dark:bg-gray-800" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 dark:text-gray-600">
-                          <Briefcase className="w-5 h-5" />
+                  (services.length > 0 ? services : []).length > 0 ? (
+                  (services || []).filter(s => 
+                    s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    (s.client_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+                  ).map((service) => (
+                    <tr key={service.id} className="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-medium text-gray-900 dark:text-white">{service.name}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-500 truncate max-w-xs">{service.description}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+                          <User className="w-3 h-3 text-gray-400 dark:text-gray-500" />
+                          {service.client_name}
                         </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button 
-                          onClick={() => handleCatalogEdit(item)}
-                          className="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleCatalogDelete(item)}
-                          className="p-1.5 text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
-                        >
-                          <Trash className="w-4 h-4" />
-                        </button>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-gray-500 dark:text-gray-400 text-sm">
+                          {service.worker_name || '-'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-gray-500 dark:text-gray-400 text-sm">
+                           {service.third_party_provider || '-'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="font-medium text-gray-900 dark:text-white">
+                          {service.status === 'entregado' ? (
+                            `$${Number(service.value || 0).toLocaleString()}`
+                          ) : (
+                            <span className="text-amber-500 font-bold bg-amber-500/10 px-2 py-0.5 rounded-lg border border-amber-500/20">
+                              Pendiente
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {renderStatusBadge(service)}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button 
+                            onClick={() => handleWhatsAppNotification(service)}
+                            className="p-1.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
+                            title="Enviar por WhatsApp"
+                          >
+                            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.965C16.59 2.016 14.12 1.01 11.5 1.012c-5.443 0-9.87 4.372-9.874 9.802-.001 1.64.453 3.24 1.314 4.676l-.99 3.619 3.707-.973zm13.111-8.318c-.29-.145-1.72-.848-1.986-.944-.266-.096-.46-.145-.653.145-.19.29-.738.944-.906 1.139-.167.194-.336.217-.626.072-.29-.145-1.226-.452-2.335-1.441-.863-.77-1.445-1.721-1.614-2.012-.17-.291-.018-.448.127-.592.13-.13.29-.339.435-.509.145-.17.193-.291.29-.485.097-.194.048-.364-.025-.509-.072-.145-.653-1.573-.895-2.155-.236-.569-.475-.491-.653-.5-.17-.008-.364-.01-.557-.01-.193 0-.508.072-.773.364-.266.29-1.016.994-1.016 2.424s1.04 2.812 1.185 3.006c.145.194 2.046 3.125 4.958 4.38.693.3 1.233.478 1.656.613.696.22 1.33.19 1.83.115.558-.084 1.72-.703 1.962-1.382.242-.678.242-1.26.17-1.382-.073-.122-.266-.194-.557-.339z"/>
+                            </svg>
+                          </button>
+                          {service.status !== 'entregado' && (
+                            <button 
+                              onClick={() => handleDeliver(service)}
+                              className="p-1.5 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-colors"
+                              title="Entregar y Cobrar"
+                            >
+                              <DollarSign className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => handleSilentPrint(service)}
+                            className="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                            title="Imprimir Recibo"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleSendEmail(service)}
+                            className="p-1.5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-colors"
+                            title="Enviar por Correo"
+                          >
+                            <Mail className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleEdit(service)}
+                            className="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(service)}
+                            className="p-1.5 text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center text-gray-500">
+                        <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-full mb-3">
+                          <Briefcase className="w-8 h-8 opacity-50" />
+                        </div>
+                        <p className="text-lg font-medium text-gray-600 dark:text-gray-400">No hay servicios registrados</p>
+                        <p className="text-sm mt-1">Comienza agregando un nuevo servicio para tus clientes.</p>
                       </div>
                     </td>
                   </tr>
-                ))
+                )
               ) : (
-                <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center justify-center text-gray-500">
-                      <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-full mb-3">
-                        <Briefcase className="w-8 h-8 opacity-50" />
+                // Catalog View
+                filteredCatalog.length > 0 ? (
+                  filteredCatalog.map((item) => (
+                    <tr key={item.id} className="group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="font-medium text-gray-900 dark:text-white">{item.name}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-500 dark:text-gray-500 truncate max-w-xs">{item.description}</div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {item.image ? (
+                          <img src={item.image} alt={item.name} className="w-10 h-10 rounded-lg object-cover bg-gray-100 dark:bg-gray-800" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-400 dark:text-gray-600">
+                            <Briefcase className="w-5 h-5" />
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button 
+                            onClick={() => handleCatalogEdit(item)}
+                            className="p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleCatalogDelete(item)}
+                            className="p-1.5 text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors"
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center text-gray-500">
+                        <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded-full mb-3">
+                          <Briefcase className="w-8 h-8 opacity-50" />
+                        </div>
+                        <p className="text-lg font-medium text-gray-600 dark:text-gray-400">El catálogo está vacío</p>
+                        <p className="text-sm mt-1">Agrega servicios predefinidos para agilizar tus tickets.</p>
                       </div>
-                      <p className="text-lg font-medium text-gray-600 dark:text-gray-400">El catálogo está vacío</p>
-                      <p className="text-sm mt-1">Agrega servicios predefinidos para agilizar tus tickets.</p>
-                    </div>
-                  </td>
-                </tr>
-              )
-            )}
-            </tbody>
-          </table>
+                    </td>
+                  </tr>
+                )
+              )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Add Service Modal */}
       {isModalOpen && (
@@ -1333,7 +1532,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
           <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
             <div className="p-6 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">{editingId ? 'Editar Servicio' : 'Nuevo Servicio'}</h2>
-              <button onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData({ name: '', description: '', third_party_provider: '', value: '', clientId: '', status: 'recibido' }); if (onClose) onClose(); }} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
+              <button onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData({ name: '', description: '', third_party_provider: '', third_party_cost: '', value: '', clientId: '', worker: '', status: 'recibido', scheduled_start: '', scheduled_end: '' }); if (onClose) onClose(); }} className="text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -1639,8 +1838,12 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
                         onChange={handleInputChange}
                         className={`w-full bg-white dark:bg-gray-800 border ${serviceErrors.status ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'} rounded-lg pl-10 pr-4 py-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500/40 focus:outline-none appearance-none transition-all`}
                       >
+                        <option value="agendado">Agendado</option>
                         <option value="recibido">Recibido</option>
+                        <option value="en_progreso">En Progreso</option>
+                        <option value="completado">Completado</option>
                         <option value="entregado">Entregado</option>
+                        <option value="cancelado">Cancelado</option>
                       </select>
                    </div>
                 </div>
@@ -1665,7 +1868,7 @@ const ServicesPage: React.FC<ServicesPageProps> = ({ token, apiBase, initialOpen
               <div className="pt-4 flex gap-3">
                 <button 
                   type="button" 
-                  onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData({ name: '', description: '', third_party_provider: '', value: '', clientId: '', status: 'recibido' }); if (onClose) onClose(); }}
+                  onClick={() => { setIsModalOpen(false); setEditingId(null); setFormData({ name: '', description: '', third_party_provider: '', third_party_cost: '', value: '', clientId: '', worker: '', status: 'recibido', scheduled_start: '', scheduled_end: '' }); if (onClose) onClose(); }}
                   className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
                   Cancelar

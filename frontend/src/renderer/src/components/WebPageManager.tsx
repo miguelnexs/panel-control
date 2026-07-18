@@ -934,7 +934,7 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
                   
                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-3">
                     <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-700 dark:text-gray-300">
-                      {p.category_name || (p.category && typeof p.category === 'object' ? p.category.name : 'General')}
+                      {(p as any).category_name || (p.category && typeof p.category === 'object' ? (p.category as any).name : 'General')}
                     </span>
                     <span>•</span>
                     <span>Stock: {Number(p.total_stock ?? p.inventory_qty ?? 0)}</span>
