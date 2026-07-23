@@ -97,7 +97,7 @@ const DragHandle = () => (
   </button>
 );
 
-const SortableCategoryCard = ({ 
+const SortableCategoryRow = ({ 
   category, 
   visible, 
   onToggleVisible, 
@@ -108,53 +108,62 @@ const SortableCategoryCard = ({
   onToggleVisible: (c: Category, v: boolean) => void,
   imageUrl: string | null
 }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: category.id.toString(),
   });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : 'auto',
+    position: 'relative' as const,
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center gap-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
-    >
-      <div {...attributes} {...listeners} className="touch-none">
+    <tr ref={setNodeRef} style={style} className="hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors group">
+      <td className="px-2 py-4 w-10 text-center">
+        <div {...attributes} {...listeners} className="touch-none inline-block">
           <DragHandle />
-      </div>
-
-      <div className="w-16 h-16 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
-        {imageUrl ? (
-          <img src={imageUrl} alt={category.name || category.nombre} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600 text-xs">Sin img</div>
-        )}
-      </div>
-      
-      <div className="flex-1 min-w-0">
-        <h3 className="font-medium text-gray-900 dark:text-white truncate">{category.name || category.nombre}</h3>
-        <p className="text-xs text-gray-500 mb-2">ID: {category.id}</p>
-        
-        <label className="inline-flex items-center gap-2 cursor-pointer group">
-          <div className={`w-9 h-5 rounded-full p-0.5 transition-colors ${visible ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}>
-            <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${visible ? 'translate-x-4' : 'translate-x-0'}`} />
+        </div>
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden flex-shrink-0">
+            {imageUrl ? (
+              <img src={imageUrl} alt={category.name || category.nombre} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600 text-xs">Sin img</div>
+            )}
           </div>
-          <input 
-            type="checkbox" 
-            className="hidden" 
-            checked={!!visible} 
-            onChange={(e) => onToggleVisible(category, e.target.checked)} 
-          />
-          <span className={`text-xs transition-colors ${visible ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300'}`}>
-            {visible ? 'Visible en web' : 'Oculto'}
-          </span>
-        </label>
-      </div>
-    </div>
+          <div>
+            <div className="font-medium text-gray-900 dark:text-white line-clamp-1" title={category.name || category.nombre}>
+              {category.name || category.nombre}
+            </div>
+            <div className="text-xs text-gray-400 dark:text-gray-500">ID: {category.id}</div>
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4 text-center">
+        <button 
+          onClick={() => onToggleVisible(category, !visible)}
+          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border transition-colors ${visible ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700'}`}
+          title={visible ? 'Ocultar de la web' : 'Hacer visible en la web'}
+        >
+          {visible ? (
+            <>
+              <Eye size={12} />
+              <span>Visible</span>
+            </>
+          ) : (
+            <>
+              <EyeOff size={12} />
+              <span>Oculto</span>
+            </>
+          )}
+        </button>
+      </td>
+    </tr>
   );
 };
 
@@ -886,82 +895,116 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {products.map((p) => (
-                <div key={p.id} className="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-gray-300 dark:hover:border-gray-600 transition-colors group">
-                  <div className="aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg mb-3 overflow-hidden border border-gray-200 dark:border-gray-700 relative">
-                    <SafeImage 
-                      src={mediaUrl(p.image)} 
-                      alt={p.name} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                      fallbackIcon={<ShoppingBag className="w-8 h-8 opacity-20" />}
-                    />
-                    {p.is_sale && p.sale_price && (
-                      <div className="absolute top-2 left-2">
-                        <span className="text-[10px] px-2 py-1 rounded-full bg-rose-600 text-white font-bold shadow">
-                          Oferta
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Producto</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Precio</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Categoría</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Stock</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">Estado Web</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                  {products.map((p) => (
+                    <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/20 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden flex-shrink-0">
+                            <SafeImage 
+                              src={mediaUrl(p.image)} 
+                              alt={p.name} 
+                              className="w-full h-full object-cover" 
+                              fallbackIcon={<ShoppingBag className="w-5 h-5 opacity-30" />}
+                            />
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900 dark:text-white line-clamp-1" title={p.name}>
+                              {p.name}
+                            </div>
+                            {p.is_sale && p.sale_price && (
+                              <span className="inline-flex text-[9px] px-2 py-0.5 mt-1 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300 border border-rose-200 dark:border-rose-500/20 font-bold uppercase tracking-wider">
+                                Oferta
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {p.is_sale && p.sale_price ? (
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-rose-600 dark:text-rose-400">
+                              {Number(p.sale_price || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                            </span>
+                            <span className="text-xs text-gray-400 dark:text-gray-500 line-through">
+                              {Number(p.price || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            {Number(p.price || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200">
+                          {(p as any).category_name || (p.category && typeof p.category === 'object' ? (p.category as any).name : 'General')}
                         </span>
-                      </div>
-                    )}
-                    <div className="absolute top-2 right-2">
-                       <button 
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                        {Number(p.total_stock ?? p.inventory_qty ?? 0)}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button 
                           onClick={() => toggleVisible(p, !visible[p.id])}
-                          className={`p-1.5 rounded-lg backdrop-blur-sm border transition-colors ${visible[p.id] ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' : 'bg-white/60 dark:bg-gray-900/60 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:text-gray-900 dark:hover:text-white'}`}
-                          title={visible[p.id] ? 'Visible en web' : 'Oculto en web'}
-                       >
-                         {visible[p.id] ? <Eye size={14} /> : <EyeOff size={14} />}
-                       </button>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <h3 className="font-medium text-gray-900 dark:text-white truncate" title={p.name}>{p.name}</h3>
-                    {p.is_sale && p.sale_price ? (
-                      <div className="flex flex-col items-end shrink-0">
-                        <span className="font-bold text-rose-700 dark:text-rose-300">
-                          {Number(p.sale_price || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
-                        </span>
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400 line-through">
-                          {Number(p.price || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                        {Number(p.price || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })}
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-3">
-                    <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded text-gray-700 dark:text-gray-300">
-                      {(p as any).category_name || (p.category && typeof p.category === 'object' ? (p.category as any).name : 'General')}
-                    </span>
-                    <span>•</span>
-                    <span>Stock: {Number(p.total_stock ?? p.inventory_qty ?? 0)}</span>
-                  </div>
-
-                  <div className="flex items-center gap-2 mt-auto pt-3 border-t border-gray-100 dark:border-gray-700/50">
-                    <button 
-                      onClick={() => setProductEditing && setProductEditing(p)}
-                      className="flex-1 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-600/10 hover:bg-indigo-100 dark:hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 text-xs font-medium transition-colors flex items-center justify-center gap-1"
-                    >
-                      <Edit size={14} /> Editar
-                    </button>
-                    <button 
-                      onClick={() => removeProduct(p)}
-                      className="flex-1 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-600/10 hover:bg-rose-100 dark:hover:bg-rose-600/20 text-rose-600 dark:text-rose-400 text-xs font-medium transition-colors flex items-center justify-center gap-1"
-                    >
-                      <Trash size={14} /> Eliminar
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {products.length === 0 && (
-                <div className="col-span-full py-12 text-center text-gray-500">
-                  <ShoppingBag className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                  <p>No se encontraron productos</p>
-                </div>
-              )}
+                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium border transition-colors ${visible[p.id] ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-700'}`}
+                          title={visible[p.id] ? 'Ocultar de la web' : 'Hacer visible en la web'}
+                        >
+                          {visible[p.id] ? (
+                            <>
+                              <Eye size={12} />
+                              <span>Visible</span>
+                            </>
+                          ) : (
+                            <>
+                              <EyeOff size={12} />
+                              <span>Oculto</span>
+                            </>
+                          )}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button 
+                            onClick={() => setProductEditing && setProductEditing(p)}
+                            className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-600/10 hover:bg-indigo-100 dark:hover:bg-indigo-600/20 text-indigo-600 dark:text-indigo-400 text-xs font-medium transition-colors"
+                            title="Editar"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button 
+                            onClick={() => removeProduct(p)}
+                            className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-600/10 hover:bg-rose-100 dark:hover:bg-rose-600/20 text-rose-600 dark:text-rose-400 text-xs font-medium transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {products.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-gray-500">
+                        <ShoppingBag className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                        <p>No se encontraron productos</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -1105,25 +1148,38 @@ const WebPageManager: React.FC<WebPageManagerProps> = ({ token, apiBase: rawApiB
             </div>
 
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={categories.map(c => c.id.toString())} strategy={verticalListSortingStrategy}>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {(categories || []).filter((c) => !query || (c.name || c.nombre || '').toLowerCase().includes(query.toLowerCase())).map((c) => (
-                    <SortableCategoryCard 
-                      key={c.id} 
-                      category={c} 
-                      visible={!!visibleCats[c.id]} 
-                      onToggleVisible={toggleVisibleCat} 
-                      imageUrl={c.image ? mediaUrl(c.image) : null}
-                    />
-                  ))}
-                  {(!categories || categories.length === 0) && (
-                    <div className="col-span-full py-12 text-center text-gray-500">
-                      <Layers className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                      <p>No hay categorías disponibles</p>
-                    </div>
-                  )}
-                </div>
-              </SortableContext>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
+                      <th className="w-10 px-2 text-center">Orden</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Categoría</th>
+                      <th className="px-6 py-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-center">Estado Web</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
+                    <SortableContext items={categories.map(c => c.id.toString())} strategy={verticalListSortingStrategy}>
+                      {(categories || []).filter((c) => !query || (c.name || c.nombre || '').toLowerCase().includes(query.toLowerCase())).map((c) => (
+                        <SortableCategoryRow 
+                          key={c.id} 
+                          category={c} 
+                          visible={!!visibleCats[c.id]} 
+                          onToggleVisible={toggleVisibleCat} 
+                          imageUrl={c.image ? mediaUrl(c.image) : null}
+                        />
+                      ))}
+                      {(!categories || categories.length === 0) && (
+                        <tr>
+                          <td colSpan={3} className="py-12 text-center text-gray-500">
+                            <Layers className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                            <p>No hay categorías disponibles</p>
+                          </td>
+                        </tr>
+                      )}
+                    </SortableContext>
+                  </tbody>
+                </table>
+              </div>
             </DndContext>
           </div>
         )}
