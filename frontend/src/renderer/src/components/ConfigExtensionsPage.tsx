@@ -1766,7 +1766,10 @@ export const ConfigExtensionsPage: React.FC<{ token: string; apiBase: string }> 
     }
   };
 
-  const filteredExtensions = extensionsCatalog.filter(ext => {
+  // Solo mostrar las 2 primeras integraciones (Alegra y Correo SMTP)
+  const visibleCatalog = extensionsCatalog.slice(0, 2);
+
+  const filteredExtensions = visibleCatalog.filter(ext => {
     const matchesCategory = activeCategory === 'all' || ext.category === activeCategory;
     const matchesSearch = ext.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           ext.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -1813,7 +1816,7 @@ export const ConfigExtensionsPage: React.FC<{ token: string; apiBase: string }> 
         
         {/* Categories Tab list */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 sidebar-scrollbar">
-          {CATEGORIES.map(cat => (
+          {CATEGORIES.filter(cat => cat.id === 'all' || visibleCatalog.some(ext => ext.category === cat.id)).map(cat => (
             <button
               key={cat.id}
               onClick={() => setActiveCategory(cat.id)}

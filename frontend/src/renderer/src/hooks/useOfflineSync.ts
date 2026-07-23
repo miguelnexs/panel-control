@@ -181,7 +181,7 @@ export function useOfflineSync(token: string | null): UseOfflineSyncReturn {
           });
         }
 
-        if (res.ok) {
+        if (res.ok || (res.status === 404 && item.method === 'DELETE')) {
           await removeQueueItem(item.id!);
           // If it was a create, update the cached product with the real server id
           if (item.method === 'POST' && item.tempId) {
@@ -354,7 +354,7 @@ export function useOfflineSync(token: string | null): UseOfflineSyncReturn {
             });
           }
 
-          if (res.ok) {
+          if (res.ok || (res.status === 404 && opts.method === 'DELETE')) {
             let data: any = null;
             try { data = await res.json(); } catch { /* no body */ }
             // Update local cache with server response

@@ -201,6 +201,14 @@ function createWindow(): BrowserWindow {
     autoHideMenuBar: true,
   });
 
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http:') || url.startsWith('https:')) {
+      shell.openExternal(url);
+      return { action: 'deny' };
+    }
+    return { action: 'allow' };
+  });
+
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
     // mainWindow.webContents.openDevTools();

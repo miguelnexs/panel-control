@@ -125,15 +125,17 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
   const fetchCurrentSession = async () => {
     try {
       const res = await fetch(`${apiBase}/api/cashbox/sessions/current/`, { headers: authHeaders });
-      if (res.ok) {
-        const data = await res.json();
+      if (res.ok && res.status !== 204) {
+        const text = await res.text();
+        const data = text ? JSON.parse(text) : null;
         setCurrentSession(data);
       } else {
-        // 404 = no active session, clear state
+        // 204 / 404 = no active session, clear state
         setCurrentSession(null);
       }
     } catch (e) {
       console.error("Error fetching current session", e);
+      setCurrentSession(null);
     }
   };
 
@@ -242,14 +244,15 @@ const CashboxPage: React.FC<CashboxPageProps> = ({ token, apiBase }) => {
         method: 'DELETE',
         headers: authHeaders
       });
-      if (res.ok) {
+      if (res.ok || res.status === 404) {
         setMsg({ type: 'success', text: 'Turno eliminado correctamente' });
         fetchHistory();
         if (currentSession?.id === id) setCurrentSession(null);
         setDeletingSession(null);
       } else {
-        const data = await res.json();
-        setMsg({ type: 'error', text: data.detail || 'Error al eliminar turno' });
+        let errMsg = 'Error al eliminar turno';
+        try { const data = await res.json(); errMsg = data.detail || errMsg; } catch {}
+        setMsg({ type: 'error', text: errMsg });
       }
     } catch (e) {
       setMsg({ type: 'error', text: 'Error de conexión' });

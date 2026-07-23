@@ -47,6 +47,7 @@ interface WebsiteRequest {
 interface Props {
   apiBase: string;
   token: string | null;
+}
 const siteTypeLabels: Record<string, string> = {
   'e-commerce': 'Tienda Virtual 🛒',
   catalog: 'Catálogo Digital 📦',

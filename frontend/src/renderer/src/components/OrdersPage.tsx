@@ -23,7 +23,10 @@ import {
   Printer,
   Mail,
   FileText,
-  ChevronDown
+  ChevronDown,
+  ExternalLink,
+  Lock,
+  AlertCircle
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -187,7 +190,9 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
 
   const [alegraActive, setAlegraActive] = useState<boolean>(false);
+  const [emailActive, setEmailActive] = useState<boolean>(false);
   const [isEmittingAlegra, setIsEmittingAlegra] = useState<boolean>(false);
+  const [showAlegraPlanGuideModal, setShowAlegraPlanGuideModal] = useState<boolean>(false);
 
   const handleEmitAlegra = async (orderId: number) => {
     setIsEmittingAlegra(true);
@@ -220,7 +225,11 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
         });
         setOrders(updatedOrders);
       } else {
-        const errorMsg = data.detail || 'Error al emitir factura en Alegra.';
+        let errorMsg = data.detail || 'Error al emitir factura en Alegra.';
+        if (errorMsg.includes('plan Consulta') || errorMsg.includes('plan consulta')) {
+          errorMsg = 'Tu cuenta de Alegra está en "Plan Consulta" (Modo lectura). Inicia sesión en app.alegra.com para renovar tu suscripción o activar tu plan de facturación.';
+          setShowAlegraPlanGuideModal(true);
+        }
         showToast(errorMsg, 'error');
         const updatedOrders = orders.map(o => {
           if (o.id === orderId) {
@@ -267,6 +276,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
       } else {
         setAlegraActive(false);
       }
+      setEmailActive(!!installed.email_smtp);
 
       const newSettings: CompanySettings = {
         company_name: data.company_name || '',
@@ -364,6 +374,12 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
       </div>
     `).join('');
 
+    const rawNum = String(order.order_number || '').trim();
+    const dt = order.created_at ? new Date(order.created_at) : new Date();
+    const year = dt.getFullYear();
+    const idStr = String(order.id || rawNum.replace(/\D/g, '') || '1').padStart(4, '0');
+    const saleCode = rawNum.startsWith('#VEN-') ? rawNum : (rawNum.startsWith('VEN-') ? `#${rawNum}` : `#VEN-${year}-${idStr}`);
+
     const header = `
       ${logoTag}
       <div class="${alignCls}">
@@ -379,7 +395,7 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
       <!-- Información del Pedido -->
       <div style="padding: 4px 0; margin: 4px 0;">
         <div class="row small" style="margin-bottom: 2px;">
-          <div><strong>ORDEN:</strong> ${order.order_number}</div>
+          <div><strong>CÓDIGO VENTA:</strong> ${saleCode}</div>
           <div><strong>FECHA:</strong> ${new Date(order.created_at).toLocaleString()}</div>
         </div>
       </div>
@@ -432,10 +448,10 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
       </table>
     `;
     
-    const qr = printerOpts.show_qr ? `<div class="c"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(order.order_number)}" style="width:35mm;height:35mm;object-fit:contain"/></div>` : '';
+    const qr = printerOpts.show_qr ? `<div class="c" style="margin-top: 6px;"><img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(saleCode)}" style="width:36mm;height:36mm;object-fit:contain"/><div class="small" style="font-weight:700;font-family:monospace;margin-top:2px;">${saleCode}</div></div>` : '';
     const footer = `<div class="hr"></div>${qr}<div class="${alignCls} small">${settings.receipt_footer || ''}</div>`;
     
-    return `<!doctype html><html><head><meta charset="utf-8"><title>Recibo ${order.order_number}</title><style>${css}</style></head><body>${header}${table}${footer}</body></html>`;
+    return `<!doctype html><html><head><meta charset="utf-8"><title>Recibo ${saleCode}</title><style>${css}</style></head><body>${header}${table}${footer}</body></html>`;
   };
 
   const handleSilentPrint = async (order: Order) => {
@@ -1125,13 +1141,15 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
                       >
                         <Printer className="w-4 h-4" />
                       </button>
-                      <button 
-                        onClick={() => handleSendReceipt(o)}
-                        className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                        title="Enviar Recibo por Correo"
-                      >
-                        <Mail className="w-4 h-4" />
-                      </button>
+                      {emailActive && (
+                        <button 
+                          onClick={() => handleSendReceipt(o)}
+                          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                          title="Enviar Recibo por Correo"
+                        >
+                          <Mail className="w-4 h-4" />
+                        </button>
+                      )}
                       <button 
                         onClick={() => setViewOrder(o)}
                         className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
@@ -1529,8 +1547,18 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
                     )}
 
                     {viewOrder.alegra_invoice_status === 'error' && (
-                      <div className="text-[10px] text-rose-500 font-bold max-w-[200px] truncate" title={viewOrder.alegra_error_message}>
-                        ⚠️ {viewOrder.alegra_error_message}
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => setShowAlegraPlanGuideModal(true)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[11px] font-bold transition-all shadow-sm"
+                          title="Haz clic para ver cómo solucionar este problema"
+                        >
+                          <AlertCircle size={13} className="text-amber-500" />
+                          <span>Guía de Solución</span>
+                        </button>
+                        <div className="text-[10px] text-rose-500 font-bold max-w-[180px] truncate" title={viewOrder.alegra_error_message}>
+                          ⚠️ {viewOrder.alegra_error_message}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1752,6 +1780,125 @@ const OrdersPage: React.FC<OrdersPageProps> = ({ token, apiBase, canEdit, canDel
         </div>
       )}
 
+
+      {/* Modal / Popup de Guía de Solución para Alegra Plan Consulta */}
+      {showAlegraPlanGuideModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-950/70 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-900 border border-amber-500/30 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Elemento decorativo superior */}
+            <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-amber-500 via-rose-500 to-red-600" />
+            
+            {/* Header del modal */}
+            <div className="flex items-start justify-between gap-4 mb-6">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-500 shrink-0 shadow-lg shadow-amber-500/10">
+                  <AlertCircle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <span>Alegra: Plan Consulta Activo</span>
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Guía de solución paso a paso</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAlegraPlanGuideModal(false)}
+                className="p-2 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Banner de explicación del error */}
+            <div className="bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 rounded-2xl p-4 mb-6 text-xs text-amber-800 dark:text-amber-200 space-y-1">
+              <div className="font-bold flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
+                <Lock size={14} /> ¿Por qué ocurre este aviso?
+              </div>
+              <p className="leading-relaxed text-gray-700 dark:text-gray-300">
+                Alegra rechaza la creación de facturas porque tu cuenta se encuentra en modo sólo lectura (<strong>Plan Consulta</strong>). Esto sucede cuando la suscripción o el periodo de prueba ha vencido, o si tu usuario carece de permisos de edición.
+              </p>
+            </div>
+
+            {/* Pasos de solución */}
+            <div className="space-y-4 mb-6">
+              <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pasos para habilitar la facturación:</h4>
+              
+              <div className="space-y-3 text-xs">
+                {/* Paso 1 */}
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800">
+                  <div className="w-6 h-6 rounded-lg bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">1</div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900 dark:text-white">Ingresa a tu cuenta de Alegra</p>
+                    <p className="text-gray-500 dark:text-gray-400 mt-0.5">Abre tu panel web oficial en <span className="font-mono text-blue-500">app.alegra.com</span></p>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const url = 'https://app.alegra.com/configuration/subscription';
+                      // @ts-ignore
+                      if (window.electron && window.electron.ipcRenderer) {
+                        // @ts-ignore
+                        window.electron.ipcRenderer.invoke('open-external-url', url);
+                      } else {
+                        window.open(url, '_blank');
+                      }
+                    }}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-600 hover:text-white transition-all text-[11px] shrink-0"
+                  >
+                    <span>Ir a Alegra</span>
+                    <ExternalLink size={12} />
+                  </button>
+                </div>
+
+                {/* Paso 2 */}
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800">
+                  <div className="w-6 h-6 rounded-lg bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">2</div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900 dark:text-white">Renueva o activa tu Plan de Facturación</p>
+                    <p className="text-gray-500 dark:text-gray-400 mt-0.5">Ve al menú <strong>Configuración ⚙️ &gt; Suscripción y Pagos</strong> y renueva tu plan activo o periodo de prueba.</p>
+                  </div>
+                </div>
+
+                {/* Paso 3 */}
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-800">
+                  <div className="w-6 h-6 rounded-lg bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">3</div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900 dark:text-white">Re-emite la factura desde este panel</p>
+                    <p className="text-gray-500 dark:text-gray-400 mt-0.5">Una vez renovado el plan en Alegra, regresa a este pedido y haz clic en <strong>"Re-emitir Factura Alegra"</strong>.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer de botones */}
+            <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  const url = 'https://app.alegra.com/configuration/subscription';
+                  // @ts-ignore
+                  if (window.electron && window.electron.ipcRenderer) {
+                    // @ts-ignore
+                    window.electron.ipcRenderer.invoke('open-external-url', url);
+                  } else {
+                    window.open(url, '_blank');
+                  }
+                }}
+                className="w-full sm:w-auto flex-1 flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.02]"
+              >
+                <span>Abrir Alegra en el Navegador</span>
+                <ExternalLink size={14} />
+              </button>
+              <button
+                onClick={() => setShowAlegraPlanGuideModal(false)}
+                className="w-full sm:w-auto px-5 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-medium transition-colors"
+              >
+                Cerrar Guía
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Toast 
         message={toast.message} 

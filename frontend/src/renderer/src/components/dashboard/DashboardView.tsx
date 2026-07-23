@@ -43,6 +43,8 @@ interface DashboardViewProps {
   seriesB: number[]; // Used for performance
   topProducts: TopProduct[];
   chartLabels: string[];
+  timeRange?: 'week' | 'month' | 'year';
+  onTimeRangeChange?: (range: 'week' | 'month' | 'year') => void;
 }
 
 const StatCardV2: React.FC<{ 
@@ -94,7 +96,7 @@ const SystemHealthCard: React.FC<{ label: string; status: 'healthy' | 'warning' 
   </div>
 );
 
-const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, topProducts, chartLabels }) => {
+const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, topProducts, chartLabels, timeRange = 'week', onTimeRangeChange }) => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       
@@ -144,9 +146,53 @@ const DashboardView: React.FC<DashboardViewProps> = ({ stats, seriesA, seriesB, 
       {/* Section 2: Charts & System Health */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Chart */}
-        <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-6 shadow-theme">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Actividad de Ventas (Últimos 7 días)</h3>
+        <div className="lg:col-span-2 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 p-6 shadow-theme flex flex-col justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Actividad de Ventas ({timeRange === 'week' ? 'Semanal' : timeRange === 'month' ? 'Mensual' : 'Anual'})
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {timeRange === 'week' ? 'Movimientos de los últimos 7 días' : timeRange === 'month' ? 'Movimientos de los últimos 30 días' : `Resumen del año ${new Date().getFullYear()}`}
+              </p>
+            </div>
+            
+            {/* Filter Buttons */}
+            <div className="inline-flex items-center bg-gray-100 dark:bg-gray-800/80 p-1 rounded-xl border border-gray-200/80 dark:border-gray-700/80 text-xs font-semibold self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => onTimeRangeChange?.('week')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  timeRange === 'week'
+                    ? 'bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Semana
+              </button>
+              <button
+                type="button"
+                onClick={() => onTimeRangeChange?.('month')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  timeRange === 'month'
+                    ? 'bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Mes
+              </button>
+              <button
+                type="button"
+                onClick={() => onTimeRangeChange?.('year')}
+                className={`px-3 py-1.5 rounded-lg transition-all ${
+                  timeRange === 'year'
+                    ? 'bg-white dark:bg-gray-900 text-blue-600 dark:text-blue-400 shadow-sm font-bold'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                Año
+              </button>
+            </div>
           </div>
           <div className="h-80 md:h-[28rem]">
             <ActivityChart data={seriesA} labels={chartLabels} />

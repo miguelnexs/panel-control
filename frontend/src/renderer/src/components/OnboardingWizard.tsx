@@ -311,7 +311,8 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ token, apiBase, use
   const handleCreateCategory = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!categoryName.trim()) {
-      showToast('Por favor ingresa un nombre para la categoría', 'warning');
+      addLog('TUTORIAL: Creación de categoría omitida.');
+      setStep(5);
       return;
     }
 
@@ -355,16 +356,9 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ token, apiBase, use
     if (e) e.preventDefault();
     const catId = createdCategoryId || (categories.length > 0 ? String(categories[0].id) : '');
 
-    if (!productName.trim()) {
-      showToast('Por favor ingresa el nombre del producto', 'warning');
-      return;
-    }
-    if (!productPrice) {
-      showToast('Por favor ingresa el precio de venta', 'warning');
-      return;
-    }
-    if (!catId) {
-      showToast('Por favor selecciona o crea una categoría primero', 'warning');
+    if (!productName.trim() || !productPrice) {
+      addLog('TUTORIAL: Carga de producto omitida.');
+      setStep(6);
       return;
     }
 
@@ -986,13 +980,16 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ token, apiBase, use
                 </div>
               )}
 
-              {/* STEP 4: CATEGORY CREATION */}
+              {/* STEP 4: CATEGORY CREATION (OPTIONAL) */}
               {step === 4 && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500 w-full">
                   <div className="space-y-2 mb-6">
-                    <span className="text-xs font-black text-indigo-650 dark:text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-3 py-1 rounded-full">Paso 4 de 6</span>
-                    <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">Crea tu Primera Categoría</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Las categorías agrupan tu catálogo para un cobro más rápido en la pantalla de ventas.</p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-indigo-650 dark:text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-3 py-1 rounded-full">Paso 4 de 6</span>
+                      <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">Demostración Opcional</span>
+                    </div>
+                    <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">Crea una Categoría (Opcional)</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Este paso te enseña cómo agrupar tu catálogo. Puedes crear una categoría ahora para probar o saltar este paso.</p>
                   </div>
 
                   <form onSubmit={handleCreateCategory} className="space-y-5">
@@ -1027,7 +1024,6 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ token, apiBase, use
                         onChange={(e) => setCategoryName(e.target.value)}
                         placeholder="Ej. Bebidas, Tecnología, Servicios..."
                         className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-750 rounded-2xl px-5 py-4 text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all font-semibold shadow-inner"
-                        required
                       />
                     </div>
 
@@ -1042,34 +1038,48 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ token, apiBase, use
                       />
                     </div>
 
-                    <div className="pt-2">
+                    <div className="pt-2 flex flex-col sm:flex-row gap-3">
                       <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-600/20 transition-all active:scale-98 flex items-center justify-center gap-2"
+                        className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-600/20 transition-all active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
                       >
-                        {loading ? 'Procesando...' : 'Crear Categoría y Continuar'}
+                        {loading ? 'Procesando...' : categoryName.trim() ? 'Crear Categoría y Continuar' : 'Siguiente Paso'}
                         <ChevronRight className="w-5 h-5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          addLog('TUTORIAL: Creación de categoría omitida por el usuario.');
+                          setStep(5);
+                        }}
+                        className="px-6 py-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl text-sm font-bold transition-all active:scale-98 cursor-pointer"
+                      >
+                        Omitir este paso
                       </button>
                     </div>
                   </form>
                 </div>
               )}
 
-              {/* STEP 5: PRODUCT CREATION */}
+              {/* STEP 5: PRODUCT CREATION (OPTIONAL) */}
               {step === 5 && (
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500 w-full">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
                     <div className="space-y-1">
-                      <span className="text-xs font-black text-indigo-650 dark:text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-3 py-1 rounded-full">Paso 5 de 6</span>
-                      <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">Carga tu Primer Producto</h2>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-indigo-650 dark:text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-3 py-1 rounded-full">Paso 5 de 6</span>
+                        <span className="text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">Demostración Opcional</span>
+                      </div>
+                      <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">Carga un Producto (Opcional)</h2>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Guía interactiva para ingresar artículos a tu inventario. Puedes cargar uno ahora o omitir este paso.</p>
                     </div>
                     {categoryName && (
                       <button
                         type="button"
                         onClick={generateWithIA}
                         disabled={generatingWithAi}
-                        className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 hover:bg-indigo-600 hover:text-white text-indigo-600 dark:text-indigo-400 rounded-xl text-xs font-black transition-all active:scale-95 border border-indigo-500/20"
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 hover:bg-indigo-600 hover:text-white text-indigo-600 dark:text-indigo-400 rounded-xl text-xs font-black transition-all active:scale-95 border border-indigo-500/20 shrink-0"
                       >
                         <Wand2 className="w-4 h-4 animate-pulse" />
                         Autocompletar con IA
@@ -1087,7 +1097,6 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ token, apiBase, use
                           onChange={(e) => setProductName(e.target.value)}
                           placeholder="Ej. Capuchino 12oz, Portátil..."
                           className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-750 rounded-2xl px-4 py-3.5 text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all font-semibold shadow-inner"
-                          required
                         />
                       </div>
 
@@ -1101,7 +1110,6 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ token, apiBase, use
                             onChange={(e) => setProductPrice(e.target.value)}
                             placeholder="Precio al público"
                             className="w-full bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-750 rounded-2xl pl-10 pr-4 py-3.5 text-sm text-gray-900 dark:text-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all font-semibold shadow-inner"
-                            required
                           />
                         </div>
                       </div>
@@ -1154,14 +1162,24 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ token, apiBase, use
                       </div>
                     </div>
 
-                    <div className="pt-2">
+                    <div className="pt-2 flex flex-col sm:flex-row gap-3">
                       <button
                         type="submit"
                         disabled={loading}
-                        className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-600/20 transition-all active:scale-98 flex items-center justify-center gap-2"
+                        className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-600/20 transition-all active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
                       >
-                        {loading ? 'Guardando...' : 'Crear Producto e Ir al Éxito'}
+                        {loading ? 'Guardando...' : (productName.trim() && productPrice) ? 'Crear Producto e Ir al Éxito' : 'Siguiente Paso'}
                         <ChevronRight className="w-5 h-5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          addLog('TUTORIAL: Carga de producto omitida por el usuario.');
+                          setStep(6);
+                        }}
+                        className="px-6 py-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-2xl text-sm font-bold transition-all active:scale-98 cursor-pointer"
+                      >
+                        Omitir este paso
                       </button>
                     </div>
                   </form>
@@ -1215,20 +1233,32 @@ const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ token, apiBase, use
               <button
                 onClick={() => {
                   if (step === 2) {
-                    handleSaveCompanySettings();
+                    if (companyName.trim()) {
+                      handleSaveCompanySettings();
+                    } else {
+                      setStep(3);
+                    }
                   } else if (step === 3) {
                     handleSaveReceiptSettings();
                   } else if (step === 4) {
-                    handleCreateCategory();
+                    if (categoryName.trim()) {
+                      handleCreateCategory();
+                    } else {
+                      setStep(5);
+                    }
                   } else if (step === 5) {
-                    handleCreateProduct();
+                    if (productName.trim() && productPrice) {
+                      handleCreateProduct();
+                    } else {
+                      setStep(6);
+                    }
                   } else {
                     setStep(step + 1);
                   }
                 }}
-                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-black shadow-lg shadow-indigo-600/30 transition-all active:scale-95 flex items-center gap-2"
+                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-black shadow-lg shadow-indigo-600/30 transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
               >
-                <span>{step === 1 ? 'Iniciar Tutorial' : 'Siguiente Paso'}</span>
+                <span>{step === 1 ? 'Iniciar Tutorial' : (step === 4 || step === 5) && (!categoryName.trim() && !productName.trim()) ? 'Omitir / Siguiente' : 'Siguiente Paso'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             )}

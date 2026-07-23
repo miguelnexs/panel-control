@@ -4,7 +4,9 @@ import {
   MapPin, Globe, Smartphone, FileText, Palette, 
   Image as ImageIcon, Mail, Phone, Briefcase, 
   CreditCard, Layout, Type, AlignCenter, Maximize, 
-  Minimize, QrCode, CheckCircle2, AlertCircle, X, Key
+  Minimize, QrCode, CheckCircle2, AlertCircle, X, Key,
+  ShieldCheck, Instagram, Landmark, Sparkles, BadgeCheck,
+  Building2, Hash, FileCheck
 } from 'lucide-react';
 
 import GoogleConfig from './GoogleConfig';
@@ -17,6 +19,9 @@ interface UserProfile {
   phone: string;
   department: string;
   position: string;
+  role?: string;
+  tenant_name?: string;
+  subscription_name?: string;
 }
 
 interface CompanySettings {
@@ -30,6 +35,15 @@ interface CompanySettings {
   primary_color: string;
   secondary_color: string;
   logo: string | null;
+  // Campos corporativos adicionales
+  tax_regime?: string;
+  city_dept?: string;
+  merchant_register?: string;
+  legal_representative?: string;
+  website_url?: string;
+  social_instagram?: string;
+  bank_info?: string;
+  raw_page_content?: any;
   // Ventas
   printer_type?: string;
   printer_name?: string;
@@ -180,6 +194,9 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
         phone: data.phone || '',
         department: data.department || '',
         position: data.position || '',
+        role: data.role || 'employee',
+        tenant_name: data.tenant?.name || data.tenant_name || 'Mi Empresa',
+        subscription_name: data.subscription?.name || (data.role === 'super_admin' ? 'Super Admin' : 'Plan Profesional')
       });
     } catch (e: any) {
       setMsg({ type: 'error', text: e.message });
@@ -228,6 +245,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
       const res = await fetch(`${apiBase}/webconfig/settings/`, { headers: headers(token) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'No se pudieron cargar configuraciones');
+      const pageContent = data.page_content || {};
       setSettings({
         company_name: data.company_name || '',
         company_nit: data.company_nit || '',
@@ -239,6 +257,14 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
         primary_color: data.primary_color || '#0ea5e9',
         secondary_color: data.secondary_color || '#1f2937',
         logo: data.logo || null,
+        tax_regime: pageContent.tax_regime || 'no_responsable',
+        city_dept: pageContent.city_dept || '',
+        merchant_register: pageContent.merchant_register || '',
+        legal_representative: pageContent.legal_representative || '',
+        website_url: pageContent.website_url || '',
+        social_instagram: pageContent.social_instagram || '',
+        bank_info: pageContent.bank_info || '',
+        raw_page_content: pageContent,
         // Ventas
         printer_type: data.printer_type || 'system',
         printer_name: data.printer_name || '',
@@ -377,6 +403,17 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
         setSaving(false);
         return;
       }
+      const pageContentPayload = {
+        ...(settings.raw_page_content || {}),
+        tax_regime: settings.tax_regime || '',
+        city_dept: settings.city_dept || '',
+        merchant_register: settings.merchant_register || '',
+        legal_representative: settings.legal_representative || '',
+        website_url: settings.website_url || '',
+        social_instagram: settings.social_instagram || '',
+        bank_info: settings.bank_info || '',
+      };
+
       const fd = new FormData();
       fd.append('company_name', settings.company_name || '');
       fd.append('company_nit', settings.company_nit || '');
@@ -387,11 +424,13 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
       fd.append('company_description', settings.company_description || '');
       fd.append('primary_color', settings.primary_color || '');
       fd.append('secondary_color', settings.secondary_color || '');
+      fd.append('page_content', JSON.stringify(pageContentPayload));
+
       if (logoFile) fd.append('logo', logoFile);
       const res = await fetch(`${apiBase}/webconfig/settings/`, { method: 'PUT', headers: headers(token, false), body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || 'No se pudieron guardar cambios');
-      setMsg({ type: 'success', text: 'Identidad de empresa guardada' });
+      setMsg({ type: 'success', text: 'Identidad corporativa guardada exitosamente' });
       setLogoFile(null);
       setSettings((s) => ({
         ...s,
@@ -438,7 +477,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
           ${printerOpts.header2 ? `<div class="small">${printerOpts.header2}</div>` : ''}
         </div>
         <div class="hr"></div>
-        <div class="row small"><div>Orden: DEMO-0001</div><div>${new Date().toLocaleString()}</div></div>
+        <div class="row small"><div>CÓDIGO VENTA: #VEN-2026-0220</div><div>${new Date().toLocaleString()}</div></div>
         <div class="row small"><div>Cliente: Juan Pérez</div><div></div></div>
       `;
       const itemsHtml = [
@@ -452,8 +491,9 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
           <tfoot><tr><td colspan="3" class="t">Total</td><td class="r t">${(75000).toLocaleString('es-CO',{style:'currency',currency:'COP'})}</td></tr></tfoot>
         </table>
       `;
-      const qr = printerOpts.show_qr ? `<div class="c"><img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('DEMO-0001')}" style="width:35mm;height:35mm;object-fit:contain"/></div>` : '';
-      const footer = `<div class="hr"></div><div class="${alignCls} small">${settings.receipt_footer || ''}</div>${qr}`;
+      const sampleSaleCode = '#VEN-2026-0220';
+      const qr = printerOpts.show_qr ? `<div class="c" style="margin-top: 6px;"><img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(sampleSaleCode)}" style="width:36mm;height:36mm;object-fit:contain"/><div class="small" style="font-weight:700;font-family:monospace;margin-top:2px;">${sampleSaleCode}</div></div>` : '';
+      const footer = `<div class="hr"></div>${qr}<div class="${alignCls} small">${settings.receipt_footer || ''}</div>`;
       const html = `<!doctype html><html><head><meta charset="utf-8"><title>Recibo</title><style>${css}</style></head><body>${header}${table}${footer}</body></html>`;
       
       setPreviewHtml(html);
@@ -519,7 +559,7 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
   };
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-7xl mx-auto">
+    <div className="space-y-6 animate-fade-in w-full">
       {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 dark:border-gray-800 pb-6">
         <div>
@@ -554,10 +594,10 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
               key={t.id}
               onClick={() => setTab(t.id as any)}
               className={`
-                flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap
+                flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap
                 ${tab === t.id 
-                  ? 'bg-white dark:bg-emerald-600 text-gray-900 dark:text-white shadow-sm dark:shadow-lg dark:shadow-emerald-900/20' 
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-white/5'
+                  ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm border border-gray-200 dark:border-gray-700 font-bold' 
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-gray-800/40'
                 }
               `}
             >
@@ -580,320 +620,532 @@ const ConfigPage: React.FC<ConfigPageProps> = ({ token, apiBase: rawApiBase, for
       <div className="relative">
         {/* Datos Personales */}
         {tab === 'datos' && (
-          <div className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 md:p-8 animate-fade-in shadow-sm dark:shadow-none">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                <User size={24} />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Información de Perfil</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Actualiza tus datos personales y de contacto</p>
+          <div className="space-y-6 animate-fade-in w-full">
+            {/* Hero Card del Perfil Profesional - Estilo Sutil y Sobrio */}
+            <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 sm:p-8 text-gray-900 dark:text-white shadow-sm relative overflow-hidden">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 relative z-10">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gray-200 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 flex items-center justify-center text-2xl sm:text-3xl font-extrabold shadow-inner shrink-0 text-gray-700 dark:text-gray-200 uppercase">
+                  {(me.first_name?.[0] || me.username?.[0] || 'U')}
+                  {(me.last_name?.[0] || '')}
+                </div>
+                <div className="flex-1 text-center sm:text-left space-y-2">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                    <span className="px-3 py-1 rounded-full bg-gray-200/80 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1 border border-gray-300/50 dark:border-gray-700">
+                      <BadgeCheck size={14} className="text-gray-500 dark:text-gray-400" />
+                      <span>{me.role === 'super_admin' ? 'Super Administrador' : me.role === 'admin' ? 'Administrador' : 'Empleado'}</span>
+                    </span>
+                    <span className="px-3 py-1 rounded-full bg-gray-200/60 dark:bg-gray-800/60 text-xs font-medium text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
+                      {me.subscription_name || 'Plan Profesional'}
+                    </span>
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                    {me.first_name || me.last_name ? `${me.first_name} ${me.last_name}` : me.username}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1">
+                    <span className="flex items-center gap-1"><User size={14} /> @{me.username}</span>
+                    <span className="flex items-center gap-1"><Building size={14} /> {me.tenant_name || 'Mi Empresa'}</span>
+                    {me.email && <span className="flex items-center gap-1"><Mail size={14} /> {me.email}</span>}
+                  </p>
+                </div>
               </div>
             </div>
 
-            <form onSubmit={saveMe} className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
-                    <User size={14} /> Usuario
-                  </label>
-                  <input 
-                    name="username" 
-                    value={me.username} 
-                    disabled 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800/50 text-gray-500 border border-gray-200 dark:border-gray-800 cursor-not-allowed" 
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
-                    <Mail size={14} /> Correo Electrónico
-                  </label>
-                  <input 
-                    name="email" 
-                    value={me.email} 
-                    onChange={handleChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
-                    placeholder="ejemplo@correo.com"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Nombre</label>
-                  <input 
-                    name="first_name" 
-                    value={me.first_name} 
-                    onChange={handleChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Apellido</label>
-                  <input 
-                    name="last_name" 
-                    value={me.last_name} 
-                    onChange={handleChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-6 border-t border-gray-200 dark:border-gray-800 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
-                    <Building size={14} /> Departamento
-                  </label>
-                  <input 
-                    name="department" 
-                    value={me.department || ''} 
-                    onChange={handleChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
-                    <Briefcase size={14} /> Cargo
-                  </label>
-                  <input 
-                    name="position" 
-                    value={me.position || ''} 
-                    onChange={handleChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-4">
-                <button 
-                  type="submit" 
-                  disabled={saving} 
-                  className="flex items-center gap-2 px-8 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium shadow-lg shadow-emerald-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Save size={18} />
-                  {saving ? 'Guardando...' : 'Guardar Cambios'}
-                </button>
-              </div>
-            </form>
-
-            <div className="pt-8 mt-8 border-t border-gray-200 dark:border-gray-800">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200">
-                  <Layout size={18} />
+            <div className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+              <div className="flex items-center gap-3 mb-8 pb-4 border-b border-gray-100 dark:border-gray-800">
+                <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <User size={22} />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-gray-900 dark:text-white">Resolución del Dashboard</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">Ajusta el tamaño de la ventana y el zoom</div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Información de Perfil</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Actualiza tus datos personales y de contacto administrativo</p>
                 </div>
               </div>
 
-              {!hasElectronIpc ? (
-                <div className="text-sm text-gray-500">Disponible solo en la aplicación instalada.</div>
-              ) : !uiIpcAvailable ? (
-                <div className="text-sm text-gray-500">Reinicia la aplicación para habilitar este ajuste.</div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              <form onSubmit={saveMe} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
-                      <Maximize size={14} /> Tamaño
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <User size={13} /> Usuario de Acceso
                     </label>
-                    <select
-                      value={uiPreset}
-                      onChange={(e) => setUiPreset(e.target.value as any)}
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all cursor-pointer"
-                    >
-                      <option value="default">Automático</option>
-                      <option value="compact">Compacto (1280×720)</option>
-                      <option value="normal">Normal (1400×900)</option>
-                      <option value="large">Grande (1600×1000)</option>
-                      <option value="fullhd">Full HD (1920×1080)</option>
-                      <option value="maximized">Pantalla completa</option>
-                    </select>
+                    <input 
+                      name="username" 
+                      value={me.username} 
+                      disabled 
+                      className="w-full px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800/60 text-gray-500 border border-gray-200 dark:border-gray-800 cursor-not-allowed text-sm font-medium" 
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Mail size={13} /> Correo Electrónico
+                    </label>
+                    <input 
+                      name="email" 
+                      value={me.email} 
+                      onChange={handleChange} 
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600"
+                      placeholder="ejemplo@correo.com"
+                    />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
-                      <Type size={14} /> Zoom
-                    </label>
-                    <select
-                      value={String(uiZoom)}
-                      onChange={(e) => setUiZoom(Number(e.target.value))}
-                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all cursor-pointer"
-                    >
-                      <option value="0.75">75%</option>
-                      <option value="0.8">80%</option>
-                      <option value="0.85">85%</option>
-                      <option value="0.9">90%</option>
-                      <option value="1">100%</option>
-                      <option value="1.1">110%</option>
-                      <option value="1.25">125%</option>
-                    </select>
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Nombre</label>
+                    <input 
+                      name="first_name" 
+                      value={me.first_name} 
+                      onChange={handleChange} 
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600"
+                      placeholder="Ingresa tu nombre"
+                    />
                   </div>
 
-                  <div className="flex gap-2 md:justify-end">
-                    <button
-                      type="button"
-                      onClick={resetUi}
-                      className="px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-medium transition-all flex items-center gap-2"
-                    >
-                      <Minimize size={16} />
-                      Restablecer
-                    </button>
-                    <button
-                      type="button"
-                      onClick={applyUi}
-                      className="px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all flex items-center gap-2 shadow-lg shadow-blue-900/20"
-                    >
-                      <Maximize size={16} />
-                      Aplicar
-                    </button>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Apellido</label>
+                    <input 
+                      name="last_name" 
+                      value={me.last_name} 
+                      onChange={handleChange} 
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600"
+                      placeholder="Ingresa tu apellido"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Phone size={13} /> Teléfono Directo / WhatsApp
+                    </label>
+                    <input 
+                      name="phone" 
+                      value={me.phone || ''} 
+                      onChange={handleChange} 
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600"
+                      placeholder="ej: +57 300 123 4567"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Building size={13} /> Departamento / Área
+                    </label>
+                    <input 
+                      name="department" 
+                      value={me.department || ''} 
+                      onChange={handleChange} 
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600"
+                      placeholder="ej: Ventas, Administración"
+                    />
+                  </div>
+
+                  <div className="space-y-2 lg:col-span-3">
+                    <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                      <Briefcase size={13} /> Cargo / Puesto de Trabajo
+                    </label>
+                    <input 
+                      name="position" 
+                      value={me.position || ''} 
+                      onChange={handleChange} 
+                      className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600"
+                      placeholder="ej: Gerente Comercial / Administrador POS"
+                    />
                   </div>
                 </div>
-              )}
+
+                <div className="flex justify-end pt-4">
+                  <button 
+                    type="submit" 
+                    disabled={saving} 
+                    className="flex items-center gap-2 px-8 py-3 rounded-xl bg-gray-900 hover:bg-black dark:bg-gray-800 dark:hover:bg-gray-700 text-white text-xs font-bold shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.01]"
+                  >
+                    <Save size={16} />
+                    {saving ? 'Guardando...' : 'Guardar Cambios de Perfil'}
+                  </button>
+                </div>
+              </form>
+
+              <div className="pt-8 mt-8 border-t border-gray-100 dark:border-gray-800">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <Layout size={20} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-gray-900 dark:text-white">Ajustes de Pantalla del Dashboard</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">Personaliza la resolución y escala visual de tu aplicación</div>
+                  </div>
+                </div>
+
+                {!hasElectronIpc ? (
+                  <div className="text-xs text-gray-500">Ajuste exclusivo para la aplicación instalada.</div>
+                ) : !uiIpcAvailable ? (
+                  <div className="text-xs text-gray-500">Reinicia la aplicación para habilitar este ajuste.</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Maximize size={13} /> Tamaño de Ventana
+                      </label>
+                      <select
+                        value={uiPreset}
+                        onChange={(e) => setUiPreset(e.target.value as any)}
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-xs font-medium cursor-pointer"
+                      >
+                        <option value="default">Automático</option>
+                        <option value="compact">Compacto (1280×720)</option>
+                        <option value="normal">Normal (1400×900)</option>
+                        <option value="large">Grande (1600×1000)</option>
+                        <option value="fullhd">Full HD (1920×1080)</option>
+                        <option value="maximized">Pantalla Completa</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Type size={13} /> Nivel de Zoom
+                      </label>
+                      <select
+                        value={String(uiZoom)}
+                        onChange={(e) => setUiZoom(Number(e.target.value))}
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all text-xs font-medium cursor-pointer"
+                      >
+                        <option value="0.75">75% (Más pequeño)</option>
+                        <option value="0.8">80%</option>
+                        <option value="0.85">85%</option>
+                        <option value="0.9">90% (Recomendado)</option>
+                        <option value="1">100% (Normal)</option>
+                        <option value="1.1">110%</option>
+                        <option value="1.25">125% (Más grande)</option>
+                      </select>
+                    </div>
+
+                    <div className="flex gap-2 md:justify-end">
+                      <button
+                        type="button"
+                        onClick={resetUi}
+                        className="px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold transition-all flex items-center gap-1.5"
+                      >
+                        <Minimize size={14} />
+                        Restablecer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={applyUi}
+                        className="px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-lg shadow-blue-900/20"
+                      >
+                        <Maximize size={14} />
+                        Aplicar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
 
         {/* Empresa */}
         {tab === 'empresa' && (
-          <div className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 md:p-8 animate-fade-in shadow-sm dark:shadow-none">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400">
-                <Building size={24} />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Identidad Corporativa</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Personaliza la información pública de tu negocio</p>
-              </div>
-            </div>
-
-            <form onSubmit={saveSettings} className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Nombre de la Empresa</label>
-                  <input 
-                    name="company_name" 
-                    value={settings.company_name} 
-                    onChange={handleSettingsChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
-                    placeholder="Mi Empresa S.A.S"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400">NIT / Identificación</label>
-                  <input 
-                    name="company_nit" 
-                    value={settings.company_nit} 
-                    onChange={handleSettingsChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
-                    placeholder="900.000.000-1"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
-                    <Phone size={14} /> Teléfono
-                  </label>
-                  <input 
-                    name="company_phone" 
-                    value={settings.company_phone} 
-                    onChange={handleSettingsChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
-                    <Smartphone size={14} /> WhatsApp
-                  </label>
-                  <input 
-                    name="company_whatsapp" 
-                    value={settings.company_whatsapp} 
-                    onChange={handleSettingsChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
-                    <Mail size={14} /> Correo Corporativo
-                  </label>
-                  <input 
-                    type="email" 
-                    name="company_email" 
-                    value={settings.company_email} 
-                    onChange={handleSettingsChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
-                    <MapPin size={14} /> Dirección Principal
-                  </label>
-                  <input 
-                    name="company_address" 
-                    value={settings.company_address} 
-                    onChange={handleSettingsChange} 
-                    className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-400">Descripción del Negocio</label>
-                <textarea 
-                  name="company_description" 
-                  value={settings.company_description} 
-                  onChange={handleSettingsChange} 
-                  className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder-gray-400 dark:placeholder-gray-600 min-h-[100px] resize-none"
-                  placeholder="Una breve descripción que aparecerá en tu perfil público..."
-                />
-              </div>
-
-              <div className="pt-6 border-t border-gray-200 dark:border-gray-800">
-                <div className="space-y-4">
-                  <label className="text-sm font-medium text-gray-700 dark:text-gray-400 flex items-center gap-2">
-                    <ImageIcon size={14} /> Logo de la Empresa
-                  </label>
-                  <div className="flex items-start gap-4">
-                    <div className="w-24 h-24 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-800 flex items-center justify-center shrink-0">
-                      {logoFile ? (
-                        <img src={URL.createObjectURL(logoFile)} alt="Preview" className="w-full h-full object-contain" />
-                      ) : settings.logo ? (
-                        <img src={absUrl(settings.logo)} alt="Logo" className="w-full h-full object-contain" />
-                      ) : (
-                        <ImageIcon className="text-gray-400 dark:text-gray-600" size={32} />
-                      )}
+          <div className="space-y-6 animate-fade-in w-full">
+            {/* Brand Showcase Card - Estilo Sobrio y Tranquilo */}
+            <div className="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 sm:p-8 text-gray-900 dark:text-white shadow-sm relative overflow-hidden">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+                <div className="flex items-center gap-5">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-2 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
+                    {logoFile ? (
+                      <img src={URL.createObjectURL(logoFile)} alt="Logo Preview" className="w-full h-full object-contain" />
+                    ) : settings.logo ? (
+                      <img src={absUrl(settings.logo)} alt="Logo" className="w-full h-full object-contain" />
+                    ) : (
+                      <Building2 className="w-10 h-10 text-gray-400 dark:text-gray-500" />
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-3 py-1 rounded-full bg-gray-200/80 dark:bg-gray-800 text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-1 border border-gray-300/50 dark:border-gray-700">
+                        <Sparkles size={12} />
+                        <span>Identidad Corporativa</span>
+                      </span>
                     </div>
-                    <div className="flex-1">
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={handleLogo} 
-                        className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 cursor-pointer" 
-                      />
-                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-500">
-                        Recomendado: PNG con fondo transparente, mín. 200x200px.
-                      </p>
-                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                      {settings.company_name || 'Nombre de tu Empresa'}
+                    </h2>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-x-4 gap-y-1">
+                      {settings.company_nit && <span>NIT / Cédula: <strong>{settings.company_nit}</strong></span>}
+                      {settings.company_address && <span className="flex items-center gap-1"><MapPin size={12} /> {settings.company_address}</span>}
+                    </p>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div className="flex justify-end pt-4">
-                <button 
-                  type="submit" 
-                  disabled={saving} 
-                  className="flex items-center gap-2 px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-lg shadow-blue-900/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Save size={18} />
-                  {saving ? 'Guardando...' : 'Actualizar Empresa'}
-                </button>
-              </div>
-            </form>
+            <div className="bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-800 rounded-3xl p-6 sm:p-8 shadow-sm">
+              <form onSubmit={saveSettings} className="space-y-8">
+                {/* Bloque 1: Datos Legales e Identificación Fiscal */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-800">
+                    <Building2 className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">1. Información Legal y Fiscal</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                        Nombre Comercial / Razón Social *
+                      </label>
+                      <input 
+                        name="company_name" 
+                        value={settings.company_name} 
+                        onChange={handleSettingsChange} 
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 outline-none transition-all text-sm font-medium placeholder-gray-400 dark:placeholder-gray-600"
+                        placeholder="ej: Comercializadora El Sol S.A.S"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                        <Hash size={13} /> NIT / Número de Identificación *
+                      </label>
+                      <input 
+                        name="company_nit" 
+                        value={settings.company_nit} 
+                        onChange={handleSettingsChange} 
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 outline-none transition-all text-sm font-medium placeholder-gray-400 dark:placeholder-gray-600"
+                        placeholder="ej: 900.123.456-1"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                        <FileCheck size={13} /> Régimen Tributario
+                      </label>
+                      <select
+                        name="tax_regime"
+                        value={settings.tax_regime || 'no_responsable'}
+                        onChange={handleSettingsChange}
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 outline-none transition-all text-sm font-medium cursor-pointer"
+                      >
+                        <option value="no_responsable">No Responsable de IVA (Régimen Simplificado)</option>
+                        <option value="responsable_iva">Responsable de IVA (Régimen Común)</option>
+                        <option value="rst">Régimen Simple de Tributación (RST)</option>
+                        <option value="gran_contribuyente">Gran Contribuyente</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                        <FileText size={13} /> Matrícula Mercantil (Cámara de Comercio)
+                      </label>
+                      <input 
+                        name="merchant_register" 
+                        value={settings.merchant_register || ''} 
+                        onChange={handleSettingsChange} 
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600"
+                        placeholder="ej: N° 123456-16"
+                      />
+                    </div>
+
+                    <div className="space-y-2 lg:col-span-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                        <User size={13} /> Representante Legal
+                      </label>
+                      <input 
+                        name="legal_representative" 
+                        value={settings.legal_representative || ''} 
+                        onChange={handleSettingsChange} 
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600"
+                        placeholder="Nombre completo del representante legal"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bloque 2: Contacto y Ubicación */}
+                <div className="space-y-4 pt-4">
+                  <div className="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-800">
+                    <MapPin className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">2. Canales de Contacto Directo y Ubicación</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Phone size={13} /> Teléfono Fijo / Móvil
+                      </label>
+                      <input 
+                        name="company_phone" 
+                        value={settings.company_phone} 
+                        onChange={handleSettingsChange} 
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600"
+                        placeholder="ej: (606) 345 6789"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Smartphone size={13} /> WhatsApp Corporativo
+                      </label>
+                      <input 
+                        name="company_whatsapp" 
+                        value={settings.company_whatsapp} 
+                        onChange={handleSettingsChange} 
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600"
+                        placeholder="ej: +57 300 987 6543"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Mail size={13} /> Correo Electrónico Oficial
+                      </label>
+                      <input 
+                        type="email" 
+                        name="company_email" 
+                        value={settings.company_email} 
+                        onChange={handleSettingsChange} 
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600"
+                        placeholder="contacto@empresa.com"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <MapPin size={13} /> Ciudad y Departamento
+                      </label>
+                      <input 
+                        name="city_dept" 
+                        value={settings.city_dept || ''} 
+                        onChange={handleSettingsChange} 
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600"
+                        placeholder="ej: Pereira, Risaralda"
+                      />
+                    </div>
+
+                    <div className="space-y-2 lg:col-span-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <MapPin size={13} /> Dirección Sede Principal
+                      </label>
+                      <input 
+                        name="company_address" 
+                        value={settings.company_address} 
+                        onChange={handleSettingsChange} 
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600"
+                        placeholder="ej: Cra 7 # 19-28, Centro"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bloque 3: Presencia Digital y Datos Bancarios */}
+                <div className="space-y-4 pt-4">
+                  <div className="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-800">
+                    <Globe className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">3. Presencia Digital y Cuentas de Pago</h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Globe size={13} /> Sitio Web Oficial / Tienda
+                      </label>
+                      <input 
+                        name="website_url" 
+                        value={settings.website_url || ''} 
+                        onChange={handleSettingsChange} 
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600"
+                        placeholder="https://www.miempresa.com"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Instagram size={13} /> Instagram Corporativo
+                      </label>
+                      <input 
+                        name="social_instagram" 
+                        value={settings.social_instagram || ''} 
+                        onChange={handleSettingsChange} 
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600"
+                        placeholder="@miempresa_oficial"
+                      />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <Landmark size={13} /> Datos Bancarios para Transferencias de Clientes
+                      </label>
+                      <textarea 
+                        name="bank_info" 
+                        value={settings.bank_info || ''} 
+                        onChange={handleSettingsChange} 
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600 min-h-[70px] resize-none"
+                        placeholder="ej: Bancolombia Ahorros 123-456789-00 / Nequi 3001234567 (Titular: Mi Empresa SAS)"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bloque 4: Logo e Imagen Institucional */}
+                <div className="space-y-4 pt-4">
+                  <div className="flex items-center gap-2 pb-2 border-b border-gray-100 dark:border-gray-800">
+                    <ImageIcon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">4. Logo e Imagen Institucional</h3>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Descripción Comercial del Negocio</label>
+                      <textarea 
+                        name="company_description" 
+                        value={settings.company_description} 
+                        onChange={handleSettingsChange} 
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 focus:border-gray-400 outline-none transition-all text-sm placeholder-gray-400 dark:placeholder-gray-600 min-h-[90px] resize-none"
+                        placeholder="Breve reseña comercial de tu empresa que aparecerá en tus cotizaciones y portal web..."
+                      />
+                    </div>
+
+                    {/* Logo upload */}
+                    <div className="p-4 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700/80 space-y-4">
+                      <label className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                        <ImageIcon size={14} /> Logo Oficial de la Empresa
+                      </label>
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                        <div className="w-24 h-24 rounded-2xl overflow-hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 flex items-center justify-center shrink-0 shadow-sm p-2">
+                          {logoFile ? (
+                            <img src={URL.createObjectURL(logoFile)} alt="Preview" className="w-full h-full object-contain" />
+                          ) : settings.logo ? (
+                            <img src={absUrl(settings.logo)} alt="Logo" className="w-full h-full object-contain" />
+                          ) : (
+                            <Building2 className="text-gray-400 dark:text-gray-600 w-10 h-10" />
+                          )}
+                        </div>
+                        <div className="flex-1 text-center sm:text-left space-y-2">
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleLogo} 
+                            className="w-full text-xs text-gray-500 dark:text-gray-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-gray-900 file:text-white dark:file:bg-gray-800 hover:file:bg-black cursor-pointer" 
+                          />
+                          <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                            Formatos soportados: PNG o JPG con fondo transparente. Tamaño recomendado: mínimo 300x300px.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-6 border-t border-gray-100 dark:border-gray-800">
+                  <button 
+                    type="submit" 
+                    disabled={saving} 
+                    className="flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gray-900 hover:bg-black dark:bg-gray-800 dark:hover:bg-gray-700 text-white text-xs font-bold shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.01]"
+                  >
+                    <Save size={16} />
+                    {saving ? 'Guardando...' : 'Guardar Identidad Corporativa'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 

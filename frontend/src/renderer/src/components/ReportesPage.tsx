@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import SalesStatsPage from './SalesStatsPage';
 // @ts-ignore
 import logoImg from '../assets/logo.png';
 import { Toast, ToastType } from './Toast';
@@ -33,6 +34,7 @@ interface DayStats {
   total_orders: number;
   total_clients: number;
   top_product?: string;
+  salesList?: any[];
 }
 
 interface MonthSummary {
@@ -92,7 +94,7 @@ const ReportesPage: React.FC<ReportesPageProps> = ({ token, apiBase: rawApiBase,
   const [selectedDate, setSelectedDate] = useState<string>(fmtDate(today));
   const [monthData, setMonthData] = useState<MonthSummary>({});
   const [dayDetail, setDayDetail] = useState<DayStats | null>(null);
-  const [cashSessions, setCashSessions] = useState<any[]>([]);
+  const [monthSales, setMonthSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [dayLoading, setDayLoading] = useState(false);
   const [globalStats, setGlobalStats] = useState<any>(null);
@@ -139,128 +141,119 @@ const ReportesPage: React.FC<ReportesPageProps> = ({ token, apiBase: rawApiBase,
   const tq = tenantId ? `&tenant_id=${tenantId}` : '';
   const tqs = tenantId ? `?tenant_id=${tenantId}` : '';
 
-  const fetchAllSessions = async () => {
-    if (!token) return [];
-    try {
-      const q = tenantId ? `?tenant_id=${tenantId}` : '';
-      const res = await fetch(`${apiBase}/api/cashbox/sessions/${q}`, { headers: auth(token) });
-      if (!res.ok) return [];
-      const data = await res.json();
-      const list = Array.isArray(data.results) ? data.results : data;
-      setCashSessions(list);
-      return list;
-    } catch (err) {
-      console.error('Error fetching sessions:', err);
-      return [];
-    }
-  };
-
-  /* ── Fetch month calendar data ── */
+  /* ── Fetch month calendar data from Sales Order History ── */
   const fetchMonth = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     const y = currentDate.getFullYear(), m = currentDate.getMonth() + 1;
     try {
-      const list = await fetchAllSessions();
+      const params = new URLSearchParams({
+        year: String(y),
+        month: String(m),
+        no_page: 'true'
+      });
+      if (tenantId) params.set('tenant_id', tenantId);
+
+      const res = await fetch(`${apiBase}/sales/list/?${params.toString()}`, { headers: auth(token) });
+      let list: any[] = [];
+      if (res.ok) {
+        const data = await res.json();
+        list = Array.isArray(data) ? data : (data.results || []);
+      }
+      setMonthSales(list);
+
       const syn: MonthSummary = {};
-      
-      list.forEach((session: any) => {
-        if (!session.start_time) return;
-        const dateStr = session.start_time.split('T')[0];
-        const [sYear, sMonth] = dateStr.split('-').map(Number);
-        
-        if (sYear === y && sMonth === m) {
-          let totalSales = 0;
-          let totalAmount = 0;
-          
-          if (Array.isArray(session.transactions)) {
-            session.transactions.forEach((tx: any) => {
-              if (tx.type === 'sale' || tx.type === 'transfer_in') {
-                totalSales += 1;
-                totalAmount += Number(tx.amount) || 0;
-              }
-            });
-          }
-          
-          if (!syn[dateStr]) {
-            syn[dateStr] = { 
-              date: dateStr, 
-              total_sales: 0, 
-              total_amount: 0, 
-              total_orders: 0, 
-              total_clients: 0 
-            };
-          }
-          syn[dateStr].total_sales += totalSales;
-          syn[dateStr].total_amount += totalAmount;
-          syn[dateStr].total_orders += totalSales;
-          syn[dateStr].total_clients += totalSales;
+      const clientSets: Record<string, Set<any>> = {};
+
+      list.forEach((sale: any) => {
+        if (!sale.created_at) return;
+        const dateStr = sale.created_at.split('T')[0];
+        const amount = Number(sale.total_amount) || 0;
+
+        if (!syn[dateStr]) {
+          syn[dateStr] = { 
+            date: dateStr, 
+            total_sales: 0, 
+            total_amount: 0, 
+            total_orders: 0, 
+            total_clients: 0 
+          };
+          clientSets[dateStr] = new Set();
+        }
+
+        syn[dateStr].total_sales += 1;
+        syn[dateStr].total_amount += amount;
+        syn[dateStr].total_orders += 1;
+        if (sale.client?.id || sale.client?.full_name) {
+          clientSets[dateStr].add(sale.client?.id || sale.client?.full_name);
         }
       });
-      
+
+      Object.keys(syn).forEach(d => {
+        syn[d].total_clients = clientSets[d] ? clientSets[d].size : syn[d].total_sales;
+      });
+
       setMonthData(syn);
     } catch (err) {
-      console.error('Error fetching calendar stats:', err);
+      console.error('Error fetching sales calendar stats:', err);
     } finally {
       setLoading(false);
     }
-  }, [token, currentDate, tenantId]);
+  }, [token, currentDate, tenantId, apiBase]);
 
   useEffect(() => { fetchMonth(); }, [fetchMonth]);
 
-  /* ── Fetch day detail locally ── */
+  /* ── Fetch day detail locally from sales history ── */
   const fetchDay = useCallback((date: string) => {
     setDayLoading(true);
-    const daySessions = cashSessions.filter((s: any) => s.start_time && s.start_time.split('T')[0] === date);
-    
-    let totalSales = 0;
-    let totalAmount = 0;
-    let totalOrders = 0;
-    let totalClients = 0;
-    let productCounts: Record<string, number> = {};
-    
-    daySessions.forEach((session: any) => {
-      if (Array.isArray(session.transactions)) {
-        session.transactions.forEach((tx: any) => {
-          if (tx.type === 'sale' || tx.type === 'transfer_in') {
-            totalSales += 1;
-            totalOrders += 1;
-            totalClients += 1;
-            totalAmount += Number(tx.amount) || 0;
-            
-            const desc = tx.description || '';
-            if (desc && !desc.includes('Pago recibido') && !desc.includes('Venta #') && !desc.includes('Ingreso a Banco')) {
-              productCounts[desc] = (productCounts[desc] || 0) + 1;
-            } else {
-              const label = tx.type === 'transfer_in' ? 'Transferencia Bancaria' : 'Venta Directa';
-              productCounts[label] = (productCounts[label] || 0) + 1;
-            }
+    const daySales = monthSales.filter((s: any) => s.created_at && s.created_at.split('T')[0] === date);
+
+    let totalSales = daySales.length;
+    let totalAmount = daySales.reduce((acc, s) => acc + (Number(s.total_amount) || 0), 0);
+    let totalOrders = daySales.length;
+    let clientSet = new Set(daySales.map(s => s.client?.id || s.client?.full_name).filter(Boolean));
+    let totalClients = clientSet.size;
+
+    let productCounts: Record<string, { qty: number; amount: number }> = {};
+
+    daySales.forEach((sale: any) => {
+      if (Array.isArray(sale.items)) {
+        sale.items.forEach((item: any) => {
+          const pName = item.product?.name || item.product_name || 'Producto';
+          const qty = Number(item.quantity) || 1;
+          const lineTotal = Number(item.line_total) || 0;
+
+          if (!productCounts[pName]) {
+            productCounts[pName] = { qty: 0, amount: 0 };
           }
+          productCounts[pName].qty += qty;
+          productCounts[pName].amount += lineTotal;
         });
       }
     });
-    
+
     let topProduct = '';
-    let maxCount = 0;
-    Object.entries(productCounts).forEach(([prod, count]) => {
-      if (count > maxCount) {
-        maxCount = count;
-        topProduct = prod;
+    let maxQty = 0;
+    Object.entries(productCounts).forEach(([name, data]) => {
+      if (data.qty > maxQty) {
+        maxQty = data.qty;
+        topProduct = name;
       }
     });
-    
+
     setDayDetail({
       date,
       total_sales: totalSales,
       total_amount: totalAmount,
       total_orders: totalOrders,
       total_clients: totalClients,
-      top_product: topProduct || undefined
+      top_product: topProduct || undefined,
+      salesList: daySales
     });
     setDayLoading(false);
-  }, [cashSessions]);
+  }, [monthSales]);
 
-  useEffect(() => { fetchDay(selectedDate); }, [selectedDate, cashSessions, fetchDay]);
+  useEffect(() => { fetchDay(selectedDate); }, [selectedDate, monthSales, fetchDay]);
 
   /* ── Fetch global stats ── */
   const fetchGlobal = useCallback(async () => {
@@ -347,42 +340,46 @@ const ReportesPage: React.FC<ReportesPageProps> = ({ token, apiBase: rawApiBase,
          reportSubtitle = `Año ${year}`;
       }
       
-      // Filter sessions for PDF timeframe
-      const periodSessions = cashSessions.filter((s: any) => {
-        if (!s.start_time) return false;
-        const dateStr = s.start_time.split('T')[0];
-        if (type === 'daily') {
-          return dateStr === selectedDate;
-        } else if (type === 'monthly') {
-          return dateStr.startsWith(`${year}-${String(month+1).padStart(2,'0')}`);
-        } else if (type === 'annual') {
-          return dateStr.startsWith(`${year}-`);
+      // Filter sales for PDF timeframe
+      let periodSales: any[] = [];
+      if (type === 'daily') {
+        periodSales = monthSales.filter((s: any) => s.created_at && s.created_at.split('T')[0] === selectedDate);
+      } else if (type === 'monthly') {
+        periodSales = monthSales;
+      } else if (type === 'annual') {
+        const params = new URLSearchParams({
+          year: String(year),
+          no_page: 'true'
+        });
+        if (tenantId) params.set('tenant_id', tenantId);
+        const res = await fetch(`${apiBase}/sales/list/?${params.toString()}`, { headers: auth(token) });
+        if (res.ok) {
+          const data = await res.json();
+          periodSales = Array.isArray(data) ? data : (data.results || []);
         }
-        return false;
-      });
+      }
 
-      let totalSales = 0;
+      let totalSales = periodSales.length;
       let totalAmount = 0;
-      let productMap: Record<string, { name: string, qty: number, amount: number }> = {};
+      let productMap: Record<string, { name: string, image: string, qty: number, amount: number }> = {};
 
-      periodSessions.forEach((session: any) => {
-        if (Array.isArray(session.transactions)) {
-          session.transactions.forEach((tx: any) => {
-            if (tx.type === 'sale' || tx.type === 'transfer_in') {
-              totalSales += 1;
-              totalAmount += Number(tx.amount) || 0;
-              
-              const desc = tx.description || '';
-              const prodName = (desc && !desc.includes('Pago recibido') && !desc.includes('Venta #') && !desc.includes('Ingreso a Banco'))
-                ? desc
-                : (tx.type === 'transfer_in' ? 'Transferencia Bancaria' : 'Venta Directa');
-                
-              if (!productMap[prodName]) {
-                productMap[prodName] = { name: prodName, qty: 0, amount: 0 };
-              }
-              productMap[prodName].qty += 1;
-              productMap[prodName].amount += Number(tx.amount) || 0;
+      periodSales.forEach((sale: any) => {
+        totalAmount += Number(sale.total_amount) || 0;
+        if (Array.isArray(sale.items)) {
+          sale.items.forEach((item: any) => {
+            const prodName = item.product?.name || item.product_name || 'Producto';
+            const prodImg = item.product?.image || '';
+            const qty = Number(item.quantity) || 1;
+            const lineTotal = Number(item.line_total) || 0;
+
+            if (!productMap[prodName]) {
+              productMap[prodName] = { name: prodName, image: prodImg, qty: 0, amount: 0 };
             }
+            if (!productMap[prodName].image && prodImg) {
+              productMap[prodName].image = prodImg;
+            }
+            productMap[prodName].qty += qty;
+            productMap[prodName].amount += lineTotal;
           });
         }
       });
@@ -391,13 +388,91 @@ const ReportesPage: React.FC<ReportesPageProps> = ({ token, apiBase: rawApiBase,
 
       const productRows = topProducts.length > 0
         ? topProducts.map((p: any) => {
+            const imgTag = p.image 
+              ? `<img src="${p.image}" style="width:36px;height:36px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;background:#f8fafc" />`
+              : `<div style="width:36px;height:36px;border-radius:6px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:14px">📦</div>`;
             return `<tr>
-              <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;color:#111827;font-size:11px">${p.name}</td>
-              <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center;color:#374151;font-size:11px">${p.qty} unidades</td>
-              <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:700;color:#1d4ed8;font-size:11px">${fmt(Number(p.amount || 0))}</td>
+              <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;width:48px;text-align:center">${imgTag}</td>
+              <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;font-weight:600;color:#111827;font-size:11px">${p.name}</td>
+              <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:center;color:#374151;font-size:11px">${p.qty} unidades</td>
+              <td style="padding:6px 12px;border-bottom:1px solid #e5e7eb;text-align:right;font-weight:700;color:#1d4ed8;font-size:11px">${fmt(Number(p.amount || 0))}</td>
             </tr>`;
           }).join('')
-        : `<tr><td colspan="3" style="padding:15px;text-align:center;color:#9ca3af;font-size:12px">No se registraron productos vendidos en este periodo.</td></tr>`;
+        : `<tr><td colspan="4" style="padding:15px;text-align:center;color:#9ca3af;font-size:12px">No se registraron productos vendidos en este periodo.</td></tr>`;
+
+      // Build detailed sales cards with items and product images
+      const salesDetailedHtml = periodSales.length > 0
+        ? periodSales.map((sale: any) => {
+            const itemsRows = Array.isArray(sale.items) && sale.items.length > 0
+              ? sale.items.map((item: any) => {
+                  const pName = item.product?.name || item.product_name || 'Producto';
+                  const pImg = item.product?.image || '';
+                  const skuStr = item.product?.sku ? `SKU: ${item.product.sku}` : '';
+                  const colorStr = item.color?.name ? ` • Color: ${item.color.name}` : '';
+                  const variantStr = item.variant?.name ? ` • Var: ${item.variant.name}` : '';
+
+                  const imgHtml = pImg
+                    ? `<img src="${pImg}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;background:#fff" />`
+                    : `<div style="width:40px;height:40px;border-radius:6px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:16px">📦</div>`;
+
+                  return `
+                    <tr style="border-bottom:1px solid #f1f5f9">
+                      <td style="padding:6px 10px;width:52px;text-align:center">${imgHtml}</td>
+                      <td style="padding:6px 10px;font-size:11px;font-weight:600;color:#1e293b">
+                        ${pName}
+                        <div style="font-size:10px;color:#64748b;font-weight:400;margin-top:1px">${skuStr}${colorStr}${variantStr}</div>
+                      </td>
+                      <td style="padding:6px 10px;font-size:11px;color:#334155;text-align:center;font-weight:500">${item.quantity} un.</td>
+                      <td style="padding:6px 10px;font-size:11px;color:#334155;text-align:right">${fmt(Number(item.unit_price || 0))}</td>
+                      <td style="padding:6px 10px;font-size:11px;font-weight:700;color:#0f172a;text-align:right">${fmt(Number(item.line_total || 0))}</td>
+                    </tr>
+                  `;
+                }).join('')
+              : `<tr><td colspan="5" style="padding:10px;text-align:center;color:#94a3b8;font-size:11px">Sin productos registrados en el pedido.</td></tr>`;
+
+            const clientName = sale.client?.full_name || 'Cliente Ocasional';
+            const clientCed = sale.client?.cedula ? ` (CC/NIT: ${sale.client.cedula})` : '';
+            const pmLabel = sale.payment_method === 'cash' ? 'Efectivo' : sale.payment_method === 'transfer' ? 'Transferencia' : 'Pago Mixto';
+            const statusLabel = sale.status === 'delivered' ? 'Entregado' : sale.status === 'shipped' ? 'Enviado' : sale.status === 'pending' ? 'Pendiente' : sale.status === 'processing' ? 'Procesando' : sale.status === 'apartado' ? 'Apartado' : 'Cancelado';
+            const dateStr = sale.created_at ? new Date(sale.created_at).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' }) : '';
+
+            return `
+              <div style="margin-bottom:14px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;page-break-inside:avoid;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.03)">
+                <!-- Order Header -->
+                <div style="background:#f8fafc;padding:8px 14px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center flex-wrap:wrap">
+                  <div>
+                    <span style="font-weight:800;font-size:12px;color:#1d4ed8;font-family:monospace">Orden #${sale.order_number}</span>
+                    <span style="font-size:10px;color:#64748b;margin-left:8px">${dateStr}</span>
+                    <div style="font-size:11px;font-weight:600;color:#334155;margin-top:2px">Cliente: ${clientName}${clientCed}</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div style="font-size:13px;font-weight:800;color:#15803d">${fmt(Number(sale.total_amount || 0))}</div>
+                    <div style="font-size:10px;margin-top:2px">
+                      <span style="background:#e0f2fe;color:#0369a1;padding:2px 6px;border-radius:4px;font-weight:700;margin-right:4px">${pmLabel}</span>
+                      <span style="background:#f1f5f9;color:#475569;padding:2px 6px;border-radius:4px;font-weight:700">${statusLabel}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Products Table for this Order -->
+                <table style="width:100%;border-collapse:collapse;margin:0">
+                  <thead>
+                    <tr style="background:#f1f5f9;border-bottom:1px solid #e2e8f0">
+                      <th style="padding:4px 8px;width:52px;text-align:center;font-size:9px;color:#64748b;font-weight:700">IMAGEN</th>
+                      <th style="padding:4px 10px;text-align:left;font-size:9px;color:#64748b;font-weight:700">PRODUCTO / DETALLES</th>
+                      <th style="padding:4px 10px;text-align:center;font-size:9px;color:#64748b;font-weight:700">CANTIDAD</th>
+                      <th style="padding:4px 10px;text-align:right;font-size:9px;color:#64748b;font-weight:700">PRECIO UNIT.</th>
+                      <th style="padding:4px 10px;text-align:right;font-size:9px;color:#64748b;font-weight:700">SUBTOTAL</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${itemsRows}
+                  </tbody>
+                </table>
+              </div>
+            `;
+          }).join('')
+        : `<div style="padding:15px;text-align:center;color:#94a3b8;font-size:12px;background:#f8fafc;border-radius:10px">No se encontraron ventas para este periodo.</div>`;
 
       let detailedHtml = '';
       if (type === 'monthly') {
@@ -414,7 +489,7 @@ const ReportesPage: React.FC<ReportesPageProps> = ({ token, apiBase: rawApiBase,
         }).filter(Boolean).join('');
         
         detailedHtml = `
-          <h3 style="font-size:14px;font-weight:800;color:#111827;margin-top:15px;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">Resumen de Ventas Diarias (Días con Actividad)</h3>
+          <h3 style="font-size:13px;font-weight:800;color:#111827;margin-top:18px;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">Resumen de Ventas Diarias (Días con Actividad)</h3>
           <table>
             <thead>
               <tr>
@@ -471,10 +546,14 @@ thead th{padding:9px 12px;text-align:left;font-size:10px;font-weight:800;text-tr
 
 ${detailedHtml}
 
-<h3 style="font-size:14px;font-weight:800;color:#111827;margin-top:25px;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">Detalle de Productos Vendidos</h3>
+<h3 style="font-size:13px;font-weight:800;color:#111827;margin-top:22px;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em">Desglose de Ventas y Productos Vendidos</h3>
+${salesDetailedHtml}
+
+<h3 style="font-size:13px;font-weight:800;color:#111827;margin-top:22px;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em">Consolidado de Productos Vendidos</h3>
 <table>
   <thead>
     <tr>
+      <th style="width:48px;text-align:center">Imagen</th>
       <th>Nombre del Producto</th>
       <th style="text-align:center">Cantidad Vendida</th>
       <th style="text-align:right">Total Facturado</th>
@@ -517,7 +596,7 @@ ${detailedHtml}
 
   /* ══════════════════════════════════════════════════════════════════════ */
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 160px)', minHeight: 400 }}>
+    <div className="flex flex-col min-h-screen pb-10">
       <style>{`
         @keyframes repFade { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
         .rep-fade { animation: repFade 0.22s ease; }
@@ -759,6 +838,30 @@ ${detailedHtml}
                       </div>
                     )}
 
+                    {dayDetail.salesList && dayDetail.salesList.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 space-y-2">
+                        <p className="text-[10px] font-extrabold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          Historial de Pedidos ({dayDetail.salesList.length})
+                        </p>
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                          {dayDetail.salesList.map((sale: any) => (
+                            <div key={sale.id} className="p-2 rounded-xl bg-gray-50 dark:bg-gray-800/80 border border-gray-200/60 dark:border-gray-700/60 text-xs">
+                              <div className="flex items-center justify-between font-bold text-gray-900 dark:text-white">
+                                <span className="font-mono text-[11px]">{sale.order_number}</span>
+                                <span className="text-blue-600 dark:text-blue-400 font-extrabold">{fmt(Number(sale.total_amount || 0))}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 mt-1">
+                                <span className="truncate max-w-[100px]">{sale.client?.full_name || 'Cliente'}</span>
+                                <span className="capitalize px-1.5 py-0.5 rounded bg-gray-200/60 dark:bg-gray-700/60 text-gray-700 dark:text-gray-300 font-semibold">
+                                  {sale.payment_method === 'cash' ? 'Efectivo' : sale.payment_method === 'transfer' ? 'Transf.' : 'Mixto'}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {dayDetail.total_sales === 0 && (
                       <div className="flex flex-col items-center justify-center py-4 text-gray-400 gap-1">
                         <AlertCircle size={20} className="opacity-30"/>
@@ -798,129 +901,10 @@ ${detailedHtml}
         </div>
       )}
 
-      {/* ═══ ESTADISTICAS ═══ */}
+      {/* ═══ ESTADISTICAS (Exact same component as sub-link) ═══ */}
       {activeTab === 'estadisticas' && (
-        <div className="flex-1 overflow-y-auto space-y-5 rep-fade pr-0.5">
-          {globalLoading ? (
-            <div className="flex items-center justify-center py-24">
-              <div className="w-9 h-9 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"/>
-            </div>
-          ) : globalStats ? (
-            <>
-              {/* Stat cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <StatCard icon={ShoppingCart} label="Ventas Totales" value={String(globalStats.total_sales??0)} sub="Acumulado" colorBg="bg-emerald-500" colorText="text-emerald-600 dark:text-emerald-400" trend={globalStats.trend?.sales_pct??null}/>
-                <StatCard icon={DollarSign} label="Monto Total" value={fmt(Number(globalStats.total_amount??0))} sub="Ingresos" colorBg="bg-blue-500" colorText="text-blue-600 dark:text-blue-400" trend={globalStats.trend?.amount_pct??null}/>
-                <StatCard icon={TrendingUp} label="Ventas Hoy" value={String(globalStats.today_sales??0)} sub="Dia actual" colorBg="bg-indigo-500" colorText="text-indigo-600 dark:text-indigo-400"/>
-                <StatCard icon={Users} label="Clientes" value={String(globalStats.clients?.total??0)} sub={`+${globalStats.clients?.new_this_month??0} este mes`} colorBg="bg-amber-500" colorText="text-amber-600 dark:text-amber-400"/>
-              </div>
-
-              {/* Bar chart */}
-              <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-900 dark:text-white">Tendencia de Ventas</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Monto por periodo</p>
-                  </div>
-                  <button onClick={fetchGlobal} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 transition-colors">
-                    <RefreshCw size={13} className={globalLoading?'animate-spin':''}/>
-                  </button>
-                </div>
-                {rangeSales.length > 0 ? (
-                  <div className="flex items-end gap-1 h-36">
-                    {rangeSales.map((s, i) => (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
-                        <div className="w-full rounded-t-sm transition-all duration-500 cursor-pointer relative"
-                          style={{ height:`${Math.max((s.amount/maxBarAmt)*100,1)}%`, minHeight:2, background:'linear-gradient(to top,#2563eb,#6366f1)' }}
-                          title={`${s.label}: ${fmt(s.amount)}`}>
-                          <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[9px] font-bold px-1.5 py-0.5 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                            {fmt(s.amount)}
-                          </div>
-                        </div>
-                        <span className="text-[8px] text-gray-400 truncate w-full text-center">{s.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="h-36 flex items-center justify-center text-gray-400">
-                    <div className="text-center"><BarChart2 size={26} className="mx-auto mb-2 opacity-20"/><p className="text-xs">Sin datos</p></div>
-                  </div>
-                )}
-              </div>
-
-              {/* Top products */}
-              {globalStats.top_products?.length > 0 && (
-                <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm">
-                  <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-4">Productos mas Vendidos</h3>
-                  <div className="space-y-3">
-                    {globalStats.top_products.slice(0,8).map((p:any, i:number) => {
-                      const mq = Math.max(...globalStats.top_products.map((x:any)=>x.qty),1);
-                      return (
-                        <div key={i} className="flex items-center gap-3">
-                          <span className={`w-6 h-6 flex items-center justify-center rounded text-[10px] font-black shrink-0
-                            ${i===0?'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400':
-                              i===1?'bg-gray-100 dark:bg-gray-800 text-gray-500':
-                              i===2?'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400':
-                              'bg-gray-50 dark:bg-gray-800/50 text-gray-400'}`}>{i+1}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-medium text-gray-900 dark:text-white truncate">{p.name}</span>
-                              <span className="text-[10px] text-gray-400 ml-1 shrink-0">{p.qty} uds</span>
-                            </div>
-                            <div className="h-1 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                              <div className="h-full rounded-full transition-all duration-700" style={{width:`${(p.qty/mq)*100}%`,background:'linear-gradient(to right,#2563eb,#6366f1)'}}/>
-                            </div>
-                          </div>
-                          <span className="text-xs font-bold text-gray-900 dark:text-white shrink-0">{fmt(Number(p.amount))}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Trend + best product */}
-              {globalStats.trend && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-5 shadow-sm">
-                    <p className="text-xs font-bold text-gray-400 mb-4">Ultimos 7 dias vs 7 anteriores</p>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-[10px] text-gray-400 mb-0.5">Actual</p>
-                        <p className="text-2xl font-black text-gray-900 dark:text-white">{globalStats.trend.last7_sales}</p>
-                        <p className="text-xs text-gray-400">{fmt(Number(globalStats.trend.last7_amount))}</p>
-                      </div>
-                      <div className={`flex flex-col items-center px-4 ${(globalStats.trend.sales_pct??0)>=0?'text-emerald-500':'text-rose-500'}`}>
-                        {(globalStats.trend.sales_pct??0)>=0 ? <ArrowUpRight size={24}/> : <ArrowDownRight size={24}/>}
-                        <span className="text-lg font-black">{Math.abs(globalStats.trend.sales_pct??0).toFixed(1)}%</span>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] text-gray-400 mb-0.5">Anterior</p>
-                        <p className="text-2xl font-black text-gray-400">{globalStats.trend.prev7_sales}</p>
-                        <p className="text-xs text-gray-400">{fmt(Number(globalStats.trend.prev7_amount))}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {globalStats.best_product && (
-                    <div className="bg-blue-600 rounded-2xl p-5 text-white shadow-lg shadow-blue-600/20">
-                      <p className="text-xs opacity-70 mb-2 flex items-center gap-1"><Package size={12}/> Producto Estrella</p>
-                      <p className="text-lg font-black mb-3 leading-tight">{globalStats.best_product.name}</p>
-                      <div className="flex gap-4">
-                        <div><p className="text-[10px] opacity-60">Unidades</p><p className="text-xl font-black">{globalStats.best_product.qty}</p></div>
-                        <div><p className="text-[10px] opacity-60">Ingresos</p><p className="text-base font-black">{fmt(Number(globalStats.best_product.amount))}</p></div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-24 text-gray-400 gap-3">
-              <BarChart2 size={32} className="opacity-20"/>
-              <p className="text-sm">No hay estadisticas disponibles</p>
-            </div>
-          )}
+        <div className="flex-1 overflow-y-auto rep-fade pr-0.5">
+          <SalesStatsPage token={token} apiBase={rawApiBase} role={role} />
         </div>
       )}
       <Toast

@@ -215,7 +215,8 @@ const ClientsPage: React.FC<ClientsPageProps> = ({ token, apiBase, onViewClient,
         loadClients();
         loadStats();
       } else {
-        setMsg({ type: 'error', text: 'No se pudo eliminar el cliente' });
+        const errorMsg = result.data?.detail || result.data?.error || 'No se pudo eliminar el cliente';
+        setMsg({ type: 'error', text: errorMsg });
       }
     } catch (e) {
       setMsg({ type: 'error', text: 'Error de red' });

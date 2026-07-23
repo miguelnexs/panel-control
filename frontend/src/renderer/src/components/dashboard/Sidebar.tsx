@@ -55,6 +55,7 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
     const map: Record<string, string | null> = {
       productos: 'view_products',
       producto_form: 'view_products',
+      inventario_salidas: 'view_products',
       categorias: 'view_categories',
       clientes: 'view_clients',
       client_details: 'view_clients',
@@ -582,11 +583,11 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
           <span className={tooltipClass}>Clientes</span>
         </button>
         )}
-        {(canAccess('productos') || canAccess('categorias') || canAccess('servicios')) && (
+        {(canAccess('productos') || canAccess('categorias') || canAccess('servicios') || canAccess('proveedores') || canAccess('compras') || canAccess('inventario_salidas')) && (
         <div className="relative">
-          <button className={`${itemBase} ${['productos', 'categorias', 'servicios'].includes(view) ? activeClass : ''}`} onClick={toggleInventoryMenu} title="Inventario">
-            {['productos', 'categorias', 'servicios'].includes(view) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
-            <span className={`${iconBoxClass} ${toneClasses('inventory')} ${['productos', 'categorias', 'servicios'].includes(view) ? 'ring-1 ring-white/20' : ''}`}>
+          <button className={`${itemBase} ${['productos', 'categorias', 'servicios', 'proveedores', 'compras', 'inventario_salidas', 'compras_movimientos'].includes(view) ? activeClass : ''}`} onClick={toggleInventoryMenu} title="Inventario">
+            {['productos', 'categorias', 'servicios', 'proveedores', 'compras', 'inventario_salidas', 'compras_movimientos'].includes(view) && <span className="absolute left-0 top-0 h-full w-1 bg-blue-500 rounded-r" />}
+            <span className={`${iconBoxClass} ${toneClasses('inventory')} ${['productos', 'categorias', 'servicios', 'proveedores', 'compras', 'inventario_salidas', 'compras_movimientos'].includes(view) ? 'ring-1 ring-white/20' : ''}`}>
               <Icon name="inventory" className="w-4 h-4" />
             </span>
             <span className={textClass}>Inventario</span>
@@ -635,22 +636,13 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <span>Servicios</span>
               </button>
               )}
-              {canAccess('proveedores') && (
+              {(canAccess('compras') || canAccess('inventario_salidas') || canAccess('proveedores')) && (
               <button 
-                onClick={(e) => { e.stopPropagation(); setView('proveedores'); setInventoryMenuPos(null); }} 
-                className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'proveedores' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
+                onClick={(e) => { e.stopPropagation(); setView('compras_movimientos'); setInventoryMenuPos(null); }} 
+                className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${['compras', 'inventario_salidas', 'proveedores', 'compras_movimientos'].includes(view) ? 'text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
               >
-                <Icon name="users" className="w-3 h-3" />
-                <span>Proveedores</span>
-              </button>
-              )}
-              {canAccess('compras') && (
-              <button 
-                onClick={(e) => { e.stopPropagation(); setView('compras'); setInventoryMenuPos(null); }} 
-                className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors ${view === 'compras' ? 'text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-600/10' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'}`}
-              >
-                <Icon name="sales" className="w-3 h-3" />
-                <span>Compras / Stock</span>
+                <Icon name="sales" className="w-3 h-3 text-teal-500" />
+                <span>Movimientos</span>
               </button>
               )}
             </div>
@@ -685,22 +677,13 @@ const Sidebar: React.FC<SidebarProps> = ({ view, setView, onSignOut, role, order
                 <span>Servicios</span>
               </button>
               )}
-              {canAccess('proveedores') && (
+              {(canAccess('compras') || canAccess('inventario_salidas') || canAccess('proveedores')) && (
               <button 
-                onClick={(e) => { e.stopPropagation(); setView('proveedores'); }} 
-                className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'proveedores' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
+                onClick={(e) => { e.stopPropagation(); setView('compras_movimientos'); }} 
+                className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${['compras', 'inventario_salidas', 'proveedores', 'compras_movimientos'].includes(view) ? 'text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
               >
-                <Icon name="users" className="w-3 h-3" />
-                <span>Proveedores</span>
-              </button>
-              )}
-              {canAccess('compras') && (
-              <button 
-                onClick={(e) => { e.stopPropagation(); setView('compras'); }} 
-                className={`w-full text-left px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 flex items-center gap-3 transition-colors text-sm ${view === 'compras' ? 'text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-600/10' : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}
-              >
-                <Icon name="sales" className="w-3 h-3" />
-                <span>Compras / Stock</span>
+                <Icon name="sales" className="w-3 h-3 text-teal-500" />
+                <span>Movimientos</span>
               </button>
               )}
             </div>

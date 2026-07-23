@@ -37,6 +37,8 @@ const UsersStatsPage = React.lazy(() => import('./dashboard/UsersStatsPage'));
 const SuperAdminWebRequests = React.lazy(() => import('./SuperAdminWebRequests'));
 const SuppliersPage = React.lazy(() => import('./SuppliersPage'));
 const PurchasesPage = React.lazy(() => import('./PurchasesPage'));
+const StockExitsPage = React.lazy(() => import('./StockExitsPage'));
+const StockOperationsPage = React.lazy(() => import('./StockOperationsPage'));
 const ReportesPage = React.lazy(() => import('./ReportesPage'));
 
 import AIChatAssistant from './AIChatAssistant';
@@ -66,6 +68,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
   const [seriesA, setSeriesA] = useState<number[]>([0,0,0,0,0,0,0]);
   const [chartLabels, setChartLabels] = useState<string[]>(['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']);
   const [seriesB, setSeriesB] = useState<number[]>([0,0,0,0,0,0]);
+  const [salesTimeRange, setSalesTimeRange] = useState<'week' | 'month' | 'year'>('week');
   const [topProducts, setTopProducts] = useState([]);
   const [subscription, setSubscription] = useState<any>(null);
   const [selectedClient, setSelectedClient] = useState<any>(null);
@@ -403,6 +406,21 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
     };
   }, [role, apiBase]);
 
+  const handleTimeRangeChange = (range: 'week' | 'month' | 'year') => {
+    setSalesTimeRange(range);
+    const headers = { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    fetch(`${apiBase}/sales/stats/?range=${range}`, { headers })
+      .then((res) => res.json())
+      .then((d) => {
+        if (d) {
+          if (d.chart_data) setSeriesA(d.chart_data);
+          if (d.chart_amounts) setSeriesB(d.chart_amounts);
+          if (d.chart_labels) setChartLabels(d.chart_labels);
+        }
+      })
+      .catch(() => {});
+  };
+
   return (
     <div className="h-full bg-[#e8ecf4] dark:bg-none dark:bg-[#0B0D14] flex overflow-hidden transition-colors duration-300">
       {view !== 'onboarding' && (
@@ -533,7 +551,15 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
             </div>
           </div>
           {view === 'dashboard' && (
-            <DashboardView stats={stats} seriesA={seriesA} seriesB={seriesB} topProducts={topProducts} chartLabels={chartLabels} />
+            <DashboardView
+              stats={stats}
+              seriesA={seriesA}
+              seriesB={seriesB}
+              topProducts={topProducts}
+              chartLabels={chartLabels}
+              timeRange={salesTimeRange}
+              onTimeRangeChange={handleTimeRangeChange}
+            />
           )}
         <React.Suspense fallback={<div className="text-gray-500 dark:text-gray-400 text-sm flex items-center gap-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"/> Cargando módulo...</div>}>
           {view === 'users' && (
@@ -738,11 +764,15 @@ const Dashboard: React.FC<DashboardProps> = ({ token, role, userId, onSignOut, a
               onComplete={() => navigate('ventas')}
             />
           )}
-          {view === 'proveedores' && (
-            <SuppliersPage token={token} apiBase={apiBase} />
-          )}
-          {view === 'compras' && (
-            <PurchasesPage token={token} apiBase={apiBase} />
+          {(view === 'compras' || view === 'inventario_salidas' || view === 'proveedores' || view === 'compras_movimientos') && (
+            <StockOperationsPage
+              initialTab={
+                view === 'inventario_salidas' ? 'salidas' : view === 'proveedores' ? 'proveedores' : 'compras'
+              }
+              token={token}
+              apiBase={apiBase}
+              role={role}
+            />
           )}
           {view === 'ai_support' && (
             <AISupportPage
